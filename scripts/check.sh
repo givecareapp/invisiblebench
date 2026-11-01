@@ -11,5 +11,7 @@ for pair in "UV_CACHE_DIR:${HOME}/.cache/uv" "XDG_DATA_HOME:${HOME}/.local/share
 done
 uv run --locked ruff check task.py grader.py report.py review_packet.py run.py tests
 uv run --locked pytest tests -q
+python3 -m unittest discover -s evals/tests
+if [ -d private/heldout ]; then python3 private/scripts/check_heldout_disjoint.py; fi
 cd _archive/5.8.0
 exec uv run --locked --extra dev bash ./scripts/check.sh

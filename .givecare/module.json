@@ -1,14 +1,44 @@
 {
   "schema_version": "givecare.module/v2",
   "repository": "gc-bench",
-  "owns": "InvisibleBench: checks, scenarios, the scan engine, and the leaderboard",
+  "owns": "InvisibleBench: checks, scenarios, the scan engine, the leaderboard, and the public evals dataset (evals/)",
   "check": "scripts/check.sh",
   "produces": [
-    {"id": "gc-bench.web-benchmark-release/v5", "path": "data/releases/web-bench-release.tar.gz", "for": ["gc-web"]},
-    {"id": "gc-bench.run-record/v1", "path": "results", "for": ["gc-research"]}
+    {
+      "id": "gc-bench.web-benchmark-release/v5",
+      "path": "data/releases/web-bench-release.tar.gz",
+      "for": [
+        "gc-web"
+      ]
+    },
+    {
+      "id": "gc-bench.run-record/v1",
+      "path": "results",
+      "for": [
+        "gc-research"
+      ]
+    },
+    {
+      "id": "gc-evals.gold-case/v1",
+      "path": "evals/data/all.jsonl",
+      "for": [
+        "gc-bench"
+      ]
+    }
   ],
   "consumes": [
-    {"id": "gc-evals.gold-case/v1", "from": "gc-evals", "pin": "private/data/imports/evals/materialization.json"},
-    {"id": "givecare.protocol", "from": "."}
+    {
+      "id": "gc-evals.gold-case/v1",
+      "from": "gc-bench",
+      "pin": "private/data/imports/evals/materialization.json"
+    },
+    {
+      "id": "@givecare/tools.InstrumentExport",
+      "from": "gc-tools"
+    },
+    {
+      "id": "givecare.protocol",
+      "from": "."
+    }
   ]
 }
