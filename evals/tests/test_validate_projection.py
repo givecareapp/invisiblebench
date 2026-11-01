@@ -21,7 +21,7 @@ class PublicDatasetTests(unittest.TestCase):
             declaration["consumes"],
         )
         self.assertIn(
-            {"id": "gc-evals.gold-case/v1", "path": "evals/data/all.jsonl", "for": ["gc-bench"]},
+            {"id": "gc-evals.gold-case/v1", "path": "evals/data/all.jsonl", "for": ["research-bench"]},
             declaration["produces"],
         )
 

@@ -47,8 +47,8 @@ results/
 # Semantic scenario lint response cache (content-hashed, rebuildable)
 .cache/semantic-lint/
 
-# Private overlay: nested private repo (givecareapp/givecare-bench-private).
-# Holds everything private to gc-bench; public code must not depend on it.
+# Private overlay: nested private repo (givecareapp/research-bench-private).
+# Holds everything private to research-bench; public code must not depend on it.
 /private/
 /AGENTS.md
 /CLAUDE.md

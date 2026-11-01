@@ -1,6 +1,6 @@
 {
   "schema_version": "givecare.module/v2",
-  "repository": "gc-bench",
+  "repository": "research-bench",
   "owns": "InvisibleBench: checks, scenarios, the scan engine, the leaderboard, and the public evals dataset (evals/)",
   "check": "scripts/check.sh",
   "produces": [
@@ -22,14 +22,14 @@
       "id": "gc-evals.gold-case/v1",
       "path": "evals/data/all.jsonl",
       "for": [
-        "gc-bench"
+        "research-bench"
       ]
     }
   ],
   "consumes": [
     {
       "id": "gc-evals.gold-case/v1",
-      "from": "gc-bench",
+      "from": "research-bench",
       "pin": "private/data/imports/evals/materialization.json"
     },
     {
