@@ -311,7 +311,7 @@ def resolve_verified_tools_projection(
             "--access",
             "public",
             "--owner-repo",
-            "gc-tools",
+            "research-tools",
             "--artifact-owner",
             "tools.assessments",
             "--artifact-id",
@@ -355,8 +355,8 @@ def resolve_verified_tools_projection(
 
 
 def check_instrument_parity(*, tools_commit: str) -> None:
-    """Require the exact committed projection owned by gc-tools."""
-    tools_root = WORKSPACE / "gc-tools"
+    """Require the exact committed projection owned by research-tools."""
+    tools_root = WORKSPACE / "research-tools"
     protocol_cli = WORKSPACE / "scripts" / "givecare_protocol.py"
     try:
         export_bytes = resolve_verified_tools_projection(
@@ -371,9 +371,9 @@ def check_instrument_parity(*, tools_commit: str) -> None:
     if materialization != export_bytes:
         fail(
             "data/instruments.json is not the exact byte-for-byte materialization of "
-            "the committed gc-tools projection; run scripts/sync_instruments.py"
+            "the committed research-tools projection; run scripts/sync_instruments.py"
         )
-    print(f"ok: instrument parity with gc-tools git:{tools_commit}")
+    print(f"ok: instrument parity with research-tools git:{tools_commit}")
 
 
 def validate_source_splits() -> tuple[int, list[dict[str, Any]]]:
@@ -412,7 +412,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--tools-commit",
         required=True,
-        help="exact gc-tools owner commit",
+        help="exact research-tools owner commit",
     )
     args = parser.parse_args(argv)
     record_count = validate_gold_cases()

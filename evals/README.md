@@ -90,9 +90,9 @@ separately as an EMA-3 reading.
 | `gc_sdoh30` | 30-item bank | GC-SDOH-30 targeted branch, four additional questions in one flagged domain |
 
 The instrument **definition** (question ids, prompts, GC domains, scale, and domain
-weights) is owned by [`@givecare/tools`](https://github.com/givecareapp/givecare-tools).
+weights) is owned by [`@givecare/tools`](https://github.com/givecareapp/research-tools).
 `data/instruments.json` is an exact byte-for-byte materialization of the
-verified `gc-tools` projection output (`gc-tools/data/instruments-export.json`). Update
+verified `research-tools` projection output (`research-tools/data/instruments-export.json`). Update
 it only with
 `python3 scripts/sync_instruments.py --owner-commit <full-gc-tools-commit>`.
 The command verifies the shared ArtifactRef and exact digest through the
@@ -146,16 +146,16 @@ for case in cases:
 
 No Python package install is required. Run the public unit tests from this
 checkout with `python3 -m unittest discover -s tests`. Workspace validation also
-requires the sibling `gc-tools` owner projection and the workspace protocol CLI.
+requires the sibling `research-tools` owner projection and the workspace protocol CLI.
 
 ```bash
 python3 scripts/validate.py --tools-commit <full-gc-tools-commit>
 ```
 
-The validator checks JSONL parseability, non-shrinking split floors, required fields, duplicate IDs, `all.jsonl` consistency, instrument shape and scoring semantics, exact byte parity with the verified committed `../gc-tools` projection, high-risk and SMS-format rows with empty `expected_behaviors`, overbroad forbidden patterns, multi-turn context, adapted-scenario identifying and high-specificity markers, and that stale benefits-program data has not been reintroduced.
+The validator checks JSONL parseability, non-shrinking split floors, required fields, duplicate IDs, `all.jsonl` consistency, instrument shape and scoring semantics, exact byte parity with the verified committed `../research-tools` projection, high-risk and SMS-format rows with empty `expected_behaviors`, overbroad forbidden patterns, multi-turn context, adapted-scenario identifying and high-specificity markers, and that stale benefits-program data has not been reintroduced.
 
 `--tools-commit` is required. It must identify one full commit reachable from
-`gc-tools` local `main`. The validator reads committed bytes and rejects local
+`research-tools` local `main`. The validator reads committed bytes and rejects local
 instrument drift. It never selects the latest revision for the caller.
 
 See [docs/evidence.md](./docs/evidence.md) for reviewed intake and projection.

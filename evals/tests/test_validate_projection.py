@@ -17,7 +17,7 @@ class PublicDatasetTests(unittest.TestCase):
     def test_research_bench_module_declares_the_tools_consume_and_evals_produce(self):
         declaration = json.loads((ROOT.parent / ".givecare/module.json").read_text())
         self.assertIn(
-            {"id": "@givecare/tools.InstrumentExport", "from": "gc-tools"},
+            {"id": "@givecare/tools.InstrumentExport", "from": "research-tools"},
             declaration["consumes"],
         )
         self.assertIn(

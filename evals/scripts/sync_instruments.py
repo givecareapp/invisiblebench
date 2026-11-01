@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize one exact committed gc-tools instrument projection."""
+"""Materialize one exact committed research-tools instrument projection."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parent
 ROOT = SCRIPTS.parent
 GIVECARE_ROOT = ROOT.parents[1]
-TOOLS_ROOT = GIVECARE_ROOT / "gc-tools"
+TOOLS_ROOT = GIVECARE_ROOT / "research-tools"
 PROTOCOL_CLI = GIVECARE_ROOT / "scripts" / "givecare_protocol.py"
 TARGET = ROOT / "data" / "instruments.json"
 
@@ -64,7 +64,7 @@ def materialize(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Sync the exact verified gc-tools instrument projection."
+        description="Sync the exact verified research-tools instrument projection."
     )
     parser.add_argument("--owner-commit", required=True)
     args = parser.parse_args(argv)

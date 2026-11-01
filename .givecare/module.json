@@ -34,7 +34,7 @@
     },
     {
       "id": "@givecare/tools.InstrumentExport",
-      "from": "gc-tools"
+      "from": "research-tools"
     },
     {
       "id": "givecare.protocol",
