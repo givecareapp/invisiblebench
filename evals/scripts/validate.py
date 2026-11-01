@@ -378,7 +378,7 @@ def check_instrument_parity(*, tools_commit: str) -> None:
 
 def validate_source_splits() -> tuple[int, list[dict[str, Any]]]:
     if (DATA / "benefits-programs.jsonl").exists():
-        fail("data/benefits-programs.jsonl should not live in research-bench evals; benefits data belongs to gc-benefits")
+        fail("data/benefits-programs.jsonl should not live in research-bench evals; benefits data belongs to delivery-benefits")
 
     ids: set[str] = set()
     merged: list[dict[str, Any]] = []
