@@ -8,7 +8,7 @@
       "id": "gc-bench.web-benchmark-release/v5",
       "path": "data/releases/web-bench-release.tar.gz",
       "for": [
-        "gc-web"
+        "platform-web"
       ]
     },
     {
