@@ -46,10 +46,10 @@ invisiblebench = "invisiblebench.inspect_task"
 bench = "invisiblebench.cli.runner:main"
 
 [project.urls]
-Homepage = "https://givecareapp.github.io/givecare-bench"
-Repository = "https://github.com/givecareapp/givecare-bench"
-Issues = "https://github.com/givecareapp/givecare-bench/issues"
-Documentation = "https://givecareapp.github.io/givecare-bench/"
+Homepage = "https://givecareapp.github.io/research-bench"
+Repository = "https://github.com/givecareapp/research-bench"
+Issues = "https://github.com/givecareapp/research-bench/issues"
+Documentation = "https://givecareapp.github.io/research-bench/"
 
 [build-system]
 requires = ["hatchling"]
