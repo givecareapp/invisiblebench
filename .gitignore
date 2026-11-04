@@ -47,9 +47,8 @@ results/
 # Semantic scenario lint response cache (content-hashed, rebuildable)
 .cache/semantic-lint/
 
-# Private overlay: nested private repo (givecareapp/invisiblebench-private).
-# Holds everything private to invisiblebench; public code must not depend on it.
-/private/
+# Private evaluation companion is a sibling checkout at ../invisiblebench-private.
+# Public code must not depend on its presence.
 /AGENTS.md
 /CLAUDE.md
 /.givecare/*
