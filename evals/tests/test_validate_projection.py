@@ -17,11 +17,11 @@ class PublicDatasetTests(unittest.TestCase):
     def test_research_bench_module_declares_the_tools_consume_and_evals_produce(self):
         declaration = json.loads((ROOT.parent / ".givecare/module.json").read_text())
         self.assertIn(
-            {"id": "@givecare/tools.InstrumentExport", "from": "research-tools"},
+            {"id": "@givecare/tools.InstrumentExport", "from": "assessment"},
             declaration["consumes"],
         )
         self.assertIn(
-            {"id": "gc-evals.gold-case/v1", "path": "evals/data/all.jsonl", "for": ["research-bench"]},
+            {"id": "gc-evals.gold-case/v1", "path": "evals/data/all.jsonl", "for": ["invisiblebench"]},
             declaration["produces"],
         )
 

@@ -311,7 +311,7 @@ def resolve_verified_tools_projection(
             "--access",
             "public",
             "--owner-repo",
-            "research-tools",
+            "assessment",
             "--artifact-owner",
             "tools.assessments",
             "--artifact-id",
@@ -355,8 +355,8 @@ def resolve_verified_tools_projection(
 
 
 def check_instrument_parity(*, tools_commit: str) -> None:
-    """Require the exact committed projection owned by research-tools."""
-    tools_root = WORKSPACE / "research-tools"
+    """Require the exact committed projection owned by assessment."""
+    tools_root = WORKSPACE / "assessment"
     protocol_cli = WORKSPACE / "scripts" / "givecare_protocol.py"
     try:
         export_bytes = resolve_verified_tools_projection(
@@ -371,14 +371,14 @@ def check_instrument_parity(*, tools_commit: str) -> None:
     if materialization != export_bytes:
         fail(
             "data/instruments.json is not the exact byte-for-byte materialization of "
-            "the committed research-tools projection; run scripts/sync_instruments.py"
+            "the committed assessment projection; run scripts/sync_instruments.py"
         )
-    print(f"ok: instrument parity with research-tools git:{tools_commit}")
+    print(f"ok: instrument parity with assessment git:{tools_commit}")
 
 
 def validate_source_splits() -> tuple[int, list[dict[str, Any]]]:
     if (DATA / "benefits-programs.jsonl").exists():
-        fail("data/benefits-programs.jsonl should not live in research-bench evals; benefits data belongs to delivery-benefits")
+        fail("data/benefits-programs.jsonl should not live in invisiblebench evals; benefits data belongs to benefits")
 
     ids: set[str] = set()
     merged: list[dict[str, Any]] = []
@@ -412,7 +412,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--tools-commit",
         required=True,
-        help="exact research-tools owner commit",
+        help="exact assessment owner commit",
     )
     args = parser.parse_args(argv)
     record_count = validate_gold_cases()

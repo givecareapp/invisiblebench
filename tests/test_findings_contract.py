@@ -15,7 +15,7 @@ def doc():
             "scan_id": "2026-11-01-sms-candidate",
             "bench_revision": "0" * 39 + "1",
             "run_at": "2026-11-01T12:00:00Z",
-            "model_under_test": "delivery-sms/care-agent",
+            "model_under_test": "mira/care-agent",
             "run_by": "research",
         },
         "findings": [

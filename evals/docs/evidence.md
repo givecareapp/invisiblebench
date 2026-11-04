@@ -36,7 +36,7 @@ Create a JSON file with this exact shape:
         "schema_version": "givecare.artifact-ref/v1",
         "owner": "gc-sms.care",
         "kind": "module-declaration",
-        "artifact_id": "delivery-sms/.givecare/module.json",
+        "artifact_id": "mira/.givecare/module.json",
         "revision": "git:2222222222222222222222222222222222222222",
         "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "access": "workspace"

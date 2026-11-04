@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/givecareapp/research-bench/contracts/findings.v1.schema.json",
+  "$id": "https://github.com/givecareapp/invisiblebench/contracts/findings.v1.schema.json",
   "title": "research-bench.findings/v1",
-  "description": "The only thing a bench scan hands to delivery-sms: per-check verdicts and taxonomy pressure. An allow-list: every object is closed and every string is a short identifier, so scenario text, verifier prompts, transcripts and expected answers have nowhere to go.",
+  "description": "The only thing a bench scan hands to mira: per-check verdicts and taxonomy pressure. An allow-list: every object is closed and every string is a short identifier, so scenario text, verifier prompts, transcripts and expected answers have nowhere to go.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "scan", "findings", "pressure"],

@@ -1,6 +1,6 @@
 """Validator for research-bench.findings/v1, the bench-to-sms allow-list.
 
-Dependency-free on purpose: delivery-sms and the release gate can vendor this
+Dependency-free on purpose: mira and the release gate can vendor this
 file and run it without the bench environment. `validate(doc)` returns a list
 of problems; an empty list means the document may cross the firewall.
 

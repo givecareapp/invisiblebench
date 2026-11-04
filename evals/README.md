@@ -1,18 +1,18 @@
 <!-- Diátaxis: reference -->
 
-# GiveCare Evals (research-bench `evals/`)
+# GiveCare Evals (invisiblebench `evals/`)
 
 Public evaluation dataset for caregiver-support AI, published on Hugging Face as
 [`givecare/caregiver-evals`](https://huggingface.co/datasets/givecare/caregiver-evals).
-License: CC-BY-4.0 ([`LICENSE`](LICENSE)); the rest of research-bench keeps its own license.
+License: CC-BY-4.0 ([`LICENSE`](LICENSE)); the rest of invisiblebench keeps its own license.
 
 History: this folder was the separate repository `givecareapp/givecare-evals`,
-folded into research-bench on 2026-10-31 at givecare-evals commit
+folded into invisiblebench on 2026-10-31 at givecare-evals commit
 `a7cde36f7868e20e11c17561dd5b2688bafc4830`. That repository is archived read-only with its full history.
 
 Held-out rule: every case here is public, permanently. A public case never
 becomes a held-out case; held-out scenarios are authored only in
-research-bench-private `heldout/`, and its check refuses any held-out case that
+invisiblebench-private `heldout/`, and its check refuses any held-out case that
 matches a public case here. A held-out case may retire into public; never the reverse.
 
 <!-- Diátaxis: reference -->
@@ -36,7 +36,7 @@ rebuilds the digest-bound `data/all.jsonl` projection from the splits.
 | `data/reddit-caregivers.jsonl` | Realistic caregiver scenarios adapted from public caregiver posts and rewritten into short first-person messages |
 | `data/multi-turn.jsonl` | Continuity scenarios that assume prior context, memory, or seeded turn state |
 | `data/all.jsonl` | Canonical concatenation of the four eval splits |
-| `data/instruments.json` | Exact verified projection of `@givecare/tools.InstrumentExport` (owned by research-tools, not by evals) |
+| `data/instruments.json` | Exact verified projection of `@givecare/tools.InstrumentExport` (owned by assessment, not by evals) |
 | `data/instruments-overlay.json` | Evals-only public packaging and scoring prose |
 
 ## What is not included
@@ -90,9 +90,9 @@ separately as an EMA-3 reading.
 | `gc_sdoh30` | 30-item bank | GC-SDOH-30 targeted branch, four additional questions in one flagged domain |
 
 The instrument **definition** (question ids, prompts, GC domains, scale, and domain
-weights) is owned by [`@givecare/tools`](https://github.com/givecareapp/research-tools).
+weights) is owned by [`@givecare/tools`](https://github.com/givecareapp/assessment).
 `data/instruments.json` is an exact byte-for-byte materialization of the
-verified `research-tools` projection output (`research-tools/data/instruments-export.json`). Update
+verified `assessment` projection output (`assessment/data/instruments-export.json`). Update
 it only with
 `python3 scripts/sync_instruments.py --owner-commit <full-gc-tools-commit>`.
 The command verifies the shared ArtifactRef and exact digest through the
@@ -146,16 +146,16 @@ for case in cases:
 
 No Python package install is required. Run the public unit tests from this
 checkout with `python3 -m unittest discover -s tests`. Workspace validation also
-requires the sibling `research-tools` owner projection and the workspace protocol CLI.
+requires the sibling `assessment` owner projection and the workspace protocol CLI.
 
 ```bash
 python3 scripts/validate.py --tools-commit <full-gc-tools-commit>
 ```
 
-The validator checks JSONL parseability, non-shrinking split floors, required fields, duplicate IDs, `all.jsonl` consistency, instrument shape and scoring semantics, exact byte parity with the verified committed `../research-tools` projection, high-risk and SMS-format rows with empty `expected_behaviors`, overbroad forbidden patterns, multi-turn context, adapted-scenario identifying and high-specificity markers, and that stale benefits-program data has not been reintroduced.
+The validator checks JSONL parseability, non-shrinking split floors, required fields, duplicate IDs, `all.jsonl` consistency, instrument shape and scoring semantics, exact byte parity with the verified committed `../assessment` projection, high-risk and SMS-format rows with empty `expected_behaviors`, overbroad forbidden patterns, multi-turn context, adapted-scenario identifying and high-specificity markers, and that stale benefits-program data has not been reintroduced.
 
 `--tools-commit` is required. It must identify one full commit reachable from
-`research-tools` local `main`. The validator reads committed bytes and rejects local
+`assessment` local `main`. The validator reads committed bytes and rejects local
 instrument drift. It never selects the latest revision for the caller.
 
 See [docs/evidence.md](./docs/evidence.md) for reviewed intake and projection.
