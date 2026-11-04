@@ -33,7 +33,8 @@ _archive/5.8.0/          Frozen prior public implementation
 data/                    Unchanged prior public artifacts
 ```
 
-`private/` is a separate ignored repository. `results/` contains historical
+`invisiblebench-private/` is a separate private repository. `care-evals` owns
+the public reusable case data. `results/` contains historical
 private run evidence. The old 5.8 implementation and its source revision are
 recorded in the [archive record](_archive/README.md). It is not imported by the
 active tasks. The ignored `site/` directory is generated output, not active

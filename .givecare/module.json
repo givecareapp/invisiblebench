@@ -1,7 +1,7 @@
 {
   "schema_version": "givecare.module/v2",
   "repository": "invisiblebench",
-  "owns": "InvisibleBench: checks, scenarios, the scan engine, the leaderboard, and the public evals dataset (evals/)",
+  "owns": "InvisibleBench: checks, scenarios, the scan engine, the leaderboard, and private held-out evaluation operations",
   "check": "scripts/check.sh",
   "produces": [
     {
@@ -15,26 +15,15 @@
       "id": "gc-bench.run-record/v1",
       "path": "results",
       "for": [
-        "research-evidence"
-      ]
-    },
-    {
-      "id": "gc-evals.gold-case/v1",
-      "path": "evals/data/all.jsonl",
-      "for": [
-        "invisiblebench"
+        "research"
       ]
     }
   ],
   "consumes": [
     {
       "id": "gc-evals.gold-case/v1",
-      "from": "invisiblebench",
-      "pin": "private/data/imports/evals/materialization.json"
-    },
-    {
-      "id": "@givecare/tools.InstrumentExport",
-      "from": "assessment"
+      "from": "care-evals",
+      "pin": "private/data/imports/care-evals/materialization.json"
     },
     {
       "id": "givecare.protocol",
