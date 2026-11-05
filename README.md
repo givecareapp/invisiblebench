@@ -29,15 +29,15 @@ tests/                   Offline harness and contract tests
 scripts/check.sh         Active lint and tests
 BENCHMARK_CARD.md        Methods, evidence, limits, and review protocol
 CHANGELOG.md             Notable changes per development version
-_archive/5.8.0/          Frozen prior public implementation
 data/                    Unchanged prior public artifacts
 ```
 
 `invisiblebench-private/` is a separate private repository. `care-evals` owns
 the public reusable case data. `results/` contains historical
-private run evidence. The old 5.8 implementation and its source revision are
-recorded in the [archive record](_archive/README.md). It is not imported by the
-active tasks. The ignored `site/` directory is generated output, not active
+private run evidence. The 5.8 implementation is source revision `22552fe` in this
+repository's history; nothing active imports it. Its offline gate last passed
+585 of 585 exemplars and 508 tests. To replay it, check out that revision and run
+`uv run --locked --extra dev bash ./scripts/check.sh`. The ignored `site/` directory is generated output, not active
 source.
 
 ## Run offline checks

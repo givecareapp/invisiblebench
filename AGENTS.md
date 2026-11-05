@@ -15,8 +15,6 @@ This repository owns the public benchmark runtime and public benchmark releases.
   semantic validity.
 - `data/`: benchmark release artifacts and manifests.
 - `contracts/`: public findings and release schemas.
-- `_archive/5.8.0/`: frozen historical implementation; preserve its source
-  bytes. No check runs it; replay from its recorded source revision.
 - `.givecare/module.json`: this repository's public workspace contract.
 
 ## Ownership boundary

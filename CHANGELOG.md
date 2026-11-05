@@ -5,8 +5,8 @@ Type: reference.
 Notable changes to the InvisibleBench rebuild, newest first, in the
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. The version is
 the one in `pyproject.toml`, which every Inspect log records as
-`benchmark_version`. Commits are the detailed record. The 5.8.0 archive under
-`_archive/5.8.0/` does not change and has no entries here.
+`benchmark_version`. Commits are the detailed record. The 5.8.0
+implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 

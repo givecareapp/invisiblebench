@@ -88,7 +88,7 @@ The [README](README.md#use-the-development-tasks) gives locked, no-cost mock com
 generation, control judging, target judging, and an offline report. Inspect
 `.eval` files are the authoritative run records. Private scenarios and traces
 are not part of this public development package. The prior 5.8 public release
-is preserved under `_archive/5.8.0/`; its results are not rebuild results.
+is source revision `22552fe` in Git history; its results are not rebuild results.
 
 ## Interoperability
 
@@ -253,7 +253,7 @@ and allowance for that behavior, as well as prices and unknown-cost handling.
 
 The private wiki syntheses informed the questions used here. This family is newly
 written; no source's vignette, assessment questionnaire, or old benchmark case was
-copied. The archive remains reference material and has no runtime import.
+copied. The 5.8 source stays in Git history and has no runtime import.
 
 - *The AARP Caregiver Answer Book*, Chapter 2: willingness, ability, and
   availability informed the distinction between a capable helper and agreed help.
