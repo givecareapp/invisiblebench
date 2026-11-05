@@ -49,7 +49,5 @@ results/
 
 # Private evaluation companion is a sibling checkout at ../invisiblebench-private.
 # Public code must not depend on its presence.
-/AGENTS.md
-/CLAUDE.md
 /.givecare/*
 !/.givecare/module.json

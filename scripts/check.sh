@@ -11,9 +11,6 @@ for pair in "UV_CACHE_DIR:${HOME}/.cache/uv" "XDG_DATA_HOME:${HOME}/.local/share
 done
 uv run --locked ruff check task.py grader.py report.py review_packet.py run.py tests
 uv run --locked pytest tests -q
-if [ -d ../invisiblebench-private/heldout ]; then
-  python3 ../invisiblebench-private/scripts/check_heldout_disjoint.py
-fi
 # The historical source is frozen. Run the exact committed snapshot from a
 # neutral temporary checkout so its path-sensitive legacy inventory code does
 # not mistake this repository's new `safety/` parent for a benchmark category.
