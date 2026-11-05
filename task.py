@@ -23,16 +23,15 @@ CASES = ROOT / "cases"
 PROJECT = ROOT / "pyproject.toml"
 VERSION = tomllib.loads(PROJECT.read_text())["project"]["version"]
 
-# OpenRouter list prices in USD per million tokens, read from /api/v1/models on 2026-10-30.
+# OpenRouter list prices in USD per million tokens, read from /api/v1/models on 2026-11-05.
 # Refresh them before a paid run. Each value is (input, output, input_cache_read).
-# Llama lists no cache price, so its cache-read entry repeats the input price.
 OPENROUTER_PRICES: dict[str, tuple[float, float, float]] = {
     "openrouter/anthropic/claude-haiku-5.5": (0.10, 0.50, 0.01),
     "openrouter/openai/gpt-5.6-luna-pro": (0.20, 1.20, 0.02),
     "openrouter/openai/gpt-5.6-luna": (0.20, 1.20, 0.02),
     "openrouter/google/gemini-3.1-flash-lite": (0.25, 1.50, 0.025),
-    "openrouter/deepseek/deepseek-v4.1-flash": (0.045, 0.50, 0.006),
-    "openrouter/meta-llama/llama-3.3-70b-instruct": (0.10, 0.32, 0.10),
+    "openrouter/deepseek/deepseek-v4.1-flash": (0.045, 0.50, 0.018),
+    "openrouter/meta-llama/llama-3.3-70b-instruct": (0.20, 0.52, 0.10),
 }
 
 
