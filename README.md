@@ -117,6 +117,9 @@ the arguments, Git revision, evaluation IDs, usage, and reported cost. Nobody
 types it. A run refuses uncommitted case files. A paid model also needs
 `--judge-cost-limit-usd` (per sample) and `--ceiling-usd` (whole run). The run
 stops before the next evaluation once the reported cost passes the ceiling.
+If a completed evaluation lacks paid usage or a paid model cost, no further
+paid evaluation starts. Mock usage alone does not block paid work. Finished
+logs, reports and the stop reason are preserved; no spend is retried or guessed.
 Run `python run.py --help` for the other options.
 
 Paid inference requires pre-registration and an explicit cost ceiling. Before a

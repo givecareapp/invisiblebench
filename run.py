@@ -24,7 +24,7 @@ from task import case_path, conversation_family
 
 
 class CeilingReached(Exception):
-    """The reported cost already passes the ceiling, so the next evaluation must not start."""
+    """A cost limit cannot permit the next evaluation."""
 
 
 def positive(kind):
@@ -113,6 +113,15 @@ def reported_cost(logs) -> tuple[float, int]:
     return total, unknown
 
 
+def unknown_paid_cost(log: EvalLog) -> bool:
+    """Mock usage is free; absent paid usage cannot establish zero spend."""
+    usage = usage_of(log)
+    paid = [item for model, item in usage.items() if not model.startswith("mockllm/")]
+    if not paid:
+        return not log.eval.model.startswith("mockllm/")
+    return any(item.total_cost is None for item in paid)
+
+
 def execute(
     args: argparse.Namespace,
 ) -> tuple[list[tuple[str, EvalLog]], str | None, Exception | None]:
@@ -124,6 +133,8 @@ def execute(
     limits = dict(args.target_max_tokens)
 
     def evaluate(kind, family, shown, task, model, log_dir, **options):
+        if not model.startswith("mockllm/") and any(unknown_paid_cost(log) for _, log in done):
+            raise CeilingReached(f"unknown paid cost before {kind} {family} {shown}")
         spent, _ = reported_cost(log for _, log in done)
         if args.ceiling_usd is not None and spent > args.ceiling_usd:
             raise CeilingReached(
