@@ -297,8 +297,13 @@ def test_a_log_with_no_judgeable_samples_is_reported_and_skipped(tmp_path, monke
     assert lines[0] == "GEN backup_care mockllm/model success 3 samples 3 errors"
     assert lines[1] == "SKIP backup_care mockllm/model no judgeable samples"
     assert lines[2].startswith("DONE ")
-    [generation] = _record(out)["logs"]
+    record = _record(out)
+    [generation] = record["logs"]
     assert generation["samples"] == generation["errors"] == 3
+    assert generation["model_usage"] == {}
+    # No usage record cannot establish a measured zero cost.
+    assert record["reported_cost_usd"] == 0
+    assert record["unknown_cost_logs"] == 1
     assert sorted(p.name for p in out.iterdir()) == ["generation", "run.json"]
 
 

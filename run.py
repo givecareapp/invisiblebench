@@ -104,12 +104,12 @@ def usage_of(log: EvalLog) -> dict:
 
 
 def reported_cost(logs) -> tuple[float, int]:
-    """Summed reported cost, and the count of logs where some model reported none."""
+    """Sum known costs; count logs with absent or incomplete cost data."""
     total, unknown = 0.0, 0
     for log in logs:
         costs = [usage.total_cost for usage in usage_of(log).values()]
         total += sum(cost for cost in costs if cost is not None)
-        unknown += any(cost is None for cost in costs)
+        unknown += not costs or any(cost is None for cost in costs)
     return total, unknown
 
 
