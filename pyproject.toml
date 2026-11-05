@@ -3,7 +3,7 @@ name = "invisiblebench"
 version = "0.1.4"
 description = "Development slice for multi-turn caregiver evaluation"
 requires-python = ">=3.12"
-dependencies = ["inspect-ai==0.3.287"]
+dependencies = ["inspect-ai==0.3.287", "openai==3.46.0"]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.15"]
