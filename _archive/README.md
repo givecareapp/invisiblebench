@@ -26,6 +26,7 @@ overlay and run evidence are not relocated here. For hash-bound historical repla
 use the exact source revision recorded by the run rather than treating this
 directory move as a new result.
 
-The archive is reference material, not an active dependency or an independent
-validation set. Bring back only the engineering needed for a verified new slice.
+The archive is reference material, not an independent validation set. Retained
+private tools still import its engine from source; the private tests are its only
+remaining check. Bring back only the engineering needed for a verified new slice.
 Do not edit the snapshot to satisfy new requirements.
