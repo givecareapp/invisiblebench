@@ -7,9 +7,10 @@ package configuration, lockfile, and published artifacts. The version name alone
 does not identify all development changes; the full revision is authoritative.
 
 Before archiving, the offline gate passed: Ruff, strict turn indices, 585 of 585
-saved exemplars, and 508 public tests. Root `scripts/check.sh` runs that same gate
-from the archived project. Fresh-checkout checks may need the locked dependencies
-installed by `uv`; the benchmark checks themselves make no paid provider calls.
+saved exemplars, and 508 public tests. It last passed in the root check at
+`c3449a7`; root `scripts/check.sh` no longer runs it. To replay it, run
+`uv run --locked --extra dev bash ./scripts/check.sh` from a fresh checkout of the
+source revision; it makes no paid provider calls.
 
 The Git repository, root hooks, license, ignore rules, Python version, module
 contract, and published `data/` artifacts remain at their original paths. Their

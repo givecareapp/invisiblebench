@@ -16,7 +16,7 @@ This repository owns the public benchmark runtime and public benchmark releases.
 - `data/`: benchmark release artifacts and manifests.
 - `contracts/`: public findings and release schemas.
 - `_archive/5.8.0/`: frozen historical implementation; preserve its source
-  bytes and run its archived gate as part of `scripts/check.sh`.
+  bytes. No check runs it; replay from its recorded source revision.
 - `.givecare/module.json`: this repository's public workspace contract.
 
 ## Ownership boundary
@@ -37,7 +37,7 @@ scripts/check.sh
 uv run --locked python run.py --help
 ```
 
-The check runs the active tests and the unchanged archived gate. Paid inference,
+The check runs active lint and tests only. Paid inference,
 publication, external messages, and deployment require explicit owner approval.
 
 ## Proof and safety

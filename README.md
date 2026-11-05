@@ -26,7 +26,7 @@ cases/<family>/          One case family: case, rubric, authored controls, notes
                          twin differs from its parent only in a turn 3 that never
                          restates the opening conditions)
 tests/                   Offline harness and contract tests
-scripts/check.sh         Active checks, then the archived gate
+scripts/check.sh         Active lint and tests
 BENCHMARK_CARD.md        Methods, evidence, limits, and review protocol
 CHANGELOG.md             Notable changes per development version
 _archive/5.8.0/          Frozen prior public implementation
@@ -46,7 +46,7 @@ source.
 scripts/check.sh
 ```
 
-This runs active lint and mocked tests, then the unchanged archived gate. It
+This runs active lint and mocked tests. It
 verifies engineering behavior, not grader accuracy or clinical validity. The
 locked environment may download free dependencies. For active tests alone, run
 `uv run --locked pytest tests -q`.
