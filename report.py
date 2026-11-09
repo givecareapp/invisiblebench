@@ -170,19 +170,32 @@ def render_markdown(report: dict) -> str:
         lines.extend([
             "## Per-check observations",
             "",
-            "| Layer | Check | Severity | Planned | PASS | FAIL | UNCLEAR | N/A | Interrupted "
-            "| Unattempted | Judge missing | Judge error | Unscored |",
-            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+            "| Layer | Check | Dimension | Protects | Planned | PASS | FAIL | UNCLEAR | N/A "
+            "| Interrupted | Unattempted | Judge missing | Judge error | Unscored |",
+            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: "
+            "| ---: | ---: |",
         ])
         for layer, checks in summary["by_layer"].items():
             for check, counts in checks.items():
                 lines.append(
-                    f"| {layer} | `{check}` | {counts.get('severity') or 'not recorded'} | "
+                    f"| {layer} | `{check}` | {counts.get('dimension') or 'not recorded'} | "
+                    f"{', '.join(counts.get('protects') or []) or 'not recorded'} | "
                     f"{counts['planned']} | {counts['PASS']} | "
                     f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
                     f"{counts['generation_interrupted']} | {counts['generation_unattempted']} | "
                     f"{counts['judge_missing']} | {counts['execution_error']} | {counts['unscored']} |"
                 )
+        lines.extend([
+            "",
+            "### Verdicts by item severity",
+            "",
+            "| Layer | Severity | PASS | FAIL | UNCLEAR | N/A |",
+            "| --- | --- | ---: | ---: | ---: | ---: |",
+        ])
+        for layer, levels in summary.get("by_severity", {}).items():
+            for level, counts in levels.items():
+                lines.append(f"| {layer} | {level} | {counts['PASS']} | {counts['FAIL']} | "
+                             f"{counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} |")
         source = summary["target"]
         lines.extend([
             "",

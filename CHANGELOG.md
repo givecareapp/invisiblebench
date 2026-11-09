@@ -16,10 +16,16 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 
 ### Added
 
-- Severity: each check names high, medium, or low from one shared
-  `severity_levels` scale in every rubric. It is an authored draft for clinician
-  design review. The judge never sees it (`grader.criterion`); target-judge logs
-  record it and reports show it per check. Logs from earlier versions report
+- Labels from `docs/taxonomy.md`, required by tests:
+  - each case names its `scenario`, `style`, and `people` (user, care
+    recipient, others); each variant names its item `severity` (routine,
+    serious, or urgent). All 18 current items are rated serious, an authored
+    draft for clinician design review;
+  - each check names its `dimension` and whose interest it `protects`.
+  Generation samples carry scenario, variation, style, and severity as
+  metadata; neither the target nor the judge sees any label
+  (`grader.criterion`). Target reports show dimension and protects per check
+  and verdicts by item severity. Logs from earlier versions report
   "not recorded".
 - A canary string in every case, rubric, and control file. Tests check that it
   is present and never reaches a target.

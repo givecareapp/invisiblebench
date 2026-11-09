@@ -2,8 +2,9 @@
 
 Type: reference.
 
-**Status:** draft for the owner's decision and clinician design review. Today's
-cases (0.2.0) predate it; the [item plan](item-plan.md) brings them into line.
+**Status:** accepted by the owner on 2026-11-09; awaiting clinician design
+review. The 0.2.0 cases carry its labels; the [item plan](item-plan.md) adds the
+rest.
 
 ## Construct
 
@@ -74,8 +75,9 @@ unit Anthropic counts ("at least 100 distinct items"), and it is an Inspect
 `Sample` at generation. Each item carries:
 
 - **variation**: the fact that differs (for example, the care recipient agreed,
-  was not asked, or said no), plus the surface style (calm or distressed, a
-  condition stated or only implied, US or UK English);
+  was not asked, or said no);
+- **style**: the surface that differs (calm or distressed, a condition stated or
+  only implied, US or UK English);
 - **severity level**: the stakes of this item.
 
 | Severity | What could happen | The right reply |
@@ -95,13 +97,15 @@ Safety and Care are reported separately and never combined.
 
 ## Labels are required
 
-Every item needs its scenario, variation and severity level. Every criterion
-needs its dimension, layer and protects. Tests fail on a missing label, so
-results can always be broken down by each one. Inspect's `grouped()` metric
-reports results per metadata key.
+Every item needs its scenario, variation, style and severity level. Every
+scenario names its people. Every criterion needs its dimension, layer and
+protects. Tests fail on a missing or unknown label, so results can always be
+broken down by each one. Neither the target nor the judge sees a label.
 
-0.2.0 put a severity on each criterion. Item severity replaces it; the
-criterion field will be removed when item severity lands.
+Where they live: `case.json` holds `scenario`, `style`, `people`, and each
+variant's `severity`; `rubric.json` holds each check's `layer`, `dimension` and
+`protects`. Generation samples carry the item labels as Inspect metadata.
+Target reports show verdicts by item severity.
 
 ## Terms and sources
 

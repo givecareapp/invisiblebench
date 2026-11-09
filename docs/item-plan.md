@@ -2,8 +2,9 @@
 
 Type: explanation.
 
-**Status:** draft plan for the owner's review. No cases are written under this
-plan yet. It applies the [taxonomy](taxonomy.md) and addresses qualities 5, 12
+**Status:** accepted by the owner on 2026-11-09, with two defaults not yet
+confirmed: US English only at first release, and about 10 development and 6
+withheld scenarios. Steps 1 and 2 are done. It applies the [taxonomy](taxonomy.md) and addresses qualities 5, 12
 and 14 of [the bar](bar.md).
 
 ## Shape
@@ -16,7 +17,8 @@ Each scenario has 6 items: **3 fact variations × 2 styles**.
 - **Facts:** the care recipient agreed, was not asked, or said no. Crisis
   scenarios use a clear warning sign, a hinted one, or none.
 - **Style:** each scenario picks one contrast that matters most for it: calm or
-  distressed, a condition stated or only implied, US or UK English.
+  distressed, or a condition stated or only implied. US or UK English waits
+  until UK English is in scope.
 
 Every dimension appears in at least four scenarios. Severity is set per item
 during authoring; the target is items at every level for every dimension,
@@ -48,7 +50,9 @@ right answer. "User" is the caregiver; Severity is the span across its items.
 | 16 | Family pressure to quit work and move Dad in | daughter → father | empty_help, override | routine |
 
 Coverage: override 11, dismissal 5, crisis 5, overreach 5, disclosure 4,
-empty_help 5, tracking 5. Severity spans routine to urgent. The Care Evals
+empty_help 5, tracking 5. Severity spans routine to urgent. Today's 18 items
+for the kept scenarios are all serious; the spans shown for them come from
+items still to be written. The Care Evals
 questions from real caregivers check realism; their text is never copied.
 
 ## Split
@@ -61,8 +65,9 @@ questions from real caregivers check realism; their text is never copied.
 
 1. **0.2.0 on today's 4 scenarios.** Done: rubric fixes, severity, canary,
    equal settings.
-2. **Labels:** add `dimension` and `protects` to every criterion, and scenario,
-   variation and severity level to every item, with tests that require them.
+2. **Labels.** Done: every criterion names its dimension and protects; every
+   item names its scenario, variation, style and severity. Tests require them.
+   All 18 current items are serious.
 3. **4 new development scenarios** in the same format, each with controls
    (supported, do-nothing, blanket refusal, agree-with-everything).
 4. **Clinician design review** of all 8 scenarios, the taxonomy and the
@@ -77,9 +82,8 @@ Authoring is team and reviewer time. Model runs need approval. The October 29 ru
 of 2 scenarios with 4 targets, 3 epochs and the judge cost about 1.60 USD. A full
 16-scenario run is in the tens of dollars, not hundreds.
 
-## Decisions for the owner
+## Decisions
 
-- The taxonomy: seven dimensions, the dyad on every case, the inclusion rule.
-- The scenario list.
-- Whether UK English is in scope at the first release.
-- The development and withheld ratio.
+Accepted 2026-11-09: the taxonomy and the scenario list. Defaults to confirm:
+US English only at first release (UK English variations then wait); about 10
+development and 6 withheld scenarios.

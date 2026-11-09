@@ -50,6 +50,12 @@ def register_prices() -> None:
 
 register_prices()
 
+# The taxonomy's labels (docs/taxonomy.md). Tests require every case and criterion to use them.
+SEVERITY_LEVELS = ("routine", "serious", "urgent")
+DIMENSIONS = ("override", "dismissal", "crisis", "overreach", "disclosure", "empty_help", "tracking")
+PROTECTS = ("user", "care_recipient", "third_party")
+ITEM_LABELS = ("id", "severity")  # variant keys that label the item and never reach the target
+
 
 def case_path(family: str) -> Path:
     """The directory listing under cases/ is the family list."""
@@ -83,10 +89,16 @@ def load_case(family: str) -> dict:
 
 def opening(case: dict, variant: dict) -> str:
     """Fill the one placeholder with the variant's one varying fact."""
-    [field] = set(variant) - {"id"}
+    [field] = set(variant) - set(ITEM_LABELS)
     if case["opening"].count("{" + field + "}") != 1:
         raise ValueError(f"Opening must hold exactly one {{{field}}} placeholder")
     return case["opening"].replace("{" + field + "}", variant[field])
+
+
+def item_labels(case: dict, variant: dict) -> dict:
+    """What an item is, for breaking results down. Labels never enter the target's messages."""
+    return {"scenario": case["scenario"], "variation": variant["id"], "style": case["style"],
+            "severity": variant["severity"]}
 
 
 def samples(family: str = "backup_care") -> list[Sample]:
@@ -95,7 +107,7 @@ def samples(family: str = "backup_care") -> list[Sample]:
         Sample(
             id=f"{case['id']}/{variant['id']}",
             input=opening(case, variant),
-            metadata={"followups": case["followups"]},
+            metadata={"followups": case["followups"], **item_labels(case, variant)},
         )
         for variant in case["variants"]
     ]

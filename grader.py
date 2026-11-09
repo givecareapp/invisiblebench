@@ -14,7 +14,7 @@ from inspect_ai.model import ChatMessageSystem, ChatMessageUser, GenerateConfig
 from inspect_ai.scorer import Score, Scorer, Target, categorical, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
-from task import PROJECT, VERSION, case_path, load_case, opening, revision
+from task import PROJECT, VERSION, case_path, item_labels, load_case, opening, revision
 
 
 class Verdict(StrEnum):
@@ -78,9 +78,12 @@ def native_revision(log: EvalLog) -> dict:
             for field in ("origin", "commit", "dirty")}
 
 
+CRITERION_LABELS = ("dimension", "protects")
+
+
 def criterion(check: dict) -> dict:
-    """The check as the judge sees it. Severity is for reporting and is never shown to the judge."""
-    return {key: value for key, value in check.items() if key != "severity"}
+    """The check as the judge sees it. Labels are for reporting and are never shown to the judge."""
+    return {key: value for key, value in check.items() if key not in CRITERION_LABELS}
 
 
 def control_samples(family: str = "backup_care") -> list[Sample]:
@@ -134,6 +137,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
     case = load_case(family)
     rubric = json.loads(rubric_path.read_text())
     openings = {f"{case['id']}/{v['id']}": opening(case, v) for v in case["variants"]}
+    labels = {f"{case['id']}/{v['id']}": item_labels(case, v) for v in case["variants"]}
     total_turns = 1 + len(case["followups"])
     epochs = log.eval.config.epochs or 1
     result = []
@@ -183,7 +187,8 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
                         content=json.dumps(payload, ensure_ascii=False)
                     )],
                     metadata={"check": check["id"], "layer": check["layer"], "turn": turn,
-                              "source_sample": str(generated.id), "source_epoch": generated.epoch},
+                              "source_sample": str(generated.id), "source_epoch": generated.epoch,
+                              **labels[str(generated.id)]},
                 ))
     for sample_id in openings:
         for epoch in range(1, epochs + 1):
@@ -340,7 +345,7 @@ def target_judge(source_log: str, cost_limit_usd: float | None = None) -> Task:
             "source": source,
             "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
             "check_plan": {check["id"]: {"layer": check["layer"], "turns": check["turns"],
-                                         "severity": check["severity"]}
+                                         **{label: check[label] for label in CRITERION_LABELS}}
                            for check in json.loads(rubric_path.read_text())["checks"]},
             "reference_manifest": {str(s.id): s.metadata for s in dataset},
         },
@@ -431,7 +436,7 @@ def summarize_target(log: EvalLog) -> dict:
     groups = {"Safety": {}, "Care": {}}
     for check_id, plan in metadata["check_plan"].items():
         counts = groups[plan["layer"]][check_id] = {
-            "severity": plan.get("severity"),
+            **{label: plan.get(label) for label in CRITERION_LABELS},
             "planned": 0, "recorded": 0, "missing": 0, "generation_missing": 0,
             "generation_interrupted": 0, "generation_unattempted": 0,
             "judge_missing": 0, "execution_error": 0, "unscored": 0,
@@ -450,8 +455,13 @@ def summarize_target(log: EvalLog) -> dict:
         judged = sum(r["check"] == check_id for r in manifest.values()) * epochs
         if counts["planned"] != counts["generation_missing"] + judged:
             raise ValueError(f"Frozen manifest does not match the source conversations: {check_id}")
+    # Verdicts by item severity, per layer. Logs from before item labels report "not recorded".
+    by_severity = {"Safety": {}, "Care": {}}
     for sample_id, reference in manifest.items():
         counts = groups[reference["layer"]][reference["check"]]
+        level = by_severity[reference["layer"]].setdefault(
+            reference.get("severity") or "not recorded",
+            {"PASS": 0, "FAIL": 0, "UNCLEAR": 0, "NOT_APPLICABLE": 0})
         for epoch in range(1, epochs + 1):
             sample = records.get((sample_id, epoch))
             if sample is None:
@@ -467,8 +477,9 @@ def summarize_target(log: EvalLog) -> dict:
                 counts["unscored"] += 1
                 continue
             counts[scores[0].value] += 1
+            level[scores[0].value] += 1
     return {"family": metadata["family"], "status": log.status, "judge_model": log.eval.model,
             "target": metadata["source"], "basis": metadata["basis"],
             "source_sha256": metadata["source_sha256"], "epochs": epochs,
             "revision": native_revision(log), "uncommitted": metadata.get("uncommitted"),
-            "by_layer": groups}
+            "by_layer": groups, "by_severity": by_severity}

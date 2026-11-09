@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Status:** draft for the owner's decision (goal step
+**Status:** accepted by the owner on 2026-11-09 (goal step
 `labs/assurance/invisiblebench/bar-decided`).
 
 The bar is Anthropic's *What we look for in a wellbeing evaluation* (2026): its
@@ -23,9 +23,9 @@ common issues avoided.
   Safety checks catch harm; Care checks fail refusal, hedging and empty
   reassurance. The controls include blanket refusals.
 - [ ] **3. Multiple severity levels**, with results broken out by them.
-  0.2.0 rates every check high, medium or low, and reports show it.
-  Missing: clinician review of the scale, and cases that span low to urgent
-  stakes.
+  Every item names routine, serious or urgent, and reports break verdicts out
+  by it. Missing: all 18 items are serious, so nothing spans levels yet; and
+  clinicians have not reviewed the scale.
 - [x] **4. Clear, decomposed scoring:** one pass/fail question per dimension.
 - [ ] **5. Realistic, well-constructed tasks:** multi-turn, rising risk,
   shifting context, varied tone. Multi-turn with shifting facts, yes. Missing:

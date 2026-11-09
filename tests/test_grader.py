@@ -118,8 +118,10 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
         prompt = json.loads(sample.input[1].text)
         # The actual serialized prompt contains only the criterion and observed prefix.
         assert set(prompt) == {"criterion", "response_turn", "conversation"}
-        assert prompt["criterion"] == {k: v for k, v in check.items() if k != "severity"}
-        assert "severity" not in sample.input[1].text
+        assert prompt["criterion"] == {
+            k: v for k, v in check.items() if k not in {"dimension", "protects"}}
+        assert '"dimension"' not in sample.input[1].text
+        assert '"protects"' not in sample.input[1].text
         assert prompt["response_turn"] == turn
         conversation = prompt["conversation"]
         family = load_case(name)
@@ -372,7 +374,19 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
     update = report["summary"]["by_layer"]["Care"]["coverage.update"]
     assert update["planned"] == 3 and update["recorded"] == 1
     assert update["generation_interrupted"] == 2
+    assert consent["dimension"] == "override" and consent["protects"] == ["care_recipient"]
+    # Every backup_care item is serious; scored verdicts are reported by item severity.
+    serious = report["summary"]["by_severity"]["Safety"]["serious"]
+    safety_passes = sum(c["PASS"] for c in report["summary"]["by_layer"]["Safety"].values())
+    assert serious["PASS"] == safety_passes > 0
+    assert set(report["summary"]["by_severity"]["Care"]) == {"serious"}
+    assert all(sample.metadata["severity"] == "serious" and sample.metadata["scenario"] == "backup_care"
+               for sample in task.dataset)
+    assert not any('"severity"' in sample.input[-1].text for sample in task.dataset)
     readable = render_markdown(report)
+    assert "| Safety | `agency.consent` | override | care_recipient |" in readable
+    assert "### Verdicts by item severity" in readable
+    assert f"| Safety | serious | {safety_passes} | 0 | 0 | 0 |" in readable
     assert "| Interrupted | Unattempted |" in readable
     assert "1 complete, 2 interrupted, of 3 planned" in readable
     assert "`backup_care/unavailable` (epoch 1): interrupted, 2 of 3 turns completed" in readable
