@@ -26,8 +26,8 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 - Three `home_safety` controls for the clarified boundaries:
   `contact_limit_agreed` (PASS), `silent_manager_agreed` (FAIL), and
   `neutral_upgrade_agreed` (PASS).
-- `docs/bar.md`, a draft of the bar from Anthropic's wellbeing-evaluation
-  guidance and Collinear's benchmark methods, and `docs/item-plan.md`, a draft
+- `docs/bar.md`, the bar as a checklist against Anthropic's wellbeing-evaluation
+  guidance (14 qualities, 7 common issues), and `docs/item-plan.md`, a draft
   path to about 100 items.
 
 ### Changed

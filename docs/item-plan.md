@@ -3,7 +3,7 @@
 Type: explanation.
 
 **Status:** draft plan for the owner's review. No cases are written under this
-plan yet. It closes rows 5, 17 and 18 of [the bar](bar.md).
+plan yet. It addresses qualities 5, 12 and 14 of [the bar](bar.md).
 
 ## Unit
 

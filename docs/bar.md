@@ -3,51 +3,91 @@
 Type: reference.
 
 **Status:** draft for the owner's decision (goal step
-`labs/assurance/invisiblebench/bar-decided`). It lists what comparable benchmarks
-require, piece by piece, and where InvisibleBench stands against each piece. It
-grants no authority and makes no validity claim.
+`labs/assurance/invisiblebench/bar-decided`).
 
-**Sources**
+The bar is Anthropic's *What we look for in a wellbeing evaluation* (2026): its
+14 qualities and 7 common issues, checked one by one. A private capture is in the
+owner's wiki. Marks are as of 0.2.0. `[x]` means met; `[ ]` means not met yet,
+with what is missing. It grants no authority and makes no validity claim.
 
-- **A:** Anthropic, *What we look for in a wellbeing evaluation* (2026). A
-  private capture is in the owner's wiki.
-- **C:** Collinear's published benchmark method posts:
-  [FrontierCUA](https://blog.collinear.ai/p/frontiercua),
-  [CWE-Bench](https://blog.collinear.ai/p/cwe-bench),
-  [MatFlowBench](https://blog.collinear.ai/p/introducing-matflowbench) and
-  [The measure of hard but fair](https://blog.collinear.ai/p/the-measure-of-hard-but-fair).
+**Score:** 2 of 13 applicable qualities met (one more is not applicable); 4 of 7
+common issues avoided.
 
-**Status key:** met · partial · missing · n/a. The status is as of 0.1.4. The
-last column names the step that closes the gap.
+## Qualities
 
-| # | Requirement | Src | Status at 0.1.4 | Closes it |
-| ---: | --- | --- | --- | --- |
-| 1 | The construct is defined: what counts as a pass or a fail and why, citing evidence | A | partial: each family states its question and falsifier, but there are few outside citations for what good help looks like | design review |
-| 2 | Measures both harmful compliance and over-refusal | A | met: Safety prohibitions and Care requirements; blanket-refusal and reassurance-only controls | — |
-| 3 | Severity levels, so results can be broken out by them | A | missing | 0.2.0 draft, then design review |
-| 4 | Decomposed scoring: one pass/fail question per dimension | A | met | — |
-| 5 | Realistic multi-turn tasks: risk escalates, context shifts, tone varies | A | partial: multi-turn with shifting facts; one tone, scripted, fixed turns | [item plan](item-plan.md) |
-| 6 | The access method matches the claim | A | partial: targets are tested through the API with no system prompt. Claims must stay about API behavior, not consumer apps | card wording |
-| 7 | No ambiguous items, scoring artifacts or contamination | A | partial: two known ambiguous checks on home safety; no canary | 0.2.0 |
-| 8 | Graders validated against expert labels, with agreement reported | A | missing: the clinician pilot is running; there is no frozen label set yet | label study |
-| 9 | The grader comes from a different family than the targets | A | met: checked in code by the private analysis | — |
-| 10 | Transcripts are read by hand | A | met: the run notes record hand reading | — |
-| 11 | Two graders are compared | C | missing | after 0.2.0, with approval |
-| 12 | Honest about simulated users | A | met: the card says users are scripted and fictional | — |
-| 13 | Domain experts help design the cases, especially the borderline ones | A | missing | design review |
-| 14 | Each task is signed off by someone other than its author | C | missing | design review |
-| 15 | Reliable: repeated attempts, run-to-run variance reported | A, C | partial: 3 epochs with consistency shown; one unequal setting (max tokens); the judge flips about 3% of verdicts on re-judge | 0.2.0; judge work |
-| 16 | Reproducible by a third party from open code, data and taxonomy | A | met for development material: runs are bound by hash to committed files | — |
-| 17 | At least about 100 distinct items for a complex multi-turn eval | A | missing: 4 situations (6 families, 18 scripted conversations) | [item plan](item-plan.md) |
-| 18 | Regional and language variation | A | missing: US English only | [item plan](item-plan.md) |
-| 19 | Multimodal input where the risk needs it | A | n/a: caregivers reach assistants by text and SMS | — |
-| 20 | Not saturated: frontier models still differ | A | met so far | re-check each release |
-| 21 | Not gameable: reference answer passes, do-nothing fails, shortcut answers fail | A, C | met for authored controls (supported, generic reassurance, blanket refusal, agree-with-everything, oppose-all); our team wrote the labels | design review |
-| 22 | A canary string in the released data | C | missing | 0.2.0 |
-| 23 | Per-item results with uncertainty shown | C | partial: a private preview with 95% intervals (Collinear shows none) | release |
-| 24 | Annotated failure traces and failure-type shares | C | partial: private preview | release |
-| 25 | Cost shown next to results | C | missing: logs record cost | release |
-| 26 | Item difficulty and discrimination analysis | C | missing: needs more items and models | after item plan |
+- [ ] **1. A clearly defined construct**, citing evidence and its gaps.
+  Each family states its question, falsifier, and written pass and fail rules.
+  Missing: outside citations for what good caregiver help is.
+- [x] **2. Failure measured as both harm and over-refusal.**
+  Safety checks catch harm; Care checks fail refusal, hedging and empty
+  reassurance. The controls include blanket refusals.
+- [ ] **3. Multiple severity levels**, with results broken out by them.
+  0.2.0 rates every check high, medium or low, and reports show it.
+  Missing: clinician review of the scale, and cases that span low to urgent
+  stakes.
+- [x] **4. Clear, decomposed scoring:** one pass/fail question per dimension.
+- [ ] **5. Realistic, well-constructed tasks:** multi-turn, rising risk,
+  shifting context, varied tone. Multi-turn with shifting facts, yes. Missing:
+  variation in tone and situation; every caregiver turn is scripted in one
+  voice.
+- [ ] **6. External validity:** the access method matches the claim.
+  Models are tested through the API with no system prompt. Missing: claims
+  limited in writing to that surface, not consumer apps.
+- [ ] **7. Internal validity:** no ambiguous items, scoring artifacts or
+  contamination. 0.2.0 fixes the two known ambiguous questions and adds a
+  canary. Missing: two disputed control-label patterns; the judge flips about
+  3% of verdicts on re-judging.
+- [ ] **8. Graders you can validate:** agreement with human experts reported,
+  a different model family as judge, transcripts read by hand.
+  The judge differs in family from every target, and transcripts are read.
+  Missing: expert agreement. The clinician study is a pilot.
+- [ ] **9. Honest about simulation**, and checked against real use.
+  The card says the users are scripted and fictional. Missing: any comparison
+  with real caregiver conversations.
+- [ ] **10. Built with domain expertise**, especially for borderline cases.
+  Missing: clinicians have not reviewed the cases, rubric or labels.
+- [ ] **11. Reliable and reproducible:** repeated attempts, stable to small
+  changes, enough released for a third party. Three epochs with consistency
+  shown, hash-bound runs, one setting for every model, and open development
+  code and data. Missing: a measure of sensitivity to rewording beyond the
+  implicit-cue twins.
+- [ ] **12. Large enough sample:** at least about 100 distinct items for a
+  complex multi-turn eval. There are 18 (4 situations). See the
+  [item plan](item-plan.md).
+- [x] **13. Multimodal coverage where relevant:** not applicable. Caregivers
+  reach assistants by text and SMS.
+- [ ] **14. Regional and linguistic variation.** Missing: everything is
+  US English.
 
-**Decision asked:** accept these 26 rows as the bar, or strike or add rows.
-Rows met today stay met only while each release re-checks them.
+## Common issues
+
+- [ ] **No human validation.** Present: no frozen expert labels yet.
+- [ ] **Underspecified grading criteria.** Mostly avoided: every check has
+  written pass and fail rules and boundary notes. Two disputed label patterns
+  remain for the design review.
+- [x] **Circular AI-as-judge.** Avoided: an automated check confirms the judge's
+  family differs from every target.
+- [x] **Detached from real use.** Avoided: multi-turn, everyday situations, not
+  shock value, and both failure directions.
+- [x] **Trivially gameable.** Avoided for the shortcuts tested: generic
+  reassurance, blanket refusal, agree-with-everything and oppose-everything
+  replies all fail.
+- [ ] **Ambiguous items.** Partly: the two known items are fixed in 0.2.0; the
+  clinician pilot will show more.
+- [x] **Saturation.** Avoided so far: models fail often and differ from each
+  other. Re-check every release.
+
+## Closing the gaps
+
+| Gap | Goal step |
+| --- | --- |
+| 3, 10, 7, ambiguous items | `scenarios-meet-bar/design-reviewed` |
+| 5, 12, 14, the rest of 3 | `scenarios-meet-bar/item-plan-decided`, then `hundred-items` |
+| 8, no human validation | `confer/judge-accuracy-stated`, then `judging-meets-bar` |
+| 1, 6, 9 | `strategy-meets-bar` |
+| 7 and 11, judge flips | `scenarios-meet-bar/controls-rejudged` |
+
+Collinear's published methods add four practices beyond this list: a second
+judge compared with the first, sign-off on each task by someone other than its
+author, cost shown beside results, and per-item difficulty analysis. They are
+candidates, not part of the bar unless the owner adds them.
