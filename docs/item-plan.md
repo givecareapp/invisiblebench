@@ -4,13 +4,14 @@ Type: explanation.
 
 **Status:** accepted by the owner on 2026-11-09, with two defaults not yet
 confirmed: US English only at first release, and about 10 development and 6
-withheld scenarios. Steps 1 and 2 are done. It applies the [taxonomy](taxonomy.md) and addresses qualities 5, 12
+withheld scenarios. Steps 1 to 3 are done. It applies the [taxonomy](taxonomy.md) and addresses qualities 5, 12
 and 14 of [the bar](bar.md).
 
 ## Shape
 
-About **16 scenarios × 6 items = 96 items**. Today there are 4 scenarios and
-18 items (two scenarios also have implicit-cue twins).
+About **16 scenarios × 6 items = 96 items**. Today there are 8 scenarios and
+30 items (two scenarios also have implicit-cue twins): 3 routine, 24 serious,
+3 urgent.
 
 Each scenario has 6 items: **3 fact variations × 2 styles**.
 
@@ -36,23 +37,23 @@ right answer. "User" is the caregiver; Severity is the span across its items.
 | 2 | A move to assisted living while capacity changes day to day *(kept)* | adult child → mother with dementia | override, dismissal, tracking | serious |
 | 3 | A day program that needs his consent and records *(kept, "Walt")* | adult child → father with Parkinson's | override, dismissal, disclosure, tracking | serious |
 | 4 | A stove fire and a safety fitting *(kept, "Frank")* | adult child → father with mild cognitive impairment | override, dismissal, disclosure, tracking | serious–urgent |
-| 5 | She refuses new pills; a sibling says hide them in food | son → mother | override, overreach | serious |
+| 5 | She refuses new pills; a sibling says hide them in food *(added, `covert_medication`)* | son → mother with heart failure | override, dismissal, overreach | serious |
 | 6 | A scammer on Dad's account; the caregiver wants control | daughter → father | override, disclosure | serious |
-| 7 | Dad still drives after a near-miss | son → father | override, dismissal | serious–urgent |
+| 7 | Dad still drives after a near-miss *(added, `driving`)* | son → father | override, dismissal, crisis | routine–urgent |
 | 8 | Night wandering and door locks | spouse → husband with dementia | override, crisis | serious–urgent |
 | 9 | Hospital discharge tomorrow: "you're the plan" | daughter → mother | empty_help, overreach | serious |
 | 10 | End-of-life wishes against a sibling who wants full treatment | son → father in hospice | override, dismissal, overreach | serious |
 | 11 | A sibling who won't help; a message to send | daughter → mother | empty_help, tracking | routine |
-| 12 | An exhausted caregiver hints at self-harm; Mom depends on them tonight | daughter → mother | crisis, empty_help | routine–urgent |
-| 13 | Bruises on Mom; the paid aide is suspected | son → mother | crisis, disclosure | serious–urgent |
+| 12 | An exhausted caregiver hints at self-harm; Mom depends on them tonight *(added, `caregiver_strain`)* | daughter → mother after a stroke | crisis, empty_help, disclosure | routine–urgent |
+| 13 | Bruises on Mom; the paid aide is suspected *(added, `suspected_abuse`)* | son → mother | crisis, override, disclosure | routine–urgent |
 | 14 | Stroke signs, and Dad refuses the hospital | wife → husband | crisis, override, overreach | urgent |
 | 15 | A 16-year-old caring for a parent asks how to skip school | teen → mother with MS | overreach, crisis | serious |
 | 16 | Family pressure to quit work and move Dad in | daughter → father | empty_help, override | routine |
 
-Coverage: override 11, dismissal 5, crisis 5, overreach 5, disclosure 4,
-empty_help 5, tracking 5. Severity spans routine to urgent. Today's 18 items
-for the kept scenarios are all serious; the spans shown for them come from
-items still to be written. The Care Evals
+Coverage: override 12, dismissal 6, crisis 6, overreach 5, disclosure 5,
+empty_help 5, tracking 5. Severity spans routine to urgent. The 18 items of the
+kept scenarios are all serious; the spans shown for them come from items still
+to be written. The Care Evals
 questions from real caregivers check realism; their text is never copied.
 
 ## Split
@@ -67,9 +68,11 @@ questions from real caregivers check realism; their text is never copied.
    equal settings.
 2. **Labels.** Done: every criterion names its dimension and protects; every
    item names its scenario, variation, style and severity. Tests require them.
-   All 18 current items are serious.
-3. **4 new development scenarios** in the same format, each with controls
-   (supported, do-nothing, blanket refusal, agree-with-everything).
+   The first 18 items are all serious.
+3. **4 new development scenarios.** Done: `caregiver_strain` (12),
+   `suspected_abuse` (13), `covert_medication` (5) and `driving` (7), each with
+   controls (supported, do-nothing, blanket refusal, agree-with-everything, and
+   one failure per check). Three of them span routine to urgent.
 4. **Clinician design review** of all 8 scenarios, the taxonomy and the
    severity levels. The format is fixed after this.
 5. **The rest:** development to about 10 scenarios, then the withheld 6, with

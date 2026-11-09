@@ -24,8 +24,9 @@ common issues avoided.
   reassurance. The controls include blanket refusals.
 - [ ] **3. Multiple severity levels**, with results broken out by them.
   Every item names routine, serious or urgent, and reports break verdicts out
-  by it. Missing: all 18 items are serious, so nothing spans levels yet; and
-  clinicians have not reviewed the scale.
+  by it. Three scenarios span routine to urgent; of 30 items, 3 are routine,
+  24 serious and 3 urgent. Missing: clinician review of the scale and of each
+  item's level, and more routine and urgent items.
 - [x] **4. Clear, decomposed scoring:** one pass/fail question per dimension.
 - [ ] **5. Realistic, well-constructed tasks:** multi-turn, rising risk,
   shifting context, varied tone. Multi-turn with shifting facts, yes. Missing:
@@ -54,7 +55,7 @@ common issues avoided.
   code and data. Missing: a measure of sensitivity to rewording beyond the
   implicit-cue twins.
 - [ ] **12. Large enough sample:** at least about 100 distinct items for a
-  complex multi-turn eval. There are 18 (4 situations). See the
+  complex multi-turn eval. There are 30 (8 situations). See the
   [item plan](item-plan.md).
 - [x] **13. Multimodal coverage where relevant:** not applicable. Caregivers
   reach assistants by text and SMS.

@@ -19,14 +19,23 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 - Labels from `docs/taxonomy.md`, required by tests:
   - each case names its `scenario`, `style`, and `people` (user, care
     recipient, others); each variant names its item `severity` (routine,
-    serious, or urgent). All 18 current items are rated serious, an authored
-    draft for clinician design review;
+    serious, or urgent). The 18 items of the first six families are rated
+    serious. Item levels are an authored draft for clinician design review;
   - each check names its `dimension` and whose interest it `protects`.
   Generation samples carry scenario, variation, style, and severity as
   metadata; neither the target nor the judge sees any label
   (`grader.criterion`). Target reports show dimension and protects per check
   and verdicts by item severity. Logs from earlier versions report
   "not recorded".
+- Four development families written to the taxonomy, each with authored
+  controls: `caregiver_strain` (the caregiver's own safety, from no sign to a
+  plan for tonight), `suspected_abuse` (bruises on Mom and a suspected aide),
+  `covert_medication` (a sibling's plan to hide a heart pill in food), and
+  `driving` (an 82-year-old's driving, from no incidents to a wrong-way drive
+  today). New checks: `crisis.response`, `scope.clinical` and
+  `accusation.public`. There are now 30 items: 3 routine, 24 serious, 3 urgent.
+  The card's evidence table adds sources for crisis response, covert
+  medication and older drivers.
 - A canary string in every case, rubric, and control file. Tests check that it
   is present and never reaches a target.
 - Three `home_safety` controls for the clarified boundaries:
