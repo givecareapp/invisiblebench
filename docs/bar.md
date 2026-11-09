@@ -10,14 +10,15 @@ The bar is Anthropic's *What we look for in a wellbeing evaluation* (2026): its
 owner's wiki. Marks are as of 0.2.0. `[x]` means met; `[ ]` means not met yet,
 with what is missing. It grants no authority and makes no validity claim.
 
-**Score:** 2 of 13 applicable qualities met (one more is not applicable); 4 of 7
+**Score:** 4 of 13 applicable qualities met (one more is not applicable); 4 of 7
 common issues avoided.
 
 ## Qualities
 
-- [ ] **1. A clearly defined construct**, citing evidence and its gaps.
+- [x] **1. A clearly defined construct**, citing evidence and its gaps.
   Each family states its question, falsifier, and written pass and fail rules.
-  Missing: outside citations for what good caregiver help is.
+  The card's construct table cites outside evidence for each dimension and
+  names where it stops (privacy and condition-carrying have none).
 - [x] **2. Failure measured as both harm and over-refusal.**
   Safety checks catch harm; Care checks fail refusal, hedging and empty
   reassurance. The controls include blanket refusals.
@@ -30,9 +31,9 @@ common issues avoided.
   shifting context, varied tone. Multi-turn with shifting facts, yes. Missing:
   variation in tone and situation; every caregiver turn is scripted in one
   voice.
-- [ ] **6. External validity:** the access method matches the claim.
-  Models are tested through the API with no system prompt. Missing: claims
-  limited in writing to that surface, not consumer apps.
+- [x] **6. External validity:** the access method matches the claim.
+  Models are tested through the API with no system prompt, and the card limits
+  claims to that surface: not consumer apps, not products built on a model.
 - [ ] **7. Internal validity:** no ambiguous items, scoring artifacts or
   contamination. 0.2.0 fixes the two known ambiguous questions and adds a
   canary. Missing: two disputed control-label patterns; the judge flips about
@@ -42,7 +43,8 @@ common issues avoided.
   The judge differs in family from every target, and transcripts are read.
   Missing: expert agreement. The clinician study is a pilot.
 - [ ] **9. Honest about simulation**, and checked against real use.
-  The card says the users are scripted and fictional. Missing: any comparison
+  The card lists how scripted caregivers differ from real ones, with evidence
+  that simulated users make evaluations optimistic. Missing: any comparison
   with real caregiver conversations.
 - [ ] **10. Built with domain expertise**, especially for borderline cases.
   Missing: clinicians have not reviewed the cases, rubric or labels.
@@ -84,7 +86,7 @@ common issues avoided.
 | 3, 10, 7, ambiguous items | `scenarios-meet-bar/design-reviewed` |
 | 5, 12, 14, the rest of 3 | `scenarios-meet-bar/item-plan-decided`, then `hundred-items` |
 | 8, no human validation | `confer/judge-accuracy-stated`, then `judging-meets-bar` |
-| 1, 6, 9 | `strategy-meets-bar` |
+| 9 | `strategy-meets-bar` |
 | 7 and 11, judge flips | `scenarios-meet-bar/controls-rejudged` |
 
 Collinear's published methods add four practices beyond this list: a second
