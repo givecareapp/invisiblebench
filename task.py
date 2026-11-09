@@ -130,7 +130,7 @@ def conversation_family(family: str = "backup_care") -> Task:
         dataset=samples(family),
         solver=conversation(),
         scorer=None,
-        config=GenerateConfig(max_tokens=2048),
+        config=GenerateConfig(max_tokens=8192),  # one limit for every target
         metadata={
             "use": "development",
             "family": family,

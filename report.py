@@ -170,14 +170,15 @@ def render_markdown(report: dict) -> str:
         lines.extend([
             "## Per-check observations",
             "",
-            "| Layer | Check | Planned | PASS | FAIL | UNCLEAR | N/A | Interrupted | Unattempted "
-            "| Judge missing | Judge error | Unscored |",
-            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+            "| Layer | Check | Severity | Planned | PASS | FAIL | UNCLEAR | N/A | Interrupted "
+            "| Unattempted | Judge missing | Judge error | Unscored |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ])
         for layer, checks in summary["by_layer"].items():
             for check, counts in checks.items():
                 lines.append(
-                    f"| {layer} | `{check}` | {counts['planned']} | {counts['PASS']} | "
+                    f"| {layer} | `{check}` | {counts.get('severity') or 'not recorded'} | "
+                    f"{counts['planned']} | {counts['PASS']} | "
                     f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
                     f"{counts['generation_interrupted']} | {counts['generation_unattempted']} | "
                     f"{counts['judge_missing']} | {counts['execution_error']} | {counts['unscored']} |"

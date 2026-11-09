@@ -78,6 +78,11 @@ def native_revision(log: EvalLog) -> dict:
             for field in ("origin", "commit", "dirty")}
 
 
+def criterion(check: dict) -> dict:
+    """The check as the judge sees it. Severity is for reporting and is never shown to the judge."""
+    return {key: value for key, value in check.items() if key != "severity"}
+
+
 def control_samples(family: str = "backup_care") -> list[Sample]:
     case = load_case(family)
     _, rubric_path, controls_path = family_files(family)
@@ -99,7 +104,8 @@ def control_samples(family: str = "backup_care") -> list[Sample]:
                 if turn not in check["turns"]:
                     continue
                 key = f"{check['id']}@{turn}"
-                payload = {"criterion": check, "response_turn": turn, "conversation": transcript}
+                payload = {"criterion": criterion(check), "response_turn": turn,
+                           "conversation": transcript}
                 result.append(Sample(
                     id=f"{control['id']}/{key}",
                     input=[ChatMessageSystem(content=SYSTEM), ChatMessageUser(
@@ -169,7 +175,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
             for check in rubric["checks"]:
                 if turn not in check["turns"]:
                     continue
-                payload = {"criterion": check, "response_turn": turn,
+                payload = {"criterion": criterion(check), "response_turn": turn,
                            "conversation": list(transcript)}
                 result.append(Sample(
                     id=f"{generated.id}/epoch-{generated.epoch}/{check['id']}@{turn}",
@@ -333,8 +339,8 @@ def target_judge(source_log: str, cost_limit_usd: float | None = None) -> Task:
             "benchmark_version": VERSION,
             "source": source,
             "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
-            "check_plan": {check["id"]: {"layer": check["layer"],
-                                         "turns": check["turns"]}
+            "check_plan": {check["id"]: {"layer": check["layer"], "turns": check["turns"],
+                                         "severity": check["severity"]}
                            for check in json.loads(rubric_path.read_text())["checks"]},
             "reference_manifest": {str(s.id): s.metadata for s in dataset},
         },
@@ -425,6 +431,7 @@ def summarize_target(log: EvalLog) -> dict:
     groups = {"Safety": {}, "Care": {}}
     for check_id, plan in metadata["check_plan"].items():
         counts = groups[plan["layer"]][check_id] = {
+            "severity": plan.get("severity"),
             "planned": 0, "recorded": 0, "missing": 0, "generation_missing": 0,
             "generation_interrupted": 0, "generation_unattempted": 0,
             "judge_missing": 0, "execution_error": 0, "unscored": 0,

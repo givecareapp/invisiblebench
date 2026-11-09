@@ -42,14 +42,6 @@ def positive(kind):
     return parse
 
 
-def model_tokens(text):
-    """Argument type for MODEL=N."""
-    model, _, count = text.rpartition("=")
-    if not model:
-        raise argparse.ArgumentTypeError(f"expected MODEL=N, got {text!r}")
-    return model, positive(int)(count)
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="run.py", description=__doc__, allow_abbrev=False,
@@ -61,10 +53,8 @@ def build_parser() -> argparse.ArgumentParser:
     add("--target", action="append", default=[], help="target model; repeat for several")
     add("--judge", required=True, help="judge model")
     add("--epochs", type=positive(int), default=1, help="generation epochs (default 1)")
-    add("--max-tokens", type=positive(int), default=2048,
-        help="generation max tokens (default 2048)")
-    add("--target-max-tokens", action="append", default=[], type=model_tokens, metavar="MODEL=N",
-        help="generation max tokens for one target, such as a reasoning model; repeatable")
+    add("--max-tokens", type=positive(int), default=8192,
+        help="generation max tokens, the same for every target (default 8192)")
     add("--judge-cost-limit-usd", type=positive(float), help="per-sample judge cost limit")
     add("--ceiling-usd", type=positive(float),
         help="stop before the next evaluation once the reported cost passes this")
@@ -90,9 +80,6 @@ def check_request(args: argparse.Namespace) -> None:
             f"No registered price for {unpriced}; add it to OPENROUTER_PRICES in task.py so "
             "Inspect records cost and the ceiling can count it"
         )
-    unused = sorted({model for model, _ in args.target_max_tokens} - set(args.target))
-    if unused:
-        raise ValueError(f"--target-max-tokens names models that are not a --target: {unused}")
     if not (args.target or args.controls):
         raise ValueError("Nothing to run: give --target, --controls, or both")
     if args.out.exists() and (not args.out.is_dir() or any(args.out.iterdir())):
@@ -130,7 +117,6 @@ def execute(
     The logs finished before a failure are kept so run.json can still be written from them.
     """
     done: list[tuple[str, EvalLog]] = []
-    limits = dict(args.target_max_tokens)
 
     def evaluate(kind, family, shown, task, model, log_dir, **options):
         if not model.startswith("mockllm/") and any(unknown_paid_cost(log) for _, log in done):
@@ -163,7 +149,7 @@ def execute(
                 log = evaluate(
                     "GEN", family, target, conversation_family(family), target,
                     f"generation/{family}", epochs=args.epochs,
-                    max_tokens=limits.get(target, args.max_tokens),
+                    max_tokens=args.max_tokens,
                 )
                 generated.append((family, target, log.location))
         for family, target, location in generated:
@@ -215,8 +201,7 @@ def write_record(args: argparse.Namespace, done: list[tuple[str, EvalLog]],
     logs = [log for _, log in done]
     spent, unknown = reported_cost(logs)
     record = {
-        "args": {**vars(args), "out": str(args.out),
-                 "target_max_tokens": dict(args.target_max_tokens)},
+        "args": {**vars(args), "out": str(args.out)},
         "stop_reason": stop,
         "logs": [describe(log) for log in logs],
         "reported_cost_usd": spent,

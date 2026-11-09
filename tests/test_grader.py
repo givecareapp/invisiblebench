@@ -118,7 +118,8 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
         prompt = json.loads(sample.input[1].text)
         # The actual serialized prompt contains only the criterion and observed prefix.
         assert set(prompt) == {"criterion", "response_turn", "conversation"}
-        assert prompt["criterion"] == check
+        assert prompt["criterion"] == {k: v for k, v in check.items() if k != "severity"}
+        assert "severity" not in sample.input[1].text
         assert prompt["response_turn"] == turn
         conversation = prompt["conversation"]
         family = load_case(name)
@@ -158,7 +159,7 @@ def test_target_judge_uses_saved_generation_without_control_labels(tmp_path):
     assert task.metadata["source"]["complete_samples"] == 1
     assert task.metadata["source"]["benchmark_version"] == task.metadata["benchmark_version"]
     assert task.metadata["source"]["settings"]["config"]
-    assert task.metadata["source"]["settings"]["plan"]["config"]["max_tokens"] == 2048
+    assert task.metadata["source"]["settings"]["plan"]["config"]["max_tokens"] == 8192
     assert task.metadata["source"]["runner_sha256"] == generation.eval.metadata["runner_sha256"]
     packet = build_packet(glob(str(generation_dir / "*.eval"))[0])
     assert len(packet["items"]) == 14

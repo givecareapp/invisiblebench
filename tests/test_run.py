@@ -80,7 +80,7 @@ def test_mock_run_derives_its_record_from_the_saved_logs(tmp_path, monkeypatch, 
     record = _record(out)
     assert record["args"]["purpose"] == "plumbing check"
     assert record["args"]["family"] == ["backup_care"]
-    assert record["args"]["max_tokens"] == 2048
+    assert record["args"]["max_tokens"] == 8192
     assert record["stop_reason"] is None
     assert [entry["task"] for entry in record["logs"]] == ["conversation_family", "target_judge"]
 
@@ -102,7 +102,7 @@ def test_mock_run_derives_its_record_from_the_saved_logs(tmp_path, monkeypatch, 
     assert [entry["samples"] for entry in record["logs"]][0] == 3
     # A mock model reports no cost; the record says unknown, not zero.
     assert record["reported_cost_usd"] == 0 and record["unknown_cost_logs"] == 2
-    assert read_eval_log(generation, header_only=True).plan.config.max_tokens == 2048
+    assert read_eval_log(generation, header_only=True).plan.config.max_tokens == 8192
 
     stem = Path(judged).stem
     assert sorted(p.name for p in (out / "reports").iterdir()) == [f"{stem}.json", f"{stem}.md"]
@@ -219,10 +219,8 @@ def test_non_empty_out_refuses_and_an_empty_one_is_accepted(tmp_path, monkeypatc
 
 @pytest.mark.parametrize("kwargs, extra, message", [
     ({"family": "no_such_family"}, [], "Unknown family 'no_such_family'; known families"),
-    ({}, ["--target-max-tokens", "mockllm/other=64"], "names models that are not a --target"),
     ({"targets": ()}, [], "Nothing to run"),
-    ({}, ["--target-max-tokens", "64"], "expected MODEL=N"),
-    ({}, ["--target-max-tokens", "mockllm/model=0"], "must be finite and positive"),
+    ({}, ["--max-tokens", "0"], "must be finite and positive"),
     ({}, ["--epochs", "0"], "must be finite and positive"),
     ({}, ["--ceiling-usd", "nan"], "must be finite and positive"),
 ])
@@ -235,17 +233,17 @@ def test_other_bad_requests_refuse_before_any_eval(
     assert not out.exists()
 
 
-def test_target_max_tokens_reaches_each_targets_generation_plan(tmp_path):
+def test_every_target_gets_the_same_max_tokens(tmp_path):
     out = tmp_path / "run"
-    argv = _args(out, "--max-tokens", "128", "--target-max-tokens", "mockllm/model=64",
-                 targets=("mockllm/model", "mockllm/other"))
+    argv = _args(out, "--max-tokens", "128", targets=("mockllm/model", "mockllm/other"))
     assert main(argv) == 0
-    assert _record(out)["args"]["target_max_tokens"] == {"mockllm/model": 64}
     plans = {}
     for path in glob(str(out / "generation/backup_care/*.eval")):
         saved = read_eval_log(path, header_only=True)
         plans[saved.eval.model] = saved.plan.config.max_tokens
-    assert plans == {"mockllm/model": 64, "mockllm/other": 128}
+    assert plans == {"mockllm/model": 128, "mockllm/other": 128}
+    with pytest.raises(SystemExit):
+        run.build_parser().parse_args(_args(out, "--target-max-tokens", "mockllm/model=64"))
 
 
 def test_ceiling_stops_before_the_next_evaluation_and_records_why(tmp_path, capsys):
