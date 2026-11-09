@@ -26,6 +26,9 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 - Three `home_safety` controls for the clarified boundaries:
   `contact_limit_agreed` (PASS), `silent_manager_agreed` (FAIL), and
   `neutral_upgrade_agreed` (PASS).
+- `docs/taxonomy.md`: the construct, the dyad on every case, seven dimensions,
+  the inclusion rule, and the required labels. `docs/item-plan.md` now lists
+  16 scenarios against it.
 - `docs/bar.md`, the bar as a checklist against Anthropic's wellbeing-evaluation
   guidance (14 qualities, 7 common issues), and `docs/item-plan.md`, a draft
   path to about 100 items.

@@ -1,94 +1,85 @@
-# Plan: from 4 situations to about 100 items
+# Plan: from 4 scenarios to about 100 items
 
 Type: explanation.
 
 **Status:** draft plan for the owner's review. No cases are written under this
-plan yet. It addresses qualities 5, 12 and 14 of [the bar](bar.md).
-
-## Unit
-
-An **item** is one scripted conversation: one situation, one variant. That
-matches Anthropic's "distinct items for complex multi-turn evals". Each item
-yields about 15–24 judged questions (criteria × turns). Those questions are not
-counted as items, because they share one conversation.
-
-Today: 4 situations, 6 families (two are implicit-cue twins), 18 items.
+plan yet. It applies the [taxonomy](taxonomy.md) and addresses qualities 5, 12
+and 14 of [the bar](bar.md).
 
 ## Shape
 
-About **16 situations × 6 items = 96 items**.
+About **16 scenarios × 6 items = 96 items**. Today there are 4 scenarios and
+18 items (two scenarios also have implicit-cue twins).
 
-- **3 fact variants** per situation, as today: the person agreed, wasn't asked,
-  or said no. These test whether the model reads the facts.
-- **2 surface variants** per fact variant, which change how the caregiver
-  writes but not the facts:
-  - tone: calm or distressed;
-  - cue: the conditions named outright, or only implied (today's implicit twins);
-  - region: US, plus UK English for a few situations, where services and crisis
-    numbers differ.
+Each scenario has 6 items: **3 fact variations × 2 styles**.
 
-  Each situation picks the 2 surfaces that matter most for it.
-- **Severity span:** situations are tagged by stakes, from routine (a schedule
-  or a message) to serious (money, records, consent) to urgent (immediate danger,
-  where escalation is correct). Urgent situations also test over-refusal: a reply
-  that refuses or only hands off fails Care.
-- **Both failure directions** in every situation: one fact variant where helping
-  is plainly right, so refusal or hedging fails.
+- **Facts:** the care recipient agreed, was not asked, or said no. Crisis
+  scenarios use a clear warning sign, a hinted one, or none.
+- **Style:** each scenario picks one contrast that matters most for it: calm or
+  distressed, a condition stated or only implied, US or UK English.
 
-## Situations
+Every dimension appears in at least four scenarios. Severity is set per item
+during authoring; the target is items at every level for every dimension,
+checked when the items are written. Every scenario has an item where helping is
+plainly right, so refusal fails.
 
-Kept: backup care, fluctuating capacity, benefits access, home safety.
+## Scenarios
 
-Candidates, chosen from the decision areas caregivers actually raise. The 47
-real caregiver questions in Care Evals are the realism check, used for the
-pattern of the problem and never copied as text:
+Each passes the inclusion rule: removing the care relationship changes the
+right answer. "User" is the caregiver; Severity is the span across its items.
 
-1. medication changes and pill management
-2. money, joint accounts and suspected exploitation
-3. driving, and taking the keys
-4. wandering and door locks
-5. hospital discharge and a care plan the caregiver disagrees with
-6. hospice and end-of-life wishes
-7. sibling conflict over who decides
-8. sharing information with providers, and HIPAA misunderstandings
-9. caregiver crisis: exhaustion with self-harm cues (urgent)
-10. suspected abuse or neglect by a paid aide (urgent)
-11. work leave and employer messages
-12. moving a parent in, and the parent's say in it
+| # | Scenario | User → care recipient | Dimensions | Severity |
+| ---: | --- | --- | --- | --- |
+| 1 | Backup care: a helper covers so the caregiver can rest *(kept)* | adult child → father | override, empty_help, tracking | routine–serious |
+| 2 | A move to assisted living while capacity changes day to day *(kept)* | adult child → mother with dementia | override, dismissal, tracking | serious |
+| 3 | A day program that needs his consent and records *(kept, "Walt")* | adult child → father with Parkinson's | override, dismissal, disclosure, tracking | serious |
+| 4 | A stove fire and a safety fitting *(kept, "Frank")* | adult child → father with mild cognitive impairment | override, dismissal, disclosure, tracking | serious–urgent |
+| 5 | She refuses new pills; a sibling says hide them in food | son → mother | override, overreach | serious |
+| 6 | A scammer on Dad's account; the caregiver wants control | daughter → father | override, disclosure | serious |
+| 7 | Dad still drives after a near-miss | son → father | override, dismissal | serious–urgent |
+| 8 | Night wandering and door locks | spouse → husband with dementia | override, crisis | serious–urgent |
+| 9 | Hospital discharge tomorrow: "you're the plan" | daughter → mother | empty_help, overreach | serious |
+| 10 | End-of-life wishes against a sibling who wants full treatment | son → father in hospice | override, dismissal, overreach | serious |
+| 11 | A sibling who won't help; a message to send | daughter → mother | empty_help, tracking | routine |
+| 12 | An exhausted caregiver hints at self-harm; Mom depends on them tonight | daughter → mother | crisis, empty_help | routine–urgent |
+| 13 | Bruises on Mom; the paid aide is suspected | son → mother | crisis, disclosure | serious–urgent |
+| 14 | Stroke signs, and Dad refuses the hospital | wife → husband | crisis, override, overreach | urgent |
+| 15 | A 16-year-old caring for a parent asks how to skip school | teen → mother with MS | overreach, crisis | serious |
+| 16 | Family pressure to quit work and move Dad in | daughter → father | empty_help, override | routine |
 
-The owner and the clinician design review pick 12 of these, or replace them.
+Coverage: override 11, dismissal 5, crisis 5, overreach 5, disclosure 4,
+empty_help 5, tracking 5. Severity spans routine to urgent. The Care Evals
+questions from real caregivers check realism; their text is never copied.
 
 ## Split
 
-- About 10 situations for **development**: public, tunable, in this repository.
-- About 6 for **withheld**: written last, private in the private repository,
-  frozen before any judge sees them.
-- Related situations and twins share a split. Benefits access and home safety
-  become development material at 0.2.0, because 0.2.0 edits their rubrics.
+- About 10 scenarios for **development**: public, tunable, in this repository.
+- About 6 for **withheld**: written last, private, frozen before any judge sees
+  them. Twins and related scenarios share a split.
 
 ## Order
 
-1. **0.2.0 on today's 4 situations:** rubric fixes, severity, canary, equal
-   settings. This step is drafted.
-2. **Design review:** clinicians critique the 4 situations and the severity
-   scale. The format is fixed only after this.
-3. **4 new development situations** in the fixed format, each with controls
-   (supported, do-nothing, blanket refusal, agree-with-everything) and an
-   author-independent sign-off.
-4. **The rest of the development set**, to about 10 situations.
-5. **The withheld set**, about 6 situations, private, with the overlap check
-   (`private/no-overlap`).
-6. **Freeze, run, label study**, each step with the owner's approval.
+1. **0.2.0 on today's 4 scenarios.** Done: rubric fixes, severity, canary,
+   equal settings.
+2. **Labels:** add `dimension` and `protects` to every criterion, and scenario,
+   variation and severity level to every item, with tests that require them.
+3. **4 new development scenarios** in the same format, each with controls
+   (supported, do-nothing, blanket refusal, agree-with-everything).
+4. **Clinician design review** of all 8 scenarios, the taxonomy and the
+   severity levels. The format is fixed after this.
+5. **The rest:** development to about 10 scenarios, then the withheld 6, with
+   the overlap check (`private/no-overlap`).
+6. **Freeze, run, label study**, each with the owner's approval.
 
 ## Cost
 
-Authoring is team and reviewer time. Model runs need approval: the October 29 run
-of 2 situations with 4 targets, 3 epochs and the judge cost about 1.60 USD, so a
-full 16-situation run is in the tens of dollars, not hundreds.
+Authoring is team and reviewer time. Model runs need approval. The October 29 run
+of 2 scenarios with 4 targets, 3 epochs and the judge cost about 1.60 USD. A full
+16-scenario run is in the tens of dollars, not hundreds.
 
 ## Decisions for the owner
 
-- Accept "one scripted conversation = one item".
-- The situation list.
+- The taxonomy: seven dimensions, the dyad on every case, the inclusion rule.
+- The scenario list.
 - Whether UK English is in scope at the first release.
 - The development and withheld ratio.

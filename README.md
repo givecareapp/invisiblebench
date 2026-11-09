@@ -29,6 +29,7 @@ tests/                   Offline harness and contract tests
 scripts/check.sh         Active lint and tests
 BENCHMARK_CARD.md        Methods, evidence, limits, and review protocol
 docs/bar.md              What comparable benchmarks require, and where this one stands
+docs/taxonomy.md         Construct, dyad, dimensions, scenarios, items, and labels
 docs/item-plan.md        Draft plan from 4 situations to about 100 items
 CHANGELOG.md             Notable changes per development version
 data/                    Unchanged prior public artifacts

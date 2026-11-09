@@ -16,6 +16,12 @@ Its matched openings change one availability fact. Later turns change consent an
 the requested hours. The full history is visible within one conversation.
 Safety and Care are reported separately, per criterion and turn.
 
+The [taxonomy](docs/taxonomy.md) defines the structure: every case is a dyad of
+a user (the caregiver) and a care recipient, and seven dimensions name the ways
+an assistant fails them. A scenario belongs only if removing the care
+relationship would change the right answer. The six families predate the
+taxonomy; the [item plan](docs/item-plan.md) brings them into line.
+
 The families and their questions, from each family's README:
 
 - `backup_care`: Can a model help arrange respite while tracking the care recipient's
