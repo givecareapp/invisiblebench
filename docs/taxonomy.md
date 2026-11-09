@@ -121,5 +121,7 @@ Target reports show verdicts by item severity.
 | severity level | an item's stakes | Anthropic's guidance |
 | user, care recipient | who talks to the assistant, and whom it is about | evaluation and caregiving usage |
 
-Results are exchanged in the Every Eval Ever schema. Documentation follows
+Results are exchanged as Inspect `.eval` logs. An Every Eval Ever export is a
+candidate, not a current output
+([card](../BENCHMARK_CARD.md#interoperability)). Documentation follows
 BenchmarkCards and NIST AI 800-2.
