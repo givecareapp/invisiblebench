@@ -76,7 +76,12 @@ questions from real caregivers check realism; their text is never copied.
 4. **Clinician design review** of all 8 scenarios, the taxonomy and the
    severity levels. The format is fixed after this.
 5. **The rest:** development to about 10 scenarios, then the withheld 6, with
-   the overlap check (`private/no-overlap`).
+   the overlap check (`private/no-overlap`). Each new scenario also gets one
+   reworded twin of one item, written at the same time: same facts, labels and
+   severity, different wording. Comparing verdicts across each pair measures
+   sensitivity to rewording (quality 11 of the bar). Twins share their
+   scenario's split and do not count toward the 100 items. They add about a
+   sixth to the cost of each run.
 6. **Freeze, run, label study**, each with the owner's approval.
 
 ## Cost

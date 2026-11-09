@@ -87,6 +87,7 @@ common issues avoided.
 | 3, 10, 7, ambiguous items | `scenarios-meet-bar/design-reviewed` |
 | 5, 12, 14, the rest of 3 | `scenarios-meet-bar/item-plan-decided`, then `hundred-items` |
 | 8, no human validation | `confer/judge-accuracy-stated`, then `judging-meets-bar` |
+| 11, rewording | `hundred-items`: one reworded twin per new scenario |
 | 9 | `strategy-meets-bar` |
 | 7 and 11, judge flips | `scenarios-meet-bar/controls-rejudged` |
 
