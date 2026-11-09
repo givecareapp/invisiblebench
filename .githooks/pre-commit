@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
-# Local checks — replaces .github/workflows/ci.yml (org standard: no GitHub Actions).
-# Activate once per clone:  git config core.hooksPath .githooks
-set -e
+# Local checks on exactly what is being committed — replaces .github/workflows/ci.yml
+# (org standard: no GitHub Actions). Activate once per clone: git config core.hooksPath .githooks
+#
+# The staged tree, including the temporary index of `git commit --only`, is checked out as a
+# throwaway commit in a temporary worktree, and the check runs there. The judge gate refuses
+# uncommitted case files, so a staged case change can pass only when checked as committed.
+# Unstaged edits are not checked. Arguments replace the default check (used by the tests).
+set -euo pipefail
+tree=$(git write-tree)  # reads this commit's index, before the variables below are unset
+parent=$(git rev-parse --verify --quiet HEAD || true)
 # Fixture repositories must not inherit this commit's temporary Git index.
 while IFS= read -r git_context_var; do
   unset "$git_context_var"
 done < <(git rev-parse --local-env-vars)
-exec scripts/check.sh
+commit=$(git commit-tree "$tree" ${parent:+-p "$parent"} -m "pre-commit check of the staged tree")
+scratch=$(mktemp -d)
+cleanup() { git worktree remove --force "$scratch/tree" 2>/dev/null || true; rm -rf "$scratch"; }
+trap cleanup EXIT
+git worktree add --quiet --detach "$scratch/tree" "$commit"
+cd "$scratch/tree"
+if [ "$#" -gt 0 ]; then "$@"; else scripts/check.sh; fi

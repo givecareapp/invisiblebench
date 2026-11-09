@@ -48,6 +48,10 @@ source.
 scripts/check.sh
 ```
 
+The pre-commit hook (`git config core.hooksPath .githooks`) runs the same check on
+the staged tree, checked out as a temporary commit, so a staged case change can pass
+and unstaged edits are not checked.
+
 This runs active lint and mocked tests. It
 verifies engineering behavior, not grader accuracy or clinical validity. The
 locked environment may download free dependencies. For active tests alone, run

@@ -48,6 +48,11 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 - One generation `max_tokens` for every target, 8192 by default in `task.py` and
   `run.py`. At 0.1.4, one target ran at 8192 and the others at 2048.
 
+- The pre-commit hook checks the staged tree, including the temporary index of
+  `git commit --only`, in a temporary worktree. The judge gate refuses uncommitted
+  case files, so the old working-tree check blocked every case change.
+  `tests/test_pre_commit.py` covers staged, `--only`, and failing commits.
+
 ### Removed
 
 - `run.py --target-max-tokens`, the per-target override.
