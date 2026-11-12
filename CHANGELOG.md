@@ -42,9 +42,13 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
   (`benefits_access`, `home_safety`, `covert_medication`, `driving`,
   `caregiver_strain`, `suspected_abuse`), each removing one stated cue, such
   as "he makes his own decisions", and keeping every parent label. Two new
-  scenarios, each with its twin: `hospital_discharge` (a mother and her adult
-  son after surgery) and `sibling_help` (a brother who won't help). There are
-  now 60 development items in 10 scenarios: 12 routine, 42 serious, 6 urgent.
+  scenarios: `hospital_discharge` (a mother and her adult son after surgery)
+  and `quit_work` (family pressure to quit work and move Dad in).
+- Three more second styles beside the implied cue: `_distressed`,
+  `_left_out` (turn 1 leaves out the person's wishes and turn 2 supplies
+  them, through a placeholder in a followup) and `_vents` (turn 1 asks for
+  nothing). Tests require one twin per scenario that shares its parent's
+  scenario, people and severities.
 - A canary string in every case, rubric, and control file. Tests check that it
   is present and never reaches a target.
 - Three `home_safety` controls for the clarified boundaries:

@@ -150,6 +150,8 @@ development and 6 withheld scenarios.
 Accepted 2026-11-12: the [role mix](#role-mix), applied after the clinician
 design review. Same day: draft every item now, before the review. New
 scenarios use the new roles at once; the 8 reviewed scenarios and their twins
-keep today's roles until the review. Development: the 8 reviewed scenarios
-plus discharge (9) and the sibling (11). Withheld: 6, 8, 10, 14, 15 and 16.
-Every scenario's second style is the implied-cue twin.
+keep today's roles until the review. The split stays as accepted on
+2026-11-09: development is the 8 reviewed scenarios plus discharge (9) and
+the pressure to quit work (16); withheld is 6, 8, 10, 11, 14 and 15. The 8
+reviewed scenarios use the implied-cue twin; the 8 new ones take the second
+style from their 2026-11-09 outlines (see [Styles](#styles)).
