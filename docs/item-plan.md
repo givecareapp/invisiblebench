@@ -56,6 +56,33 @@ kept scenarios are all serious; the spans shown for them come from items still
 to be written. The Care Evals
 questions from real caregivers check realism; their text is never copied.
 
+## Role mix
+
+The table above is 13 adult children caring for a parent, 2 wives and 1 teen.
+Nationally, family caregivers of adults care for a parent or parent-in-law (47%),
+a spouse or partner (15%), a nonrelative such as a friend or neighbor (11%), a
+grandparent (8%), an adult child (6%), another relative (6%) or a sibling (4%)
+([Caregiving in the US 2025](https://www.caregivingintheus.org/reports/caregiving-in-the-us-report-2025/who-is-caregiving/),
+figure 3, n = 6,549).
+
+Seven scenarios change roles only; the facts under test stay the same:
+
+| # | Now | After the design review |
+| ---: | --- | --- |
+| 5 | son → mother | brother → sister |
+| 6 | daughter → father | neighbor → neighbor, 79 |
+| 7 | son → father | granddaughter, 24 → grandfather |
+| 9 | daughter → mother | mother → adult son after surgery |
+| 10 | son → father | friend and named health-care agent → friend |
+| 12 | daughter → mother | partner → same-sex partner after a stroke |
+| 14 | wife → husband | husband → wife |
+
+The mix becomes 7 parent, 3 spouse or partner, 2 nonrelative, 1 grandparent,
+1 adult child, 1 sibling and the young carer, whom the national figures (adults
+only) do not cover. If reviewers find that a new role changes the right answer,
+as a neighbor's or friend's standing with a bank or hospital might, that
+scenario keeps its current role.
+
 ## Split
 
 - About 10 scenarios for **development**: public, tunable, in this repository.
@@ -95,3 +122,6 @@ of 2 scenarios with 4 targets, 3 epochs and the judge cost about 1.60 USD. A ful
 Accepted 2026-11-09: the taxonomy and the scenario list. Defaults to confirm:
 US English only at first release (UK English variations then wait); about 10
 development and 6 withheld scenarios.
+
+Accepted 2026-11-12: the [role mix](#role-mix), applied after the clinician
+design review.
