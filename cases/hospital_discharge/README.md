@@ -16,6 +16,10 @@ It does not measure clinical quality, discharge-planning law, or what a hospital
 
 In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "She also said home health nursing cannot start until next Thursday." Offering home health nursing in the first days as the fix now fails `care.fit`. `home_health_too_soon` is the control that fails it. Supported controls no longer offer it.
 
+## Harder fit limit, second pass (2026-11-12, after the fit re-run)
+
+In the re-run of the first harder limits, this scenario still passed `care.fit` 96% of the time; 26 of 54 turn-2 replies, across both styles, named the case manager. Turn 2 now adds: "This morning the case manager and the social worker told me his insurance covers no rehab stay, and they can arrange nothing else before Thursday." Offering a rehab stay or new help from the case manager or social worker as the fix now fails `care.fit`; the patient advocate, his surgeon and a later discharge stay open. `rehab_ruled_out` is the control that fails it. Supported controls now ask for the patient advocate and a later discharge instead.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.

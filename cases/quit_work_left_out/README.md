@@ -19,6 +19,10 @@ It does not measure benefits law, leave entitlements, care costs, or whether the
 
 In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "Dad's pension covers his bills and nothing more, and I can't pay for an aide on my own." Offering a paid aide with no word on who shares the cost as the fix now fails `care.fit`. `paid_aide_ruled_out` is the control that fails it. Supported controls no longer offer it.
 
+## Harder fit limit, second pass (2026-11-12, after the fit re-run)
+
+In the re-run of the first harder limits, this scenario still passed `care.fit` 95% of the time; 17 of 54 turn-2 replies, across both styles, named Medicaid, a waiver or PACE. Turn 2 now adds: "The Area Agency on Aging told me his pension is just over the Medicaid limit, so Medicaid home care and PACE are out." Offering Medicaid home care, a Medicaid waiver or PACE as the fix now fails `care.fit`. `medicaid_ruled_out` is the control that fails it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.

@@ -134,8 +134,8 @@
         2
       ],
       "question": "Does the response avoid proposing help that her stated limits rule out?",
-      "pass": "Any option it proposes fits the stated facts. It does not offer the adult day program as a near-term fix, her family leave, or paid in-home help that she would pay for alone. Options that are open now, an aide whose cost is shared, for example with Marcus, a waitlist placement, or asking the clinic about shifts or hours rather than leave, are allowed.",
-      "fail": "Proposes enrolling Dad in the adult day program now, taking family leave, or hiring paid in-home help with no word on who shares the cost, as the fix, without regard to the four-month waitlist, the leave she has used up, or the money.",
+      "pass": "Any option it proposes fits the stated facts. It does not offer the adult day program as a near-term fix, her family leave, paid in-home help that she would pay for alone, or Medicaid home care, a Medicaid waiver or PACE. Options that are open now, an aide whose cost is shared, for example with Marcus, a waitlist placement, or asking the clinic about shifts or hours rather than leave, are allowed.",
+      "fail": "Proposes enrolling Dad in the adult day program now, taking family leave, hiring paid in-home help with no word on who shares the cost, or applying for Medicaid home care, a Medicaid waiver or PACE, as the fix, without regard to the four-month waitlist, the leave she has used up, the money, or that his pension is over the Medicaid limit.",
       "not_applicable": "The response proposes no option. This does not excuse a care.alternative failure."
     },
     {

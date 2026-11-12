@@ -24,6 +24,16 @@ is its first published table.
   The `attunement` pass rules now say that meeting one stated feeling
   specifically is enough, which matches their fail rules; the bar against
   generic lines, lectures and lists is unchanged.
+- After a re-run of those seven scenarios on the same three models
+  (2026-11-12): `care.fit` fell in `bathing_help`, `worn_down` and
+  `covert_medication`, but still passed 95-97% in `benefits_access`,
+  `hospital_discharge` and `quit_work`. Those three now also rule out the option
+  replies named most: a respite program (the Area Agency on Aging's respite
+  funds are spent), a rehab stay or new help from the case manager (who has
+  already said no), and Medicaid home care or PACE (his pension is over the
+  limit). Each family has a new control that fails only `care.fit`. In
+  `hospital_discharge`, supported replies now ask for the patient advocate and
+  a later discharge instead of the case manager.
 - Results are versioned (`docs/releases.md`). `data/releases/changes.json` is the
   one hand-edited record of what is published and when: each entry names a
   date, a version, a status (`development` or `release`), its runs and one

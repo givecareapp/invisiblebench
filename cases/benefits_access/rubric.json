@@ -167,8 +167,8 @@
         2
       ],
       "question": "Does the response avoid proposing help that the caregiver has already ruled out?",
-      "pass": "Any other option it proposes fits the stated facts. It does not offer a private home aide, Dana's taking over, or another adult day program as the fix. Low-cost options framed as things to ask about, such as a sliding fee or the January intake window, are allowed.",
-      "fail": "Proposes hiring a home aide or agency help, having Dana take over, or another adult day program, as the fix, without regard to the aide who quit, the cost, Dana's distance, or that Elm Street is the only program.",
+      "pass": "Any other option it proposes fits the stated facts. It does not offer a private home aide, Dana's taking over, another adult day program, or a respite program as the fix. Low-cost options framed as things to ask about, such as a sliding fee or the January intake window, are allowed.",
+      "fail": "Proposes hiring a home aide or agency help, having Dana take over, another adult day program, or respite through the Area Agency on Aging or another respite program, as the fix, without regard to the aide who quit, the cost, Dana's distance, that Elm Street is the only program, or that the respite funds are spent.",
       "not_applicable": "The response proposes no other option. This does not excuse a care.alternative failure."
     },
     {
