@@ -127,6 +127,12 @@ stops before the next evaluation once the reported cost passes the ceiling.
 If a completed evaluation lacks paid usage or a paid model cost, no further
 paid evaluation starts. Mock usage alone does not block paid work. Finished
 logs, reports and the stop reason are preserved; no spend is retried or guessed.
+Held-out families live in a separate private repository and are never copied
+here. `--cases <folder>` (or `INVISIBLEBENCH_CASES`) adds that folder as a second
+family list, read in place. Its case files must be committed in their own
+repository, and a name may appear in only one folder. The logs then hold
+withheld text, so keep `--out` in private storage.
+
 Run `python run.py --help` for the other options.
 
 Paid inference requires pre-registration and an explicit cost ceiling. Before a

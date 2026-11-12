@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import subprocess
 import tomllib
 from pathlib import Path
@@ -20,6 +21,8 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 ROOT = Path(__file__).resolve().parent
 CASES = ROOT / "cases"
+# A second family folder, read in place: the private held-out cases. Never copy them here.
+CASES_ENV = "INVISIBLEBENCH_CASES"
 PROJECT = ROOT / "pyproject.toml"
 VERSION = tomllib.loads(PROJECT.read_text())["project"]["version"]
 
@@ -57,27 +60,54 @@ PROTECTS = ("user", "care_recipient", "third_party")
 ITEM_LABELS = ("id", "severity")  # variant keys that label the item and never reach the target
 
 
+def case_roots() -> list[Path]:
+    """cases/, then the folder named by INVISIBLEBENCH_CASES when it is set."""
+    extra = os.environ.get(CASES_ENV)
+    return [CASES, *([Path(extra).resolve()] if extra else [])]
+
+
 def case_path(family: str) -> Path:
-    """The directory listing under cases/ is the family list."""
-    path = CASES / str(family) / "case.json"
-    if not isinstance(family, str) or Path(family).name != family or not path.is_file():
-        known = sorted(p.parent.name for p in CASES.glob("*/case.json"))
+    """Each directory holding a case.json in a case folder is a family; a name may be in one."""
+    roots = case_roots()
+    named = isinstance(family, str) and Path(family).name == family
+    found = [path for root in roots if named and (path := root / family / "case.json").is_file()]
+    if len(found) > 1:
+        raise ValueError(f"Family {family!r} is in both {[str(p.parent.parent) for p in found]}")
+    if not found:
+        known = sorted(p.parent.name for root in roots for p in root.glob("*/case.json"))
         raise ValueError(f"Unknown family {family!r}; known families: {known}")
-    return path
+    return found[0]
+
+
+def shown(path: Path) -> str:
+    """A file as runs record it: relative inside this repository, absolute outside it."""
+    path = Path(path).resolve()
+    return str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path)
 
 
 def revision(paths: list[Path]) -> dict:
-    """Uncommitted files among those a run depends on; None outside a repository, as in Harbor.
+    """Uncommitted files among those a run depends on, each asked of its own repository.
 
-    The commit itself is Inspect's native `log.eval.revision`.
+    None when this repository is not a Git checkout. A file outside this repository that
+    no repository holds counts as uncommitted. The commit itself is Inspect's native
+    `log.eval.revision`.
     """
-    git = ["git", "-C", str(ROOT)]
-    try:
-        status = subprocess.run([*git, "status", "--porcelain", "--", *map(str, paths)],
-                                capture_output=True, text=True, check=True).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return {"uncommitted": None}
-    return {"uncommitted": sorted(line[3:] for line in status.splitlines())}
+    uncommitted = []
+    for path in map(lambda p: Path(p).resolve(), paths):
+        git = ["git", "-C", str(path.parent)]
+        try:
+            top = subprocess.run([*git, "rev-parse", "--show-toplevel"],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+            status = subprocess.run([*git, "status", "--porcelain", "--untracked-files=all",
+                                     "--", str(path)],
+                                    capture_output=True, text=True, check=True).stdout
+        except (OSError, subprocess.CalledProcessError):
+            if path.is_relative_to(ROOT):
+                return {"uncommitted": None}
+            uncommitted.append(shown(path))
+            continue
+        uncommitted += [shown(Path(top) / line[3:]) for line in status.splitlines()]
+    return {"uncommitted": sorted(set(uncommitted))}
 
 
 def load_case(family: str) -> dict:

@@ -14,7 +14,16 @@ from inspect_ai.model import ChatMessageSystem, ChatMessageUser, GenerateConfig
 from inspect_ai.scorer import Score, Scorer, Target, categorical, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
-from task import PROJECT, VERSION, case_path, item_labels, load_case, opening, revision
+from task import (
+    PROJECT,
+    VERSION,
+    case_path,
+    item_labels,
+    load_case,
+    opening,
+    revision,
+    shown,
+)
 
 
 class Verdict(StrEnum):
@@ -66,7 +75,8 @@ def judged_revision(family: str, code: Path) -> dict:
     """
     inputs = family_files(family)
     result = revision([*inputs, PROJECT, code])
-    dirty = [p for p in (result["uncommitted"] or []) if p.startswith(f"cases/{family}/")]
+    gated = {shown(path) for path in inputs}
+    dirty = [p for p in (result["uncommitted"] or []) if p in gated]
     if dirty:
         raise ValueError(f"Commit before judging; uncommitted case files: {dirty}")
     return result

@@ -11,6 +11,7 @@ and 2 when the request was refused before any evaluation.
 import argparse
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -50,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     add = parser.add_argument
     add("--out", type=Path, required=True, help="new or empty run directory")
     add("--family", action="append", required=True, help="case family; repeat for several")
+    add("--cases", type=Path,
+        help="a second family folder, read in place and gated on its own repository's commits "
+             "(the private held-out cases); sets INVISIBLEBENCH_CASES")
     add("--target", action="append", default=[], help="target model; repeat for several")
     add("--judge", required=True, help="judge model")
     add("--epochs", type=positive(int), default=1, help="generation epochs (default 1)")
@@ -215,6 +219,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     args.out = args.out.resolve()
+    if args.cases:
+        args.cases = str(args.cases.resolve())
+        os.environ["INVISIBLEBENCH_CASES"] = args.cases
     try:
         check_request(args)
     except ValueError as error:
