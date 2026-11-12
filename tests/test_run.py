@@ -310,3 +310,28 @@ def test_help_runs_as_a_script_from_a_clone():
                             cwd=ROOT, capture_output=True, text=True, timeout=300)
     assert result.returncode == 0, result.stderr
     assert "--ceiling-usd" in result.stdout
+
+
+@pytest.mark.parametrize("target, judge", [
+    ("openrouter/anthropic/claude-haiku-5.5", "openrouter/anthropic/claude-haiku-5.5"),
+    ("openrouter/openai/gpt-5.6-luna", "openrouter/openai/gpt-5.6-luna-pro"),
+])
+def test_a_target_from_the_judges_company_refuses_before_any_eval(
+    tmp_path, monkeypatch, capsys, target, judge
+):
+    # Judges favor their own family's outputs (BENCHMARK_CARD.md), so the judge's company
+    # must differ from every target. This is the automated check docs/bar.md names.
+    _forbid_eval(monkeypatch)
+    out = tmp_path / "run"
+    flags = ["--ceiling-usd", "1", "--judge-cost-limit-usd", "0.05"]
+    error = _refused(_args(out, *flags, targets=(target,), judge=judge), capsys)
+    assert "same company as the judge" in error and target in error
+    assert not out.exists()
+
+
+def test_a_target_from_another_company_passes_the_company_gate(tmp_path, monkeypatch):
+    _forbid_eval(monkeypatch)
+    flags = ["--ceiling-usd", "1", "--judge-cost-limit-usd", "0.05"]
+    with pytest.raises(EvalCalled):
+        main(_args(tmp_path / "run", *flags, targets=("openrouter/deepseek/deepseek-v4.1-flash",),
+                   judge="openrouter/anthropic/claude-haiku-5.5"))

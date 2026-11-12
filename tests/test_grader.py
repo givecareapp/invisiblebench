@@ -690,3 +690,26 @@ def test_judge_log_results_carry_native_verdict_frequencies(tmp_path, epochs):
         "PASS": pytest.approx(1 / 3), "FAIL": pytest.approx(1 / 3), "UNCLEAR": 0.0,
         "NOT_APPLICABLE": pytest.approx(1 / 3)}
     assert score.scored_samples == 3 * epochs and score.unscored_samples == epochs
+
+
+@pytest.mark.parametrize("judge, target, same", [
+    ("openrouter/anthropic/claude-haiku-5.5", "openrouter/anthropic/claude-opus-4.8", True),
+    ("openrouter/anthropic/claude-haiku-5.5", "anthropic/claude-opus-4.8", True),
+    ("openrouter/openai/gpt-5.6-luna", "openrouter/deepseek/deepseek-v4.1-flash", False),
+    ("mockllm/model", "mockllm/model", False),
+])
+def test_company_of_a_judge_and_target(judge, target, same):
+    # Mock models have no company, so free runs are never refused.
+    from grader import same_company
+    assert same_company(judge, target) is same
+
+
+def test_the_judge_solver_refuses_a_target_from_its_own_company():
+    import asyncio
+    from types import SimpleNamespace
+
+    from grader import bounded_judge
+    solve = bounded_judge(0.05, target="openrouter/anthropic/claude-opus-4.8")
+    state = SimpleNamespace(model="openrouter/anthropic/claude-haiku-5.5")
+    with pytest.raises(ValueError, match="same company as the judge"):
+        asyncio.run(solve(state, None))

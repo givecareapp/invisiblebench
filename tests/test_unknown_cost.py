@@ -113,7 +113,10 @@ def test_cli_stop_keeps_native_log_and_completed_reports_without_network(
     set_model_info(mock_provider_name, ModelInfo(cost=ModelCost(input=0.0, output=0.0, input_cache_write=0.0, input_cache_read=0.0)))
     real_evaluate = run.inspect_eval
     calls = []
-    priced = 'openrouter/anthropic/claude-haiku-5.5'
+    judge = 'openrouter/anthropic/claude-haiku-5.5'
+    # A target from another company: a judge never scores its own company's models.
+    target = 'openrouter/deepseek/deepseek-v4.1-flash'
+    priced = judge if controls else target  # the first evaluation's model
 
     def mock_provider(task, **kwargs):
         calls.append(kwargs['model'])
@@ -133,7 +136,7 @@ def test_cli_stop_keeps_native_log_and_completed_reports_without_network(
     monkeypatch.setattr(socket.socket, 'connect', forbid_network)
     out = tmp_path / 'run'
     args = [
-        '--out', str(out), '--family', 'backup_care', '--target', priced, '--judge', priced,
+        '--out', str(out), '--family', 'backup_care', '--target', target, '--judge', judge,
         '--ceiling-usd', '1', '--judge-cost-limit-usd', '0.05',
         *(['--controls'] if controls else []),
     ]

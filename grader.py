@@ -292,10 +292,29 @@ def criterion_verdict() -> Scorer:
     return score
 
 
+def company(model: str) -> str | None:
+    """A model's maker: `openrouter/anthropic/x` and `anthropic/x` both give `anthropic`.
+
+    Mock models have none, so free runs are never refused.
+    """
+    parts = str(model).split("/")
+    if parts[0] == "openrouter":
+        parts = parts[1:]
+    return None if len(parts) < 2 or parts[0] == "mockllm" else parts[0]
+
+
+def same_company(judge: str, target: str) -> bool:
+    """Judges favor their own family's outputs, so a judge never scores its own company."""
+    maker = company(judge)
+    return maker is not None and maker == company(target)
+
+
 @solver
-def bounded_judge(cost_limit_usd: float | None = None) -> Solver:
+def bounded_judge(cost_limit_usd: float | None = None, target: str | None = None) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         model = str(state.model)
+        if target is not None and same_company(model, target):
+            raise ValueError(f"Target {target} is from the same company as the judge {model}")
         if not model.startswith("mockllm/"):
             if not model.startswith("openrouter/"):
                 raise ValueError("Live judging requires an OpenRouter model")
@@ -346,7 +365,8 @@ def target_judge(source_log: str, cost_limit_usd: float | None = None) -> Task:
     case_file, rubric_path, _ = family_files(family)
     paths = [case_file, rubric_path, PROJECT, Path(__file__).resolve()]
     return Task(
-        dataset=dataset, solver=bounded_judge(cost_limit_usd), scorer=criterion_verdict(),
+        dataset=dataset, solver=bounded_judge(cost_limit_usd, target=source["model"]),
+        scorer=criterion_verdict(),
         config=GenerateConfig(max_tokens=4096, max_retries=0), cost_limit=cost_limit_usd,
         metadata={
             "use": "target-judging", "family": family, "basis": "unvalidated development rubric",

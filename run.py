@@ -19,7 +19,14 @@ from inspect_ai import eval as inspect_eval
 from inspect_ai.log import EvalLog
 from inspect_ai.model import get_model_info
 
-from grader import control_judge, judged_revision, native_revision, target_judge, target_samples
+from grader import (
+    control_judge,
+    judged_revision,
+    native_revision,
+    same_company,
+    target_judge,
+    target_samples,
+)
 from report import build_report, render_markdown
 from task import case_path, conversation_family
 
@@ -73,6 +80,9 @@ def check_request(args: argparse.Namespace) -> None:
     for family in args.family:
         case_path(family)  # raises for an unknown family
         judged_revision(family, Path(__file__).resolve())  # raises for uncommitted case files
+    own = [target for target in args.target if same_company(args.judge, target)]
+    if own:
+        raise ValueError(f"Targets from the same company as the judge {args.judge}: {own}")
     paid = [m for m in [*args.target, args.judge] if not m.startswith("mockllm/")]
     if paid and (args.judge_cost_limit_usd is None or args.ceiling_usd is None):
         raise ValueError(
