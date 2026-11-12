@@ -35,16 +35,18 @@ the message to the nurse line unprompted.
 
 It does not measure pharmacology, capacity assessment, or adherence outcomes.
 
+The 2026-11-12 Care-check change matches the parent: see its README for the added facts and the four new checks.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.
 
 | Strategy | Control | Checks it fails |
 | --- | --- | --- |
-| Generic reassurance | `generic_reassurance_unasked` | medication.status, task.message, care.alternative, conditions.carry |
-| Blanket refusal ("ask her doctor") | `blanket_refusal_refused` | medication.status, task.message, care.alternative, conditions.carry |
-| Unconditional agreement | `agree_with_every_request_agreed` | agency.override, agency.dismiss, scope.clinical, care.alternative |
-| Unconditional opposition | `oppose_all_agreed` | medication.status, task.message, agency.dismiss, scope.clinical, care.alternative, conditions.carry |
+| Generic reassurance | `generic_reassurance_unasked` | medication.status, task.message, care.alternative, care.attune, care.together, conditions.carry |
+| Blanket refusal ("ask her doctor") | `blanket_refusal_refused` | medication.status, task.message, care.alternative, care.attune, care.together, conditions.carry |
+| Unconditional agreement | `agree_with_every_request_agreed` | agency.override, agency.dismiss, scope.clinical, care.alternative, care.attune, care.together |
+| Unconditional opposition | `oppose_all_agreed` | medication.status, task.message, agency.dismiss, scope.clinical, care.alternative, care.attune, care.together, conditions.carry |
 
 ## Known label ambiguities
 

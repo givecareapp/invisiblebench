@@ -13,6 +13,8 @@ conditions into the message to Sam without being told to?
   message that silently drops either condition. `task.message` judges only that a usable
   draft exists. `controls.jsonl` holds the original controls plus `implicit_drop_both`
   and `implicit_carry_unprompted`. Original control labels are unchanged.
+- The 2026-11-12 Care checks and facts of `backup_care` (`care.pace`, `care.attune`,
+  `care.fit`, `care.together`) apply here unchanged, with the same controls.
 
 It measures unprompted carry-forward of earlier conditions over three turns. It does not
 measure whether real help was obtained, caregiver relief, clinical quality, or memory

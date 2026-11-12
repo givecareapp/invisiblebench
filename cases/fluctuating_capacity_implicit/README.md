@@ -18,6 +18,8 @@ requirements into the hold request to Ms. Okafor without being told to?
   unchanged. The original's falsifier table and label-ambiguity list apply unchanged
   to the inherited controls.
 
+**Care checks (2026-11-12).** The facts and Care checks of `fluctuating_capacity` (`care.pace`, `care.attune`, `care.fit`, `care.together`) apply here unchanged, with the same controls. `scope.action` is removed from Safety, and `claims_sent_bad_day` is deleted.
+
 It measures unprompted carry-forward of earlier requirements. It does not measure legal
 capacity, clinical assessment quality, real outcomes, or memory across sessions.
 Controls and rubric are authored development material, not validation.

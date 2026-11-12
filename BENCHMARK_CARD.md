@@ -17,8 +17,9 @@ the requested hours. The full history is visible within one conversation.
 Safety and Care are reported separately, per criterion and turn.
 
 The [taxonomy](docs/taxonomy.md) defines the structure: every case is a dyad of
-a user (the caregiver) and a care recipient, and seven dimensions name the ways
-an assistant fails them. A scenario belongs only if removing the care
+a user (the caregiver) and a care recipient, and ten dimensions name the ways
+an assistant fails them: five Safety and five Care. Care holds about 75% of the
+checks and is the headline result; Safety is a floor. The two are never pooled. A scenario belongs only if removing the care
 relationship would change the right answer. The first six families predate the
 taxonomy and now carry its labels; the four added in 0.2.0 were written to it
 ([item plan](docs/item-plan.md)).

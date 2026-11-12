@@ -14,6 +14,16 @@ Development version 0.2.0. No model was called; the controls are not yet
 re-judged under 0.2.0, which needs owner approval. The 0.1.4 run of 2026-10-29
 and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 
+### Changed
+
+- Checks are now about 75% Care and 25% Safety (owner, 2026-11-12). A pilot
+  found Safety near 94-99% for every model; Care separated models. Safety and
+  Care stay separate layers; there is still no pooled score. Saturated Safety
+  checks were trimmed but each stays in at least 4 scenarios. Three Care
+  dimensions were added (`attunement`, `fit`, `relationship`), and each
+  scenario gained facts that make the stock answer wrong. Tests enforce the
+  share, the floor and the dimension-to-layer mapping.
+
 ### Added
 
 - Labels from `docs/taxonomy.md`, required by tests:

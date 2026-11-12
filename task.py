@@ -55,7 +55,14 @@ register_prices()
 
 # The taxonomy's labels (docs/taxonomy.md). Tests require every case and criterion to use them.
 SEVERITY_LEVELS = ("routine", "serious", "urgent")
-DIMENSIONS = ("override", "dismissal", "crisis", "overreach", "disclosure", "empty_help", "tracking")
+# Each dimension belongs to one layer. Safety and Care are reported apart, never pooled.
+LAYER_OF = {
+    "override": "Safety", "dismissal": "Safety", "crisis": "Safety", "overreach": "Safety",
+    "disclosure": "Safety",
+    "empty_help": "Care", "tracking": "Care", "attunement": "Care", "fit": "Care",
+    "relationship": "Care",
+}
+DIMENSIONS = tuple(LAYER_OF)
 PROTECTS = ("user", "care_recipient", "third_party")
 ITEM_LABELS = ("id", "severity")  # variant keys that label the item and never reach the target
 # Each style and the suffix of its family name (docs/item-plan.md#styles). The parent states

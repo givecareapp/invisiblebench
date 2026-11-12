@@ -107,7 +107,7 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
     }
     assert len(samples) == len(planned)
     if name == "backup_care":
-        assert len(samples) == 238
+        assert len(samples) == 396
     assert len({sample.id for sample in samples}) == len(samples)
     for sample in samples:
         control, check, turn = planned[sample.id]
@@ -157,14 +157,14 @@ def test_target_judge_uses_saved_generation_without_control_labels(tmp_path):
     assert generation.status == "success"
     task = target_judge(glob(str(generation_dir / "*.eval"))[0])
     assert task.metadata["use"] == "target-judging"
-    assert len(task.dataset) == 14
+    assert len(task.dataset) == 18
     assert task.metadata["source"]["complete_samples"] == 1
     assert task.metadata["source"]["benchmark_version"] == task.metadata["benchmark_version"]
     assert task.metadata["source"]["settings"]["config"]
     assert task.metadata["source"]["settings"]["plan"]["config"]["max_tokens"] == 8192
     assert task.metadata["source"]["runner_sha256"] == generation.eval.metadata["runner_sha256"]
     packet = build_packet(glob(str(generation_dir / "*.eval"))[0])
-    assert len(packet["items"]) == 14
+    assert len(packet["items"]) == 18
     assert packet["complete_conversations"] == 1
     assert packet["planned_conversations"] == 3
     assert packet["source_log_sha256"] == task.metadata["source"]["source_log_sha256"]
@@ -260,11 +260,11 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
         fail_on_error=False,
     )
     assert log.status == "success", log.error
-    assert len(requests) == 238
+    assert len(requests) == 396
     report = summarize(log)
     audit = build_report(log)
     assert audit["summary"] == report
-    assert len(audit["trials"]) == 238
+    assert len(audit["trials"]) == 396
     assert audit["run"]["model"] == "mockllm/model"
     assert audit["summary"]["source_sha256"] == task.metadata["source_sha256"]
     assert all(trial["verdict"] == prediction and trial["evidence"] for trial in audit["trials"])
@@ -274,7 +274,7 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
     for layer in ("Safety", "Care"):
         for counts in report["by_layer"][layer].values():
             totals.update({key: value for key, value in counts.items() if isinstance(value, int)})
-    assert totals["planned"] == totals["recorded"] == 238
+    assert totals["planned"] == totals["recorded"] == 396
     assert totals["missing"] == totals["unscored"] == totals["execution_error"] == 0
     # The fake always returns one verdict: the report must expose its errors and
     # must not call the result grader accuracy or model quality.
@@ -301,7 +301,7 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
     assert "Response evidence:" in readable
     assert "No recorded FAIL" not in readable
     if prediction == "PASS":
-        assert readable.count("### False pass:") == totals["false_pass"] == 34
+        assert readable.count("### False pass:") == totals["false_pass"] == 48
         assert "FAIL→PASS" in readable
     else:
         assert readable.count("### False fail:") == totals["false_fail"]
@@ -337,8 +337,8 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
 
     source_log = glob(str(generation_dir / "*.eval"))[0]
     task = target_judge(source_log)
-    # confirmed: 14 opportunities; unasked: turn 1 only (5); unavailable: turns 1-2 (9).
-    assert len(task.dataset) == 14 + 5 + 9
+    # confirmed: 18 opportunities; unasked: turn 1 only (6); unavailable: turns 1-2 (13).
+    assert len(task.dataset) == 18 + 6 + 13
     assert "Unfinished draft" not in json.dumps([s.input[-1].text for s in task.dataset])
     source = task.metadata["source"]
     assert source["planned_samples"] == 3
@@ -351,7 +351,7 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
     errors = {c["sample_id"]: c["error"] for c in source["conversations"] if c["error"]}
     assert "Deliberate provider outage at turn 3" in errors["backup_care/unavailable"]
     assert "Incomplete response at user turn 2" in errors["backup_care/unasked"]
-    assert len(build_packet(source_log)["items"]) == 28
+    assert len(build_packet(source_log)["items"]) == 37
 
     def valid_judgment(messages, tools, tool_choice, config):
         prompt = json.loads(messages[-1].text)
@@ -437,12 +437,12 @@ def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path
 
     report = summarize(log)
     care = report["by_layer"]["Care"]["care.alternative"]
-    assert care["planned"] == 2 * 17
+    assert care["planned"] == 2 * 22
     assert care["recorded"] == care["unclear"] == 2
     assert care["missing"] == care["planned"] - care["recorded"]
     assert care["confusion"]["PASS"]["UNCLEAR"] == 2
     safety = report["by_layer"]["Safety"]["privacy.message"]
-    assert safety["planned"] == 2 * 17 * 3
+    assert safety["planned"] == 2 * 22 * 3
     assert safety["recorded"] == 2
     assert safety["missing"] == safety["planned"] - safety["recorded"]
     assert safety["applicability_error"] == 2

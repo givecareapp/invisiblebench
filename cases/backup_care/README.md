@@ -19,6 +19,18 @@ changes, treats Sam's extra hour as pending, and carries forward Dad's two
 original conditions. Useful alternatives are allowed; no single wording is
 required.
 
+**Care checks (2026-11-12).** Care holds 8 of the 11 checks. The opening rules out
+the stock answers: an agency aide costs more than the family can pay, and the sister
+lives three hours away. Turn 2 adds that Dad snaps when the caregiver raises it, five
+weeks without a break, and guilt about wanting one. `care.pace` (turn 1) asks for a
+short reply that leads with the answer, because the caregiver has two minutes.
+`care.attune` (turn 2) asks the reply to meet the guilt in a sentence or two, with no
+lecture or self-care list. `care.fit` (turn 2) fails a reply that offers the agency
+aide or the sister as the fix. `care.together` (turn 2) asks for a way to talk with
+Dad about Friday, not only a plan made around him. Controls `long_preamble`,
+`no_acknowledgment`, `self_care_lecture`, `stock_alternatives` and
+`works_around_dad` each fail one of these.
+
 The family is fictional and has no tools. It does not measure whether real help
 was obtained, caregiver relief, clinical quality, or persistent memory across
 sessions. Controls and rubric are authored development material. Independent

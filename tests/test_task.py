@@ -19,6 +19,7 @@ from inspect_ai.model import (
 from task import (
     DIMENSIONS,
     ITEM_LABELS,
+    LAYER_OF,
     OPENROUTER_PRICES,
     PROTECTS,
     ROOT,
@@ -67,6 +68,7 @@ def test_every_item_and_criterion_carries_its_labels(name):
     for check in rubric["checks"]:
         assert "severity" not in check, check["id"]
         assert check["dimension"] in DIMENSIONS, check["id"]
+        assert check["layer"] == LAYER_OF[check["dimension"]], check["id"]
         assert check["protects"] and set(check["protects"]) <= set(PROTECTS), check["id"]
         assert len(set(check["protects"])) == len(check["protects"]), check["id"]
     assert len({check["dimension"] for check in rubric["checks"]}) >= 2
@@ -145,6 +147,8 @@ def test_family_contract(name):
         }
     rubric = json.loads((directory / "rubric.json").read_text())
     controls = [json.loads(line) for line in (directory / "controls.jsonl").read_text().splitlines()]
+    ids = [check["id"] for check in rubric["checks"]]
+    assert len(ids) == len(set(ids)), "check ids must be unique in a family"
     opportunities = {
         f"{check['id']}@{turn}"
         for check in rubric["checks"]
@@ -172,6 +176,44 @@ def test_family_contract(name):
             for control in controls
             for turn in check["turns"]
         ), f"No failure control for {check['id']}"
+
+
+def _checks_by_scenario():
+    by = {}
+    for name in FAMILIES:
+        rubric = json.loads((ROOT / "cases" / name / "rubric.json").read_text())
+        by.setdefault(scenario_of(name), []).append(rubric["checks"])
+    return by
+
+
+def test_checks_are_allocated_three_to_one_toward_care():
+    # docs/item-plan.md#allocation: Care is the headline, so it holds about 75% of the checks.
+    # Safety and Care stay separate layers; this is an allocation, never a pooled score.
+    layers = [c["layer"] for family in _checks_by_scenario().values() for checks in family
+              for c in checks]
+    assert 0.70 <= layers.count("Care") / len(layers) <= 0.80
+    for scenario, family in _checks_by_scenario().items():
+        for checks in family:
+            care = sum(c["layer"] == "Care" for c in checks)
+            assert care >= 2 * (len(checks) - care), scenario
+
+
+SAFETY_FLOOR = ("scope.action", "privacy.message", "agency.dismiss", "crisis.response")
+
+
+@pytest.mark.parametrize("check", SAFETY_FLOOR)
+def test_saturated_safety_checks_keep_a_floor_of_four_scenarios(check):
+    # Saturated Safety checks were trimmed, not deleted, so a regression still shows.
+    holding = {s for s, family in _checks_by_scenario().items()
+               if any(c["id"] == check for checks in family for c in checks)}
+    assert len(holding) >= 4, holding
+
+
+def test_every_care_dimension_appears_in_four_scenarios():
+    for dimension in (d for d, layer in LAYER_OF.items() if layer == "Care"):
+        holding = {s for s, family in _checks_by_scenario().items()
+                   if any(c["dimension"] == dimension for checks in family for c in checks)}
+        assert len(holding) >= 4, (dimension, holding)
 
 
 def test_unknown_family_is_rejected():
@@ -212,7 +254,7 @@ def test_backup_care_content_and_control_bindings():
         json.loads(line)
         for line in (ROOT / "cases/backup_care/controls.jsonl").read_text().splitlines()
     ]
-    assert len({f"{c['id']}@{t}" for c in rubric["checks"] for t in c["turns"]}) == 14
+    assert len({f"{c['id']}@{t}" for c in rubric["checks"] for t in c["turns"]}) == 18
     by_id = {control["id"]: control for control in controls}
     for control_id in ("supported_confirmed", "supported_unasked", "supported_unavailable"):
         assert all(
