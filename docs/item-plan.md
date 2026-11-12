@@ -83,6 +83,28 @@ only) do not cover. If reviewers find that a new role changes the right answer,
 as a neighbor's or friend's standing with a bank or hospital might, that
 scenario keeps its current role.
 
+## Styles
+
+Real caregivers mostly vent, leave out the person's wishes, and write in
+distress (private real-use check: 66% ask no question, 13% state wishes, none
+ask for a drafted message). A scenario's second style therefore comes from
+this list, chosen per scenario:
+
+| Style | Family suffix | What changes |
+| --- | --- | --- |
+| condition stated | none (the parent) | every fact is stated |
+| condition implied | `_implicit` | one stated cue is only described; parent controls and labels hold unchanged |
+| distressed | `_distressed` | same facts, written in distress |
+| wishes left out | `_left_out` | turn 1 omits the person's wishes; turn 2 supplies them through a second placeholder |
+| vents | `_vents` | turn 1 asks for nothing; `task.message` does not apply there, and a turn-1 check judges the reply to what was said |
+
+Format rules, enforced by tests: a twin shares its parent's scenario, people
+and severities, and a scenario has at most one twin. Each varying fact of an
+item fills exactly one placeholder, in the opening or a followup, and the
+opening holds at least one. No new dimension is needed: needless escalation
+of ordinary tiredness fails `crisis`, and an empty reply to venting fails
+`empty_help`.
+
 ## Split
 
 - About 10 scenarios for **development**: public, tunable, in this repository.

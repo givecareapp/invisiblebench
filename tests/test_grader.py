@@ -24,7 +24,7 @@ from grader import (
 )
 from report import build_report, render_markdown
 from review_packet import build_packet
-from task import ROOT, conversation_family, load_case, opening
+from task import ROOT, conversation_family, load_case, user_turns
 
 # Every directory under cases/ is a family; new families are covered without listing them.
 FAMILIES = sorted(p.parent.name for p in (ROOT / "cases").glob("*/case.json"))
@@ -126,7 +126,7 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
         conversation = prompt["conversation"]
         family = load_case(name)
         variant = next(v for v in family["variants"] if v["id"] == control["variant"])
-        users = [opening(family, variant), *family["followups"]]
+        users = user_turns(family, variant)
         assert [entry["role"] for entry in conversation] == [
             role for _ in range(turn) for role in ("user", "assistant")
         ]

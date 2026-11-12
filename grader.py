@@ -21,9 +21,9 @@ from task import (
     case_path,
     item_labels,
     load_case,
-    opening,
     revision,
     shown,
+    user_turns,
 )
 
 
@@ -102,10 +102,10 @@ def control_samples(family: str = "backup_care") -> list[Sample]:
     _, rubric_path, controls_path = family_files(family)
     rubric = json.loads(rubric_path.read_text())
     controls = [json.loads(line) for line in controls_path.read_text().splitlines()]
-    openings = {v["id"]: opening(case, v) for v in case["variants"]}
+    turns = {v["id"]: user_turns(case, v) for v in case["variants"]}
     result = []
     for control in controls:
-        users = [openings[control["variant"]], *case["followups"]]
+        users = turns[control["variant"]]
         transcript = []
         for turn, (user, response) in enumerate(
             zip(users, control["responses"], strict=True), start=1
@@ -147,7 +147,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
         raise ValueError("Generation case differs from the current case")
     case = load_case(family)
     rubric = json.loads(rubric_path.read_text())
-    openings = {f"{case['id']}/{v['id']}": opening(case, v) for v in case["variants"]}
+    item_turns = {f"{case['id']}/{v['id']}": user_turns(case, v) for v in case["variants"]}
     labels = {f"{case['id']}/{v['id']}": item_labels(case, v) for v in case["variants"]}
     total_turns = 1 + len(case["followups"])
     epochs = log.eval.config.epochs or 1
@@ -156,7 +156,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
     seen = set()
     for generated in log.samples or []:
         key = (str(generated.id), generated.epoch)
-        if key in seen or str(generated.id) not in openings:
+        if key in seen or str(generated.id) not in item_turns:
             raise ValueError(f"Unexpected or duplicate generation sample: {key}")
         seen.add(key)
         messages = generated.messages or []
@@ -176,7 +176,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
             "completed_turns": completed, "planned_turns": total_turns,
             "error": generated.error.message if generated.error else None,
         })
-        users = [openings[str(generated.id)], *case["followups"]]
+        users = item_turns[str(generated.id)]
         transcript = []
         for turn in range(1, completed + 1):
             user = users[turn - 1]
@@ -201,7 +201,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
                               "source_sample": str(generated.id), "source_epoch": generated.epoch,
                               **labels[str(generated.id)]},
                 ))
-    for sample_id in openings:
+    for sample_id in item_turns:
         for epoch in range(1, epochs + 1):
             if (sample_id, epoch) not in seen:
                 conversations.append({
@@ -224,7 +224,7 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
               "runner_sha256": log.eval.metadata["runner_sha256"],
               "benchmark_version": log.eval.metadata["benchmark_version"],
               "project_sha256": log.eval.metadata["project_sha256"],
-              "planned_samples": len(openings) * epochs,
+              "planned_samples": len(item_turns) * epochs,
               "recorded_samples": len(seen),
               "complete_samples": sum(c["status"] == "complete" for c in conversations),
               "interrupted_samples": sum(c["status"] == "interrupted" for c in conversations),

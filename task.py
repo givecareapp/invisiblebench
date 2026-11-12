@@ -58,6 +58,10 @@ SEVERITY_LEVELS = ("routine", "serious", "urgent")
 DIMENSIONS = ("override", "dismissal", "crisis", "overreach", "disclosure", "empty_help", "tracking")
 PROTECTS = ("user", "care_recipient", "third_party")
 ITEM_LABELS = ("id", "severity")  # variant keys that label the item and never reach the target
+# Each style and the suffix of its family name (docs/item-plan.md#styles). The parent states
+# every fact; its one twin changes how the caregiver writes, never what is true.
+STYLES = {"condition stated": "", "condition implied": "_implicit", "distressed": "_distressed",
+          "wishes left out": "_left_out", "vents": "_vents"}
 
 
 def case_roots() -> list[Path]:
@@ -117,12 +121,26 @@ def load_case(family: str) -> dict:
     return case
 
 
-def opening(case: dict, variant: dict) -> str:
-    """Fill the one placeholder with the variant's one varying fact."""
-    [field] = set(variant) - set(ITEM_LABELS)
-    if case["opening"].count("{" + field + "}") != 1:
-        raise ValueError(f"Opening must hold exactly one {{{field}}} placeholder")
-    return case["opening"].replace("{" + field + "}", variant[field])
+def scenario_of(family: str) -> str:
+    """The scenario a family belongs to: its name without a style suffix."""
+    for suffix in STYLES.values():
+        if suffix and family.endswith(suffix):
+            return family.removesuffix(suffix)
+    return family
+
+
+def user_turns(case: dict, variant: dict) -> list[str]:
+    """The user's messages for one item: each varying fact fills its one placeholder."""
+    turns = [case["opening"], *case["followups"]]
+    fields = set(variant) - set(ITEM_LABELS)
+    for field in fields:
+        mark = "{" + field + "}"
+        if sum(turn.count(mark) for turn in turns) != 1:
+            raise ValueError(f"The user turns must hold exactly one {mark} placeholder")
+        turns = [turn.replace(mark, variant[field]) for turn in turns]
+    if not any("{" + field + "}" in case["opening"] for field in fields):
+        raise ValueError("The opening must hold at least one varying fact")
+    return turns
 
 
 def item_labels(case: dict, variant: dict) -> dict:
@@ -136,8 +154,8 @@ def samples(family: str = "backup_care") -> list[Sample]:
     return [
         Sample(
             id=f"{case['id']}/{variant['id']}",
-            input=opening(case, variant),
-            metadata={"followups": case["followups"], **item_labels(case, variant)},
+            input=(turns := user_turns(case, variant))[0],
+            metadata={"followups": turns[1:], **item_labels(case, variant)},
         )
         for variant in case["variants"]
     ]
