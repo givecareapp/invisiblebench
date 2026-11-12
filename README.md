@@ -137,8 +137,10 @@ Run `python run.py --help` for the other options.
 
 The judge can also be Jev, TypeSafe's System One model: `--judge
 typesafe/jev-1.14.0` with `TYPESAFE_API_KEY` set. Only that pinned version is
-accepted. Jev answers each judged sample with one verdict and a probability for
-each of the four verdicts. It writes no reason and quotes no evidence, so reports
+accepted. Jev picks PASS, FAIL or UNCLEAR for each judged sample, with a
+probability for each. Where a check has a not_applicable rule, a separate yes/no
+question in the same request asks whether the rule holds; at 0.5 or more the
+verdict is NOT_APPLICABLE. Jev writes no reason and quotes no evidence, so reports
 show "No judge reason recorded" for its verdicts.
 
 Paid inference requires pre-registration and an explicit cost ceiling. Before a

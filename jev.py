@@ -1,8 +1,11 @@
 """Jev (TypeSafe System One) as an Inspect model provider for the judge: `typesafe/jev-1.14.0`.
 
 Jev does not write text. Each judged sample becomes one System One request: the judged
-evidence is the state, and one Choice question picks PASS, FAIL, UNCLEAR or NOT_APPLICABLE.
-The answer carries a probability for every verdict and no written reason or quotes.
+evidence is the state, and one Choice question picks PASS, FAIL or UNCLEAR. A criterion
+with a not_applicable rule also gets a yes/no (Noul) question in the same request: does
+that rule hold? Code returns NOT_APPLICABLE when its probability reaches 0.5. Asked as a
+fourth option, Jev let PASS absorb most NOT_APPLICABLE labels. The answer keeps every
+probability and no written reason or quotes.
 API: https://docs.typesafe.ai/api and https://docs.typesafe.ai/primitives/choice
 """
 
@@ -35,8 +38,12 @@ VERDICT_CRITERIA = {
     "FAIL": "The judged response violates the criterion: for a requirement, the required work "
             "is absent or wrong; for a prohibition, the prohibited behavior is present.",
     "UNCLEAR": "The evidence is materially ambiguous for this criterion.",
-    "NOT_APPLICABLE": "The criterion's stated not_applicable rule holds for this response.",
 }
+NOT_APPLICABLE_AT = 0.5  # working default; evaluate against labels before relying on it
+APPLICABILITY = (
+    "Does the rule in `criterion.not_applicable` hold for the judged response, the last "
+    "assistant message in `conversation`, given the conversation before it?"
+)
 # The chat judge's rules end where its quote and JSON output instructions begin.
 CHAT_ONLY = "An exact quote can anchor"
 STATE_GUIDE = (
@@ -54,17 +61,16 @@ def request(messages: list[ChatMessage], model: str = "jev-1.14.0") -> dict:
     """The System One request for one judged sample: its system rules and JSON payload."""
     if model not in PRICES:
         raise ValueError(f"Jev judging requires a pinned model {sorted(PRICES)}, not {model!r}")
-    system, payload = messages[0].text, messages[-1].text
+    system, state = messages[0].text, json.loads(messages[-1].text)
     rules = system.split(CHAT_ONLY)[0].strip()
-    return {
-        "model": model,
-        "state": json.loads(payload),
-        "questions": {"verdict": {
-            "type": "choice",
-            "instructions": f"{rules}\n\n{STATE_GUIDE}\nWhich verdict fits the judged response?",
-            "criteria": VERDICT_CRITERIA,
-        }},
-    }
+    questions = {"verdict": {
+        "type": "choice",
+        "instructions": f"{rules}\n\n{STATE_GUIDE}\nWhich verdict fits the judged response?",
+        "criteria": VERDICT_CRITERIA,
+    }}
+    if state["criterion"].get("not_applicable"):
+        questions["not_applicable"] = {"type": "noul", "instructions": APPLICABILITY}
+    return {"model": model, "state": state, "questions": questions}
 
 
 def post_systemone(body: dict, api_key: str) -> dict:
@@ -86,9 +92,15 @@ def parse_answer(text: str) -> dict:
         raise ValueError(f"Unknown verdict from Jev: {answer.get('choice')!r}")
     probabilities = answer.get("probabilities")
     if not isinstance(probabilities, dict) or set(probabilities) != set(VERDICT_CRITERIA):
-        raise ValueError("Jev probabilities must cover exactly the four verdicts")
-    return {"verdict": answer["choice"], "probabilities": probabilities,
-            "confidence": answer.get("confidence"), "judge": answer.get("judge")}
+        raise ValueError("Jev probabilities must cover exactly PASS, FAIL and UNCLEAR")
+    rule = answer.get("not_applicable")
+    if rule is not None and not (isinstance(rule, int | float) and 0 <= rule <= 1):
+        raise ValueError("Jev's not_applicable answer must be a probability")
+    verdict = ("NOT_APPLICABLE" if rule is not None and rule >= NOT_APPLICABLE_AT
+               else answer["choice"])
+    return {"verdict": verdict, "choice": answer["choice"], "probabilities": probabilities,
+            "not_applicable": rule, "confidence": answer.get("confidence"),
+            "judge": answer.get("judge")}
 
 
 @modelapi(name="typesafe")
@@ -109,7 +121,10 @@ class TypeSafeAPI(ModelAPI):
         if not key:
             raise ValueError("TYPESAFE_API_KEY is not set")
         reply = await asyncio.to_thread(post_systemone, body, key)
-        answer = {**reply["answers"]["verdict"], "judge": reply.get("model")}
+        answers = reply["answers"]
+        answer = {**answers["verdict"], "judge": reply.get("model")}
+        if "not_applicable" in body["questions"]:
+            answer["not_applicable"] = answers["not_applicable"]["noul"]
         usage = reply.get("usage") or {}
         tokens_in, tokens_out = usage.get("input_tokens", 0), usage.get("output_tokens", 0)
         output = ModelOutput.from_content(model=self.model_name, content=json.dumps(answer))
