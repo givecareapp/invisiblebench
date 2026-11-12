@@ -45,8 +45,16 @@ common issues avoided.
   Missing: expert agreement. The clinician study is a pilot.
 - [ ] **9. Honest about simulation**, and checked against real use.
   The card lists how scripted caregivers differ from real ones, with evidence
-  that simulated users make evaluations optimistic. Missing: any comparison
-  with real caregiver conversations.
+  that simulated users make evaluations optimistic. Partly checked
+  (2026-11-12, private notes): 47 public caregiver posts were coded by hand
+  and by a blind second coder. Most real posts vent or ask a question; 13%
+  state the person's wishes, and none ask for a drafted message. Every
+  scripted opening states the wishes and sets a task. Real assistant logs are
+  too rare to compare:
+  in WildChat-4.8M, a hand-read random sample of 200 keyword matches held 2
+  caregivers (1.0%, 95% interval 0.3% to 3.6%), about 21 of 1.68 million
+  English conversations. Missing: a comparison with real caregiver
+  conversations with an assistant.
 - [ ] **10. Built with domain expertise**, especially for borderline cases.
   Missing: clinicians have not reviewed the cases, rubric or labels.
 - [ ] **11. Reliable and reproducible:** repeated attempts, stable to small
@@ -55,8 +63,9 @@ common issues avoided.
   code and data. Missing: a measure of sensitivity to rewording beyond the
   implicit-cue twins.
 - [ ] **12. Large enough sample:** at least about 100 distinct items for a
-  complex multi-turn eval. There are 30 (8 situations). See the
-  [item plan](item-plan.md).
+  complex multi-turn eval. There are 60 development items (10 scenarios);
+  the 36 withheld items are drafted privately. All are authored drafts
+  awaiting clinician review. See the [item plan](item-plan.md).
 - [x] **13. Multimodal coverage where relevant:** not applicable. Caregivers
   reach assistants by text and SMS.
 - [ ] **14. Regional and linguistic variation.** Missing: everything is

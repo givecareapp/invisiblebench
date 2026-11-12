@@ -101,7 +101,9 @@ scenario keeps its current role.
    controls (supported, do-nothing, blanket refusal, agree-with-everything, and
    one failure per check). Three of them span routine to urgent.
 4. **Clinician design review** of all 8 scenarios, the taxonomy and the
-   severity levels. The format is fixed after this.
+   severity levels. The format is fixed after this. On 2026-11-12 the owner
+   moved step 5 ahead of this review: all items are drafted now, and the
+   review's feedback is folded in when it arrives.
 5. **The rest:** development to about 10 scenarios, then the withheld 6, with
    the overlap check (`private/no-overlap`). Each new scenario also gets one
    reworded twin of one item, written at the same time: same facts, labels and
@@ -124,4 +126,8 @@ US English only at first release (UK English variations then wait); about 10
 development and 6 withheld scenarios.
 
 Accepted 2026-11-12: the [role mix](#role-mix), applied after the clinician
-design review.
+design review. Same day: draft every item now, before the review. New
+scenarios use the new roles at once; the 8 reviewed scenarios and their twins
+keep today's roles until the review. Development: the 8 reviewed scenarios
+plus discharge (9) and the sibling (11). Withheld: 6, 8, 10, 14, 15 and 16.
+Every scenario's second style is the implied-cue twin.
