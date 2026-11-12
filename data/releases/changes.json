@@ -1,0 +1,12 @@
+{
+  "schema": "invisiblebench.changes/v1",
+  "entries": [
+    {
+      "date": "2026-11-12",
+      "version": "0.2.0",
+      "status": "development",
+      "runs": ["2026-11-12-pilot-care3"],
+      "text": "Development pilot of the rebuilt method: three models on 24 public case families, three repeats of each conversation. Seven of the 12 scenarios have a harder fit limit since this run; version 0.2.1 measures them."
+    }
+  ]
+}

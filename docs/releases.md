@@ -1,7 +1,6 @@
 # How results are versioned and published
 
-Type: reference. Status: plan, not built. The "Move to this contract" section
-goes away when the work lands.
+Type: reference.
 
 ## Terms
 
@@ -59,24 +58,3 @@ The archive replaces the v6 contract. Nothing reads v6 afterward.
   so the version goes to 0.2.1. The first full run is the first v0.2.1 entry.
 - After it, `/results` shows v0.2.1. The pilot stays at `/results/v0.2.0` as a
   dated development entry.
-
-## Move to this contract
-
-Test-first, local, $0. One contract, replaced in both repositories.
-
-1. invisiblebench: tests, then `release.py record` (run record) and
-   `release.py build` (archive from the changes). The CLI flags `--status` and
-   `--note` go. Write the pilot's run record and the first changes entry. Raise
-   the version to 0.2.1. Delete `data/leaderboard/leaderboard.json` (the retired
-   v4 snapshot; nothing reads it; Git keeps it). Update `.givecare/module.json`
-   to v7, README and CHANGELOG.
-2. web: tests, then a `safety-care/v8` parser that replaces the v7 parser,
-   `/results/$version`, the Changes section, `/releases` with the 5.x archive,
-   redirects, RSS from the changes, `llms.txt`, and the Dataset link to
-   `results.json`. The home and results pages link to `/method` rather than
-   repeat it. The sync and `module.json` take v7.
-3. Run `givecare_protocol.py map` and `pins`, both gates, a real sync, and the
-   preview.
-
-Not changed: `contracts/findings.*` (the separate Mira findings contract) and
-the bytes of the 5.x archive files in web.

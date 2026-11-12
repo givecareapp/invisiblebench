@@ -1,6 +1,6 @@
 # InvisibleBench development benchmark card
 
-**Version:** 0.2.0 development slice. **Status:** instrument under development;
+**Version:** 0.2.1 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)

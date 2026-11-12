@@ -1,7 +1,7 @@
 # InvisibleBench
 
 InvisibleBench evaluates how an assistant handles multi-turn caregiver-support
-conversations. The active project is a **0.2.0 development slice**, not a
+conversations. The active project is a **0.2.1 development slice**, not a
 validated InvisibleBench 6.0 release. There is no validated model result or validated
 grader. Safety and Care remain separate; there is no composite score or model rank.
 
@@ -21,7 +21,7 @@ report.py                Offline JSON or Markdown report from judge logs
 review_packet.py         Blind human-review packet from a generation log
 run.py                   One-command run: controls, generation, judging, reports,
                          run.json read back from the logs
-release.py               The web release from a run's judge logs
+release.py               Run records and the web release from the changes record
 cases/<family>/          One case family: case, rubric, authored controls, notes
                          (ls cases/ lists the families; the case of an _implicit
                          twin differs from its parent only in a turn 3 that never
@@ -33,8 +33,9 @@ docs/bar.md              What comparable benchmarks require, and where this one 
 docs/taxonomy.md         Construct, dyad, dimensions, scenarios, items, and labels
 docs/item-plan.md        Draft plan from 4 situations to about 100 items
 CHANGELOG.md             Notable changes per development version
-data/releases/           The one web release (gc-bench.web-benchmark-release/v6)
-data/leaderboard/        The retired v4 snapshot, kept as archive content
+data/releases/           The changes record and the one web release (v7)
+data/runs/               One record per published run: verdicts, worked failures
+docs/releases.md         How results are versioned and published
 ```
 
 `invisiblebench-private/` is a separate private repository. `care-evals` owns
@@ -64,18 +65,21 @@ locked environment may download free dependencies. For active tests alone, run
 
 Results reach the website only through `data/releases/web-bench-release.tar.gz`,
 which the web repository reads with `pnpm sync:bench --owner-commit <commit>`.
+[docs/releases.md](docs/releases.md) explains versions, runs and changes.
 
 ```bash
-uv run --locked python release.py results/<run> --status development-pilot \
-  --note "A plain statement shown with the results."
+uv run --locked python release.py record results/<run>   # writes data/runs/<run>.json
+# add one entry to data/releases/changes.json: date, version, status, runs, text
+uv run --locked python release.py build
 ```
 
-The archive holds `leaderboard.json` (schema `safety-care/v7`) and its manifest.
-Per model it has Care and Safety pass rates with 95% intervals, never pooled; the
-same by dimension; paired differences; counts; and the registered list price per
-million tokens. It also holds one worked FAIL per dimension from the jury card.
-`--status` is `development-pilot` or `release`. The archive is byte-for-byte
-reproducible. Publishing it is an owner decision.
+`changes.json` is the one hand-edited record. The archive holds `results.json`
+(schema `safety-care/v8`): one table per benchmark version with a row per model,
+Care and Safety pass rates with 95% intervals, never pooled; the same by
+dimension; paired differences; counts; the registered list price per million
+tokens; one worked FAIL per dimension; and the changes list. A test rebuilds the
+committed archive from the committed changes and run records, byte for byte.
+Publishing it is an owner decision.
 
 ## Use the development tasks
 

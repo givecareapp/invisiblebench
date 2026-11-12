@@ -10,9 +10,53 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
-Development version 0.2.0. Two owner-approved development pilots ran on
-2026-11-12 with an unvalidated judge; their results are not published. The
-controls are not yet re-judged under 0.2.0, which needs owner approval. The 0.1.4 run of 2026-10-29
+Development version 0.2.1: the cases as changed after the 2026-11-12 Care
+pilot. No 0.2.0 score is compared with a 0.2.1 score. The first full 0.2.1 run
+is its first published table.
+
+### Changed
+
+- After the 3-model Care pilot (2026-11-12): `care.fit` passed 88-89% for
+  every model, so seven scenarios gained a stated limit that rules out an
+  option models often offered (county or Area Agency on Aging respite, a
+  shower chair, another adult day program, another doctor, early home health,
+  an aide paid for alone). Each has a new control that fails only `care.fit`.
+  The `attunement` pass rules now say that meeting one stated feeling
+  specifically is enough, which matches their fail rules; the bar against
+  generic lines, lectures and lists is unchanged.
+- Results are versioned (`docs/releases.md`). `data/releases/changes.json` is the
+  one hand-edited record of what is published and when: each entry names a
+  date, a version, a status (`development` or `release`), its runs and one
+  sentence. It replaces the `--status` and `--note` flags and the per-run
+  release state; it adds no mechanism beside them. `release.py build` turns it
+  into one table per benchmark version, a row per model, and the changes list
+  that the web page and its RSS feed show. The contract is now
+  `gc-bench.web-benchmark-release/v7` with `safety-care/v8` data and replaces
+  v6 and v5. A version takes no new run once a newer version has an entry.
+
+### Added
+
+- Every run writes `reports/jury-card.md` and `jury-card.json`. The card lists each
+  judged verdict with the caregiver turn, the reply, the rubric rule and the
+  judge's probability, and shows each check's surest FAIL and closest call. The
+  reason for a verdict is the rubric rule plus Jev's probability. Reports no
+  longer print empty Reason, Response evidence and User cue lines.
+- `release.py record` writes `data/runs/<run>.json`: a run's verdicts without
+  conversation text, and each model's surest FAIL per dimension with its
+  words, rule and probability. A table can grow from these records after the
+  local logs are gone. Public cases only.
+
+### Removed
+
+- `data/leaderboard/leaderboard.json`, the retired v4 snapshot. Nothing read it;
+  Git history keeps it, and the web archive keeps its own copy.
+
+## [0.2.0] - 2026-11-12
+
+Development version. Two owner-approved development pilots ran on 2026-11-12
+with Jev 1.14.0 as the judge. The 3-model Care pilot is the first entry in
+`data/releases/changes.json`, as a development table. The controls are not yet
+re-judged under 0.2.0, which needs owner approval. The 0.1.4 run of 2026-10-29
 and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 
 ### Changed
@@ -24,28 +68,9 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
   dimensions were added (`attunement`, `fit`, `relationship`), and each
   scenario gained facts that make the stock answer wrong. Tests enforce the
   share, the floor and the dimension-to-layer mapping.
-- After the 3-model Care pilot (2026-11-12): `care.fit` passed 88-89% for
-  every model, so seven scenarios gained a stated limit that rules out an
-  option models often offered (county or Area Agency on Aging respite, a
-  shower chair, another adult day program, another doctor, early home health,
-  an aide paid for alone). Each has a new control that fails only `care.fit`.
-  The `attunement` pass rules now say that meeting one stated feeling
-  specifically is enough, which matches their fail rules; the bar against
-  generic lines, lectures and lists is unchanged.
 
 ### Added
 
-- `release.py` builds the web release from a run's judge logs. The contract is
-  now `gc-bench.web-benchmark-release/v6` with `safety-care/v7` data and
-  replaces v5, which held the 5.x method. It carries a status
-  (`development-pilot` or `release`), Care and Safety pass rates with 95%
-  intervals by model and dimension, paired differences, list price per million
-  tokens, and one worked FAIL per dimension. The 5.x release archive is replaced.
-- Every run writes `reports/jury-card.md` and `jury-card.json`. The card lists each
-  judged verdict with the caregiver turn, the reply, the rubric rule and the
-  judge's probability, and shows each check's surest FAIL and closest call. The
-  reason for a verdict is the rubric rule plus Jev's probability. Reports no
-  longer print empty Reason, Response evidence and User cue lines.
 - Labels from `docs/taxonomy.md`, required by tests:
   - each case names its `scenario`, `style`, and `people` (user, care
     recipient, others); each variant names its item `severity` (routine,
