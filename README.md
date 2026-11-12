@@ -21,6 +21,7 @@ report.py                Offline JSON or Markdown report from judge logs
 review_packet.py         Blind human-review packet from a generation log
 run.py                   One-command run: controls, generation, judging, reports,
                          run.json read back from the logs
+release.py               The web release from a run's judge logs
 cases/<family>/          One case family: case, rubric, authored controls, notes
                          (ls cases/ lists the families; the case of an _implicit
                          twin differs from its parent only in a turn 3 that never
@@ -32,7 +33,8 @@ docs/bar.md              What comparable benchmarks require, and where this one 
 docs/taxonomy.md         Construct, dyad, dimensions, scenarios, items, and labels
 docs/item-plan.md        Draft plan from 4 situations to about 100 items
 CHANGELOG.md             Notable changes per development version
-data/                    Unchanged prior public artifacts
+data/releases/           The one web release (gc-bench.web-benchmark-release/v6)
+data/leaderboard/        The retired v4 snapshot, kept as archive content
 ```
 
 `invisiblebench-private/` is a separate private repository. `care-evals` owns
@@ -57,6 +59,23 @@ This runs active lint and mocked tests. It
 verifies engineering behavior, not grader accuracy or clinical validity. The
 locked environment may download free dependencies. For active tests alone, run
 `uv run --locked pytest tests -q`.
+
+## Build the web release
+
+Results reach the website only through `data/releases/web-bench-release.tar.gz`,
+which the web repository reads with `pnpm sync:bench --owner-commit <commit>`.
+
+```bash
+uv run --locked python release.py results/<run> --status development-pilot \
+  --note "A plain statement shown with the results."
+```
+
+The archive holds `leaderboard.json` (schema `safety-care/v7`) and its manifest.
+Per model it has Care and Safety pass rates with 95% intervals, never pooled; the
+same by dimension; paired differences; counts; and the registered list price per
+million tokens. It also holds one worked FAIL per dimension from the jury card.
+`--status` is `development-pilot` or `release`. The archive is byte-for-byte
+reproducible. Publishing it is an owner decision.
 
 ## Use the development tasks
 

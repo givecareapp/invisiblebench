@@ -5,7 +5,7 @@
   "check": "scripts/check.sh",
   "produces": [
     {
-      "id": "gc-bench.web-benchmark-release/v5",
+      "id": "gc-bench.web-benchmark-release/v6",
       "path": "data/releases/web-bench-release.tar.gz",
       "for": [
         "web"

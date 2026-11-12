@@ -35,6 +35,12 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 
 ### Added
 
+- `release.py` builds the web release from a run's judge logs. The contract is
+  now `gc-bench.web-benchmark-release/v6` with `safety-care/v7` data and
+  replaces v5, which held the 5.x method. It carries a status
+  (`development-pilot` or `release`), Care and Safety pass rates with 95%
+  intervals by model and dimension, paired differences, list price per million
+  tokens, and one worked FAIL per dimension. The 5.x release archive is replaced.
 - Every run writes `reports/jury-card.md` and `jury-card.json`. The card lists each
   judged verdict with the caregiver turn, the reply, the rubric rule and the
   judge's probability, and shows each check's surest FAIL and closest call. The
