@@ -106,7 +106,12 @@ def test_mock_run_derives_its_record_from_the_saved_logs(tmp_path, monkeypatch, 
 
     stem = Path(judged).stem
     assert sorted(p.name for p in (out / "reports").iterdir()) == [
-        f"{stem}.json", f"{stem}.md", "summary.json", "summary.md"]
+        f"{stem}.json", f"{stem}.md", "jury-card.json", "jury-card.md", "summary.json",
+        "summary.md"]
+    card = json.loads((out / "reports" / "jury-card.json").read_text())
+    assert card["kind"] == "jury-card" and card["targets"] == ["mockllm/model"]
+    assert len(card["verdicts"]) == len(read_eval_log(judged).samples)
+    assert card["reason"] in (out / "reports" / "jury-card.md").read_text()
     # The mock judge's answers are unscored, so the summary has counts and no estimate.
     summary = json.loads((out / "reports" / "summary.json").read_text())
     assert summary["targets"] == ["mockllm/model"]

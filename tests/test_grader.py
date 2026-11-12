@@ -298,7 +298,7 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
     assert expected_row in readable
     assert "Control counts compare judge output" in readable
     assert "## Judge disagreements requiring review" in readable
-    assert "Response evidence:" in readable
+    assert f"; judge {prediction}. " in readable and "Response evidence:" not in readable
     assert "No recorded FAIL" not in readable
     if prediction == "PASS":
         assert readable.count("### False pass:") == totals["false_pass"] == 49

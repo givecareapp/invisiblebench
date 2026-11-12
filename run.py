@@ -27,7 +27,15 @@ from grader import (
     target_judge,
     target_samples,
 )
-from report import build_report, render_markdown, render_summary, summarize_rows, target_rows
+from report import (
+    build_jury_card,
+    build_report,
+    render_jury_card,
+    render_markdown,
+    render_summary,
+    summarize_rows,
+    target_rows,
+)
 from task import case_path, conversation_family
 
 
@@ -196,6 +204,10 @@ def write_reports(done: list[tuple[str, EvalLog]], directory: Path) -> None:
         text = json.dumps(summary, indent=2, ensure_ascii=False)
         (directory / "summary.json").write_text(text + "\n", encoding="utf-8")
         (directory / "summary.md").write_text(render_summary(summary), encoding="utf-8")
+        card = build_jury_card(judged)
+        text = json.dumps(card, indent=2, ensure_ascii=False)
+        (directory / "jury-card.json").write_text(text + "\n", encoding="utf-8")
+        (directory / "jury-card.md").write_text(render_jury_card(card), encoding="utf-8")
 
 
 def describe(log: EvalLog) -> dict:

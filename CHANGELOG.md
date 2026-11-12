@@ -35,6 +35,11 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 
 ### Added
 
+- Every run writes `reports/jury-card.md` and `jury-card.json`. The card lists each
+  judged verdict with the caregiver turn, the reply, the rubric rule and the
+  judge's probability, and shows each check's surest FAIL and closest call. The
+  reason for a verdict is the rubric rule plus Jev's probability. Reports no
+  longer print empty Reason, Response evidence and User cue lines.
 - Labels from `docs/taxonomy.md`, required by tests:
   - each case names its `scenario`, `style`, and `people` (user, care
     recipient, others); each variant names its item `severity` (routine,

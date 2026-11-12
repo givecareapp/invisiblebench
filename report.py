@@ -178,16 +178,121 @@ def _disagreement(reference: str, verdict: str) -> str:
     return "Disagreement"
 
 
+def _probability(evidence: dict | None, verdict: str | None) -> float | None:
+    """The judge's probability for the verdict it gave; None when the judge reports none."""
+    evidence = evidence or {}
+    if verdict == "NOT_APPLICABLE":
+        return evidence.get("not_applicable")
+    return (evidence.get("probabilities") or {}).get(verdict)
+
+
+def _verdict_text(verdict: str | None, probability: float | None) -> str:
+    if verdict is None:
+        return "unscored"
+    return verdict if probability is None else f"{verdict} (probability {probability:.2f})"
+
+
 def _finding_lines(trial: dict) -> list[str]:
-    evidence = trial["evidence"] or {}
+    probability = _probability(trial["evidence"], trial["verdict"])
     return [
-        f"Inspect sample: `{trial['sample_id']}` (epoch {trial['epoch']}).",
-        f"Reason: {json.dumps(evidence.get('reason', 'No judge reason recorded.'), ensure_ascii=False)}",
-        f"Response evidence: {json.dumps(evidence.get('response_quote', 'Missing.'), ensure_ascii=False)}",
-        f"User cue (turn {evidence.get('cue_turn', '?')}): "
-        f"{json.dumps(evidence.get('cue_quote', 'Missing.'), ensure_ascii=False)}",
+        f"Inspect sample: `{trial['sample_id']}` (epoch {trial['epoch']}); "
+        f"judge {_verdict_text(trial['verdict'], probability)}. "
+        "The run's jury card shows the caregiver turn, the reply and the rule.",
         "",
     ]
+
+
+REASON = (
+    "The reason for each verdict is the rubric rule the judge applied (its question, pass "
+    "text and fail text) plus Jev's probability for that verdict. Jev returns a probability, "
+    "not written prose."
+)
+CLOSE_CALL = 0.6
+_ORDER = {"FAIL": 0, "UNCLEAR": 1, "NOT_APPLICABLE": 2, "PASS": 3, None: 4}
+
+
+def build_jury_card(logs: list[EvalLog]) -> dict:
+    """Every judged verdict of target-judging logs with the turn, reply, rule and probability."""
+    verdicts, judges = [], set()
+    for log in logs:
+        metadata = log.eval.metadata or {}
+        target, plan = metadata["source"]["model"], metadata["check_plan"]
+        judges.add(log.eval.model)
+        for sample in log.samples or []:
+            scores = list((sample.scores or {}).values())
+            score = scores[0] if len(scores) == 1 else None
+            verdict = (score.value if score and isinstance(score.value, str)
+                       and score.value in VERDICTS else None)
+            evidence = score.metadata.get("evidence") if score and score.metadata else None
+            # The frozen judge input, not the current case files.
+            payload = json.loads(sample.input[-1].text)
+            turn = payload["response_turn"]
+            said = {m["role"]: m["content"] for m in payload["conversation"] if m["turn"] == turn}
+            labels = sample.metadata
+            verdicts.append({
+                "target": target, "scenario": labels["scenario"],
+                "item": labels["source_sample"], "epoch": labels.get("source_epoch"),
+                "sample_id": str(sample.id), "check": labels["check"],
+                "layer": labels["layer"], "dimension": plan[labels["check"]]["dimension"],
+                "turn": turn, "caregiver": said.get("user"), "reply": said.get("assistant"),
+                "rule": {k: payload["criterion"].get(k) for k in ("question", "pass", "fail")},
+                "verdict": verdict, "probability": _probability(evidence, verdict),
+                "probabilities": (evidence or {}).get("probabilities"),
+            })
+    verdicts.sort(key=lambda v: (
+        _ORDER[v["verdict"]], 1.0 if v["probability"] is None else v["probability"],
+        v["target"], v["item"], v["epoch"] or 0, v["check"], v["turn"]))
+    return {"kind": "jury-card", "reason": REASON, "judge": ", ".join(sorted(judges)),
+            "targets": sorted({v["target"] for v in verdicts}), "close_call_below": CLOSE_CALL,
+            "verdicts": verdicts}
+
+
+def _quote(text: str | None) -> list[str]:
+    return [f"> {line}" if line else ">" for line in (text or "").splitlines()] or [">"]
+
+
+def render_jury_card(card: dict) -> str:
+    """Counts by check, then worked verdicts: each check's likeliest FAIL and its closest call."""
+    lines = ["# InvisibleBench jury card", "",
+             f"**Judge:** {card['judge']}  ",
+             f"**Targets:** {', '.join(card['targets'])}  ",
+             f"**Verdicts:** {len(card['verdicts'])}", "",
+             f"**Why a verdict:** {card['reason']}", "",
+             f"A close call is a verdict the judge gave with probability below "
+             f"{card['close_call_below']:.2f}. Model comparisons from this card become claims "
+             "once the judge is frozen and checked against independent human review.", "",
+             "## Verdicts by check", "",
+             "| Layer | Check | Dimension | PASS | FAIL | UNCLEAR | N/A | Unscored | Close calls |",
+             "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    by_check = {}
+    for v in card["verdicts"]:
+        by_check.setdefault((v["layer"], v["check"]), []).append(v)
+    for (layer, check), rows in sorted(by_check.items()):
+        tally = [sum(r["verdict"] == v for r in rows)
+                 for v in ("PASS", "FAIL", "UNCLEAR", "NOT_APPLICABLE", None)]
+        close = sum(r["probability"] is not None and r["probability"] < card["close_call_below"]
+                    for r in rows)
+        lines.append(f"| {layer} | `{check}` | {rows[0]['dimension']} | "
+                     + " | ".join(map(str, tally)) + f" | {close} |")
+    lines += ["", "## Worked verdicts", "",
+              "For each check: the FAIL the judge was surest of, and the closest call.", ""]
+    for (layer, check), rows in sorted(by_check.items()):
+        fails = [r for r in rows if r["verdict"] == "FAIL"]
+        surest = max(fails, key=lambda r: r["probability"] or 0) if fails else None
+        scored = [r for r in rows if r["probability"] is not None]
+        closest = min(scored, key=lambda r: r["probability"]) if scored else None
+        shown = [r for r in (surest, closest) if r is not None]
+        for r in [r for i, r in enumerate(shown) if r not in shown[:i]]:
+            rule = r["rule"]
+            lines += [f"### {layer} / `{check}` / {r['target']} / {r['item']}, "
+                      f"repeat {r['epoch']}, turn {r['turn']}", "",
+                      f"**Caregiver, turn {r['turn']}:**", "", *_quote(r["caregiver"]), "",
+                      "**Reply:**", "", *_quote(r["reply"]), "",
+                      f"**Rule:** {rule['question']}", "",
+                      f"- Pass: {rule['pass']}", f"- Fail: {rule['fail']}", "",
+                      f"**Verdict:** {_verdict_text(r['verdict'], r['probability'])}. "
+                      f"Inspect sample `{r['sample_id']}`.", ""]
+    return "\n".join(lines) + "\n"
 
 
 def render_markdown(report: dict) -> str:

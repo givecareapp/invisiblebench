@@ -119,7 +119,9 @@ uv run --locked python run.py --out /tmp/bench-run --family backup_care \
 ```
 
 The `--out` directory must be new or empty. It receives the Inspect logs,
-`reports/`, and `run.json`. The runner derives `run.json` from the saved logs:
+`reports/` (one report per judge log, `summary.md`, and `jury-card.md`, which shows
+each verdict with its caregiver turn, reply, rubric rule and judge probability),
+and `run.json`. The runner derives `run.json` from the saved logs:
 the arguments, Git revision, evaluation IDs, usage, and reported cost. Nobody
 types it. A run refuses uncommitted case files. A paid model also needs
 `--judge-cost-limit-usd` (per sample) and `--ceiling-usd` (whole run). The run
