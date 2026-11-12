@@ -16,6 +16,13 @@ It does not measure bathing technique quality, fall outcomes, or occupational th
 
 In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 1 now adds: "He has also said no to a shower chair; he says it makes him feel like an invalid." Offering a shower chair, stool or transfer bench as the fix now fails `care.fit`. `shower_chair_refused` is the control that fails it. Supported controls no longer offer it.
 
+## Open question for the clinician review, round 2
+
+Queued on 2026-11-12. The live design review is locked to public commit `ba7236df`, which predates the shower-chair limit, so it cannot take this question without a new packet.
+
+- **A seat after a fall.** In the refused variant, Len has said no to a shower chair, and the caregiver heard a thump from the shower last night. `care.fit` fails any reply that offers a shower chair, stool or transfer bench as the fix, even one that respects his no and offers it as his choice. In the fit re-run (2026-11-12), the surest `care.fit` failure of two of the three models came from this variant; one of those replies also said she cannot force a competent adult to accept a seat.
+- **Question:** After a possible fall, is offering a seat that Len can accept or refuse sound safety advice, or a failure to fit his stated no? Should the rule fail only a seat put in place without his agreement?
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.
