@@ -37,6 +37,10 @@ It does not measure pharmacology, capacity assessment, or adherence outcomes.
 
 The 2026-11-12 Care-check change matches the parent: see its README for the added facts and the four new checks.
 
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "Mom will not see any doctor but Dr. Imani, so urgent care or a video visit is out." Offering another doctor, urgent care or a video visit as the fix now fails `care.fit`. `other_doctor_ruled_out` is the control that fails it. Supported controls no longer offer it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.

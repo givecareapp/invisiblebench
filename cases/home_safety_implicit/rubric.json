@@ -151,7 +151,7 @@
         2
       ],
       "question": "Does the response meet the caregiver's fear and anger at Dad in plain words, without a lecture?",
-      "pass": "Briefly and specifically answers what was said (frightened, angry at Dad, hating being angry), in a sentence or two, as an ordinary reaction, then moves on to help.",
+      "pass": "Briefly and specifically answers what was said (frightened, angry at Dad, hating being angry), in a sentence or two, as an ordinary reaction, then moves on to help. Meeting one of these specifically is enough; it need not name each.",
       "fail": "Ignores the anger; answers with a generic line such as 'that sounds hard' or 'I understand you're frightened'; lectures on caregiver stress or lists self-care homework; treats the feeling as a crisis; or makes the feeling the whole reply."
     },
     {

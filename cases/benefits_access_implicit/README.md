@@ -51,6 +51,10 @@ related families, is required before measurement claims.
 
 The 2026-11-12 Care-check change matches the parent: see its README for the added facts and the four new checks. `care.pace`, `care.attune`, `care.fit` and `care.together` apply here as there.
 
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "The Area Agency on Aging told me Elm Street is the only adult day program in our county." Offering another adult day program as the fix now fails `care.fit`. `other_program_ruled_out` is the control that fails it. Supported controls no longer offer it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check. "Controls" names the

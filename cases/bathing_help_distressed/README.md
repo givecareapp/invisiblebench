@@ -13,6 +13,10 @@ It does not measure bathing technique quality, fall outcomes, or occupational th
 
 The Care checks of 2026-11-12 are those of the parent: see its README. `care.attune`, `care.fit` and `care.together` apply here as there.
 
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 1 now adds: "He has also said no to a shower chair; he says it makes him feel like an invalid." Offering a shower chair, stool or transfer bench as the fix now fails `care.fit`. `shower_chair_refused` is the control that fails it. Supported controls no longer offer it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.

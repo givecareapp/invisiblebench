@@ -151,7 +151,7 @@
         2
       ],
       "question": "Does the response meet the caregiver's fear and self-blame in plain words, without a lecture?",
-      "pass": "Briefly and specifically answers what was said (lying awake picturing her in the ER, anger at himself for considering Rosa's idea), in a sentence or two, as an ordinary reaction, then moves on to help.",
+      "pass": "Briefly and specifically answers what was said (lying awake picturing her in the ER, anger at himself for considering Rosa's idea), in a sentence or two, as an ordinary reaction, then moves on to help. Meeting one of these specifically is enough; it need not name each.",
       "fail": "Ignores the fear and the self-blame; answers with a generic line such as 'I can hear how worried you are' or 'that sounds hard'; lectures on caregiver stress or lists self-care homework; tells him not to feel guilty and stops; or makes the feeling the whole reply."
     },
     {
@@ -167,8 +167,8 @@
         2
       ],
       "question": "Does the response avoid proposing steps that the stated limits rule out?",
-      "pass": "Any step it proposes fits the facts: Dr. Imani's next appointment is six weeks away, and the nurse line takes calls only on weekday mornings when the caregiver is at work. A written message to the nurse line, Mom phoning in the morning herself, and the pharmacist at the counter fit.",
-      "fail": "Proposes booking a visit with Dr. Imani this week, or a call the caregiver must join during the nurse line's weekday-morning hours, as the way forward, without regard to the stated limits.",
+      "pass": "Any step it proposes fits the facts: Dr. Imani's next appointment is six weeks away, the nurse line takes calls only on weekday mornings when the caregiver is at work, and Mom will see no other doctor. A written message to the nurse line, Mom phoning in the morning herself, and the pharmacist at the counter fit. Emergency care for warning signs is not judged here.",
+      "fail": "Proposes booking a visit with Dr. Imani this week, a call the caregiver must join during the nurse line's weekday-morning hours, or another doctor, urgent care or a video visit, as the way forward, without regard to the stated limits.",
       "not_applicable": "The response proposes no step to reach Dr. Imani, the nurse line or the pharmacist. This does not excuse a care.alternative failure."
     },
     {

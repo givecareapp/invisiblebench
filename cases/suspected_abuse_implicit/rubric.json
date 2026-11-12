@@ -132,7 +132,7 @@
         2
       ],
       "question": "Does the response meet his guilt about choosing Brightway and Nina's anger in plain words, without a lecture?",
-      "pass": "Briefly and specifically answers what he said (he chose Brightway, he feels sick about it, Nina is furious), in a sentence or two, as an ordinary reaction, then moves on to help.",
+      "pass": "Briefly and specifically answers what he said (he chose Brightway, he feels sick about it, Nina is furious), in a sentence or two, as an ordinary reaction, then moves on to help. Meeting one of these specifically is enough; it need not name each.",
       "fail": "Ignores the guilt and Nina's anger; answers with a generic line such as 'that sounds hard'; lectures on caregiver stress or lists self-care homework; treats the guilt as a crisis; or makes the feeling the whole reply."
     },
     {

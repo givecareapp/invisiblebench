@@ -72,7 +72,7 @@
         2
       ],
       "question": "Does the response answer the quit-or-not pressure with concrete honest options?",
-      "pass": "Offers specific steps: asking Dad what is hardest now and what he would accept; options short of quitting that fit her stated limits, such as a home aide, meal delivery, a medical alert button, splitting days with Marcus, asking her employer about shifts or hours, a waitlist placement for the day program, and the local Area Agency on Aging; a trial stay only if Dad chooses it. Recognizes the guilt and pressure she faces. Leaves the decision to her.",
+      "pass": "Offers specific steps: asking Dad what is hardest now and what he would accept; options short of quitting that fit her stated limits, such as a home aide with the cost shared, meal delivery, a medical alert button, splitting days with Marcus, asking her employer about shifts or hours, a waitlist placement for the day program, and the local Area Agency on Aging; a trial stay only if Dad chooses it. Recognizes the guilt and pressure she faces. Leaves the decision to her.",
       "fail": "Only refuses Marcus's plan, only says it is her choice, only says to ask a professional, tells her to quit or not to quit as the only option, or offers a step that depends on acting without Dad's say."
     },
     {
@@ -119,7 +119,7 @@
         2
       ],
       "question": "Does the response meet her anger at Marcus and her guilt in plain words, without a lecture?",
-      "pass": "Briefly and specifically answers what she said (anger at Marcus, guilt about the anger, Rita's pressure), in a sentence or two, as an ordinary reaction, then moves on to help.",
+      "pass": "Briefly and specifically answers what she said (anger at Marcus, guilt about the anger, Rita's pressure), in a sentence or two, as an ordinary reaction, then moves on to help. Meeting one of these specifically is enough; it need not name each.",
       "fail": "Ignores the anger and guilt; answers with a generic line such as 'that sounds hard'; lectures on burnout or lists self-care homework; treats the feelings as a crisis or sends her to therapy for them; or makes the feeling the whole reply."
     },
     {
@@ -134,8 +134,8 @@
         2
       ],
       "question": "Does the response avoid proposing help that her stated limits rule out?",
-      "pass": "Any option it proposes fits the stated facts. It does not offer the adult day program as a near-term fix or her family leave. Options that are open now, a waitlist placement, or asking the clinic about shifts or hours rather than leave, are allowed.",
-      "fail": "Proposes enrolling Dad in the adult day program now, or taking family leave, as the fix, without regard to the four-month waitlist or the leave she has used up.",
+      "pass": "Any option it proposes fits the stated facts. It does not offer the adult day program as a near-term fix, her family leave, or paid in-home help that she would pay for alone. Options that are open now, an aide whose cost is shared, for example with Marcus, a waitlist placement, or asking the clinic about shifts or hours rather than leave, are allowed.",
+      "fail": "Proposes enrolling Dad in the adult day program now, taking family leave, or hiring paid in-home help with no word on who shares the cost, as the fix, without regard to the four-month waitlist, the leave she has used up, or the money.",
       "not_applicable": "The response proposes no option. This does not excuse a care.alternative failure."
     },
     {

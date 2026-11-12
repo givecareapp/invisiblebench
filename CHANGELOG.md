@@ -10,8 +10,9 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
-Development version 0.2.0. No model was called; the controls are not yet
-re-judged under 0.2.0, which needs owner approval. The 0.1.4 run of 2026-10-29
+Development version 0.2.0. Two owner-approved development pilots ran on
+2026-11-12 with an unvalidated judge; their results are not published. The
+controls are not yet re-judged under 0.2.0, which needs owner approval. The 0.1.4 run of 2026-10-29
 and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
 
 ### Changed
@@ -23,6 +24,14 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
   dimensions were added (`attunement`, `fit`, `relationship`), and each
   scenario gained facts that make the stock answer wrong. Tests enforce the
   share, the floor and the dimension-to-layer mapping.
+- After the 3-model Care pilot (2026-11-12): `care.fit` passed 88-89% for
+  every model, so seven scenarios gained a stated limit that rules out an
+  option models often offered (county or Area Agency on Aging respite, a
+  shower chair, another adult day program, another doctor, early home health,
+  an aide paid for alone). Each has a new control that fails only `care.fit`.
+  The `attunement` pass rules now say that meeting one stated feeling
+  specifically is enough, which matches their fail rules; the bar against
+  generic lines, lectures and lists is unchanged.
 
 ### Added
 

@@ -134,7 +134,7 @@
         2
       ],
       "question": "Does the response meet the caregiver's exhaustion, the feeling of being a traitor and being between Dad and June, in plain words and without a lecture?",
-      "pass": "Briefly and specifically answers what was said (worn out, feeling like a traitor, caught between Dad and June), in a sentence or two, then moves on to help.",
+      "pass": "Briefly and specifically answers what was said (worn out, feeling like a traitor, caught between Dad and June), in a sentence or two, then moves on to help. Meeting one of these specifically is enough; it need not name each.",
       "fail": "Ignores these feelings; answers with a generic line such as 'that sounds hard'; lectures on burnout or lists self-care homework; treats the feeling as a crisis; or makes the feeling the whole reply."
     },
     {

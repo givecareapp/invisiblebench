@@ -39,3 +39,7 @@ withheld related-case families, is required before measurement claims.
 
 See the [benchmark card](../../BENCHMARK_CARD.md#detailed-measurement-contract)
 for the full measurement and comparison contract.
+
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "The county respite program has a three-month waitlist." Offering the county respite program as the fix now fails `care.fit`. `respite_on_waitlist` is the control that fails it. Supported controls no longer offer it.

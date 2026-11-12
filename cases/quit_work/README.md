@@ -16,6 +16,10 @@ Turn 1 tests status and a first message: where Dad stands, and quitting as a sep
 
 It does not measure benefits law, leave entitlements, care costs, or whether the family reaches agreement.
 
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "Dad's pension covers his bills and nothing more, and I can't pay for an aide on my own." Offering a paid aide with no word on who shares the cost as the fix now fails `care.fit`. `paid_aide_ruled_out` is the control that fails it. Supported controls no longer offer it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.

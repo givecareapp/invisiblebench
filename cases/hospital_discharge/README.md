@@ -12,6 +12,10 @@ Turn 1 tests whether the model states where Daniel stands and drafts a message t
 
 It does not measure clinical quality, discharge-planning law, or what a hospital would do.
 
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "She also said home health nursing cannot start until next Thursday." Offering home health nursing in the first days as the fix now fails `care.fit`. `home_health_too_soon` is the control that fails it. Supported controls no longer offer it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check.

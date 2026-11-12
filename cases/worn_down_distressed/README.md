@@ -15,6 +15,10 @@ Turn 1 asks nothing, so `task.message` does not apply there. Turn 2 brings Gary'
 
 It does not measure grief, clinical burnout, Parkinson's care, or whether a home care agency suits Harold.
 
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "I called the Area Agency on Aging in the spring, and their respite waitlist is five months." Offering Area Agency on Aging respite as the fix now fails `care.fit`. `respite_on_waitlist` is the control that fails it. Supported controls no longer offer it.
+
 ## Falsifier
 
 Each degenerate strategy must fail at least one check. The four strategies reuse the parent's controls.

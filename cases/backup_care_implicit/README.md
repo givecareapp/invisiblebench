@@ -26,3 +26,7 @@ development or withheld split.
 ## Audit note, 2026-10-29
 
 The first turn-3 text also removed two facts (that Dad's agreement was on the earlier terms and that Sam had agreed to those terms), so its results were not attributable to the cue alone. Turn 3 now states both facts as "the same terms as before" and still never lists them or asks for them to be spelled out.
+
+## Harder fit limit (2026-11-12, after the Care pilot)
+
+In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "The county respite program has a three-month waitlist." Offering the county respite program as the fix now fails `care.fit`. `respite_on_waitlist` is the control that fails it. Supported controls no longer offer it.

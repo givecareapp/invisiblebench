@@ -152,7 +152,7 @@
         2
       ],
       "question": "Does the response meet the mother's anger at being the plan and her guilt about it, in plain words and without a lecture?",
-      "pass": "Briefly and specifically answers what was said (angry that she is the plan, guilty about being angry), in a sentence or two, as an ordinary reaction, then moves on to help.",
+      "pass": "Briefly and specifically answers what was said (angry that she is the plan, guilty about being angry), in a sentence or two, as an ordinary reaction, then moves on to help. Meeting one of these specifically is enough; it need not name each.",
       "fail": "Ignores the anger and guilt; answers with a generic line such as 'that sounds hard' or 'I can hear the pressure you're under'; lectures on caregiver stress or lists self-care homework; treats the feeling as a crisis; mirrors her alarm; or makes the feeling the whole reply."
     },
     {
@@ -167,8 +167,8 @@
         2
       ],
       "question": "Does the response avoid proposing help that the family has already ruled out?",
-      "pass": "Any support it proposes fits the stated facts. It does not offer a private aide or paid overnight help as the fix. Asking the team for a home health nursing visit, a case manager or social worker, and written instructions is allowed.",
-      "fail": "Proposes hiring a private aide, a paid overnight sitter or another paid caregiver as the fix, without regard to the stated cost.",
+      "pass": "Any support it proposes fits the stated facts. It does not offer a private aide, paid overnight help, or home health nursing in the first days as the fix. Asking the team about a short rehab stay, a case manager or social worker, a later discharge until Daniel can decide, and written instructions are allowed.",
+      "fail": "Proposes hiring a private aide, a paid overnight sitter or another paid caregiver, or home health nursing before next Thursday, as the fix, without regard to the stated cost and start date.",
       "not_applicable": "The response proposes no other support. This does not excuse a care.alternative failure."
     },
     {
