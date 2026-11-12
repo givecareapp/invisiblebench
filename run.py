@@ -27,7 +27,7 @@ from grader import (
     target_judge,
     target_samples,
 )
-from report import build_report, render_markdown
+from report import build_report, render_markdown, render_summary, summarize_rows, target_rows
 from task import case_path, conversation_family
 
 
@@ -180,7 +180,7 @@ def execute(
 
 
 def write_reports(done: list[tuple[str, EvalLog]], directory: Path) -> None:
-    """One JSON and one Markdown report per control or judge log, named by its log file."""
+    """One report per control or judge log, plus a summary with intervals over judge logs."""
     for kind, log in done:
         if kind == "GEN":
             continue
@@ -190,6 +190,12 @@ def write_reports(done: list[tuple[str, EvalLog]], directory: Path) -> None:
         text = json.dumps(report, indent=2, ensure_ascii=False, default=str)
         (directory / f"{stem}.json").write_text(text + "\n", encoding="utf-8")
         (directory / f"{stem}.md").write_text(render_markdown(report), encoding="utf-8")
+    judged = [log for kind, log in done if kind == "JUDGE"]
+    if judged:
+        summary = summarize_rows([row for log in judged for row in target_rows(log)])
+        text = json.dumps(summary, indent=2, ensure_ascii=False)
+        (directory / "summary.json").write_text(text + "\n", encoding="utf-8")
+        (directory / "summary.md").write_text(render_summary(summary), encoding="utf-8")
 
 
 def describe(log: EvalLog) -> dict:

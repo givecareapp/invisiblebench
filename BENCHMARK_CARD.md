@@ -330,9 +330,25 @@ or ledger in this slice. [run.py](run.py) is the one runner, and `run.json` is r
 back from the logs.
 
 Compare the same conditions and repetitions. A repeat is another draw from the
-same family, not an independent caregiving situation. Start with disagreement
-inspection and the authored controls; do not turn this family's responses into a
-population confidence interval. Freeze the grader before comparing targets.
+same item, not an independent caregiving situation, so repeats never count as
+separate observations. Every pass rate carries a 95% interval computed as in
+[stats.py](stats.py), following Miller (2024), [Adding Error Bars to Evals](https://arxiv.org/abs/2411.00640):
+
+- The unit is the item. An item's verdicts across repeats and turns average to
+  one item mean.
+- Items in one scenario are related, so standard errors are clustered by
+  scenario. With few scenarios, plain clustered errors run too small, so the
+  variance carries the CR1 factor G/(G-1) and the interval uses Student's t with
+  G-1 degrees of freedom, where G is the number of scenarios. One scenario gives
+  no interval.
+- Pass rate is PASS / (PASS + FAIL + UNCLEAR). NOT_APPLICABLE and unscored
+  verdicts are counted beside the estimate, not treated as observations.
+- Two targets are compared on the items both have, as a paired difference with
+  the same clustering. A difference whose interval includes zero is not a
+  ranking.
+
+`run.py` writes these to `reports/summary.md` and `summary.json`. The intervals
+describe judge output on these items, not validated model quality. Freeze the grader before comparing targets.
 If the rubric changes, reassess both targets under the same revised rubric.
 
 Before claiming evaluator accuracy, obtain separately labeled conversations with

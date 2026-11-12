@@ -105,7 +105,14 @@ def test_mock_run_derives_its_record_from_the_saved_logs(tmp_path, monkeypatch, 
     assert read_eval_log(generation, header_only=True).plan.config.max_tokens == 8192
 
     stem = Path(judged).stem
-    assert sorted(p.name for p in (out / "reports").iterdir()) == [f"{stem}.json", f"{stem}.md"]
+    assert sorted(p.name for p in (out / "reports").iterdir()) == [
+        f"{stem}.json", f"{stem}.md", "summary.json", "summary.md"]
+    # The mock judge's answers are unscored, so the summary has counts and no estimate.
+    summary = json.loads((out / "reports" / "summary.json").read_text())
+    assert summary["targets"] == ["mockllm/model"]
+    assert summary["unscored"] == len(read_eval_log(judged).samples)
+    assert all(row["estimate"] is None for row in summary["by"]["layer"])
+    assert "t with G-1" in (out / "reports" / "summary.md").read_text()
     report = json.loads((out / "reports" / f"{stem}.json").read_text())
     assert report["kind"] == "target-judging-audit"
     assert report["run"]["eval_id"] == record["logs"][1]["eval_id"]

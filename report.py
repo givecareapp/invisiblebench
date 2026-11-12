@@ -6,6 +6,7 @@ import json
 from inspect_ai.log import EvalLog, read_eval_log
 
 from grader import VERDICTS, summarize, summarize_target
+from stats import estimates, paired_difference
 
 
 def build_report(log: EvalLog) -> dict:
@@ -55,6 +56,84 @@ def build_report(log: EvalLog) -> dict:
         },
         "trials": sorted(trials, key=lambda row: (row["sample_id"], row["epoch"])),
     }
+
+
+METHOD = (
+    "Pass rate = PASS / (PASS + FAIL + UNCLEAR); NOT_APPLICABLE and unscored verdicts are "
+    "counted, not observed. Each item's verdicts (repeats, turns) average to one item mean. "
+    "Intervals are 95%, clustered by scenario: CR1 standard error, t with G-1 degrees of "
+    "freedom (G = scenarios). Targets are compared on shared items (paired). See stats.py."
+)
+SUMMARY_GROUPS = {"layer": "layer", "dimension": "dimension", "severity": "severity",
+                  "check": "check"}
+
+
+def target_rows(log: EvalLog) -> list[dict]:
+    """One row per judged verdict of a target-judging log, labeled for clustering."""
+    metadata = log.eval.metadata or {}
+    target, plan = metadata["source"]["model"], metadata["check_plan"]
+    rows = []
+    for sample in log.samples or []:
+        scores = list((sample.scores or {}).values())
+        score = scores[0] if len(scores) == 1 else None
+        verdict = score.value if score and isinstance(score.value, str) and score.value in VERDICTS else None
+        labels = sample.metadata
+        rows.append({
+            "target": target, "scenario": labels["scenario"], "item": labels["source_sample"],
+            "check": labels["check"], "dimension": plan[labels["check"]]["dimension"],
+            "layer": labels["layer"], "severity": labels["severity"],
+            "epoch": labels.get("source_epoch"), "verdict": verdict,
+        })
+    return rows
+
+
+def summarize_rows(rows: list[dict]) -> dict:
+    targets = sorted({row["target"] for row in rows})
+    by = {}
+    for name, field in SUMMARY_GROUPS.items():
+        by[name] = [{"target": target, "group": group, **interval} for (target, group), interval
+                    in estimates(rows, key=lambda r, f=field: (r["target"], r[f])).items()]
+    differences = []
+    for i, a in enumerate(targets):
+        for b in targets[i + 1:]:
+            for layer in sorted({row["layer"] for row in rows}):
+                scoped = [row for row in rows if row["layer"] == layer]
+                differences.append({"a": a, "b": b, "layer": layer,
+                                    **paired_difference(scoped, a, b)})
+    return {"method": METHOD, "targets": targets, "by": by, "differences": differences,
+            "unscored": sum(row["verdict"] is None for row in rows),
+            "not_applicable": sum(row["verdict"] == "NOT_APPLICABLE" for row in rows)}
+
+
+def _interval(row: dict) -> str:
+    if row["estimate"] is None:
+        return "no scored verdicts"
+    if row["low"] is None:
+        return f"{row['estimate']:.0%} (one scenario, no interval) · {row['items']} items"
+    return (f"{row['estimate']:.0%} [{row['low']:.0%}, {row['high']:.0%}] · "
+            f"{row['items']} items, {row['clusters']} scenarios")
+
+
+def render_summary(summary: dict) -> str:
+    lines = ["# InvisibleBench run summary", "", f"**Method:** {summary['method']}", "",
+             f"Unscored verdicts: {summary['unscored']}. "
+             f"Not applicable: {summary['not_applicable']}.", ""]
+    for name, rows in summary["by"].items():
+        lines += [f"## Pass rate by {name}", "", "| Target | Group | Pass rate [95% interval] |",
+                  "| --- | --- | --- |"]
+        lines += [f"| {r['target']} | {r['group']} | {_interval(r)} |" for r in rows]
+        lines.append("")
+    if summary["differences"]:
+        lines += ["## Paired differences", "", "| Comparison | Layer | Difference [95% interval] |",
+                  "| --- | --- | --- |"]
+        for r in summary["differences"]:
+            value = ("no shared scored items" if r["estimate"] is None else
+                     f"{r['estimate']:+.0%}" + ("" if r["low"] is None else
+                                                f" [{r['low']:+.0%}, {r['high']:+.0%}]"))
+            lines.append(f"| {r['a']} minus {r['b']} | {r['layer']} | {value} |")
+        lines.append("")
+    lines.append("Estimates describe unvalidated judge output, not validated model quality.")
+    return "\n".join(lines) + "\n"
 
 
 def diff_reports(before: dict, after: dict) -> dict:
