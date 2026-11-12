@@ -63,9 +63,9 @@ common issues avoided.
   code and data. Missing: a measure of sensitivity to rewording beyond the
   implicit-cue twins.
 - [ ] **12. Large enough sample:** at least about 100 distinct items for a
-  complex multi-turn eval. There are 60 development items (10 scenarios);
-  the 36 withheld items are drafted privately. All are authored drafts
-  awaiting clinician review. See the [item plan](item-plan.md).
+  complex multi-turn eval. There are 72 development items (12 scenarios);
+  54 withheld items (9 scenarios) are drafted privately. All are authored
+  drafts awaiting clinician review. See the [item plan](item-plan.md).
 - [x] **13. Multimodal coverage where relevant:** not applicable. Caregivers
   reach assistants by text and SMS.
 - [ ] **14. Regional and linguistic variation.** Missing: everything is

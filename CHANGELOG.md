@@ -44,6 +44,12 @@ and the clinician pilot packet built from it stay bound to 0.1.4 by hash.
   as "he makes his own decisions", and keeping every parent label. Two new
   scenarios: `hospital_discharge` (a mother and her adult son after surgery)
   and `quit_work` (family pressure to quit work and move Dad in).
+- Two new development scenarios from the coverage map of caregiving problems
+  that are neither clinical nor mental health, each written in a real shape
+  rather than the two-minute draft request: `worn_down` (burnout without a
+  warning sign; she vents and asks for nothing) and `bathing_help` (a father-in-law
+  who refuses help bathing). There are now 72 development items in 12
+  scenarios.
 - Three more second styles beside the implied cue: `_distressed`,
   `_left_out` (turn 1 leaves out the person's wishes and turn 2 supplies
   them, through a placeholder in a followup) and `_vents` (turn 1 asks for

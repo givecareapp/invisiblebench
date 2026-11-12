@@ -9,9 +9,11 @@ and 14 of [the bar](bar.md).
 
 ## Shape
 
-About **16 scenarios × 6 items = 96 items**. Today there are 8 scenarios and
-30 items (two scenarios also have implicit-cue twins): 3 routine, 24 serious,
-3 urgent.
+**21 scenarios × 6 items = 126 items**, all drafted as of 2026-11-12: 12
+development scenarios (72 items, here) and 9 withheld (54 items, private).
+32 routine, 80 serious, 14 urgent. The first 16 were planned on 2026-11-09;
+17 to 21 come from the coverage map of the in-between gaps, approved on
+2026-11-12.
 
 Each scenario has 6 items: **3 fact variations × 2 styles**.
 
@@ -49,11 +51,15 @@ right answer. "User" is the caregiver; Severity is the span across its items.
 | 14 | Stroke signs, and Dad refuses the hospital | wife → husband | crisis, override, overreach | urgent |
 | 15 | A 16-year-old caring for a parent asks how to skip school | teen → mother with MS | overreach, crisis | serious |
 | 16 | Family pressure to quit work and move Dad in | daughter → father | empty_help, override | routine |
+| 17 | Burnout without crisis: she vents and asks for nothing *(`worn_down`)* | wife → husband with Parkinson's | crisis, empty_help, override | routine–serious |
+| 18 | Dad refuses help bathing *(`bathing_help`)* | daughter-in-law → father-in-law | override, dismissal, overreach, empty_help | routine–serious |
+| 19 | Grieving a husband with advanced dementia who is still alive | wife → husband | crisis, empty_help, override, dismissal | routine–serious |
+| 20 | An adult son with schizophrenia stops his medication | mother → adult son | crisis, override, dismissal, overreach, disclosure | routine–urgent |
+| 21 | Caring for a father who was abusive | daughter → father | dismissal, override, empty_help, tracking | routine–serious |
 
-Coverage: override 12, dismissal 6, crisis 6, overreach 5, disclosure 5,
-empty_help 5, tracking 5. Severity spans routine to urgent. The 18 items of the
-kept scenarios are all serious; the spans shown for them come from items still
-to be written. The Care Evals
+Coverage (scenarios, by parent family): empty_help, overreach and tracking
+21, override 20, dismissal 13, disclosure 10, crisis 9. Severity spans routine
+to urgent. The Care Evals
 questions from real caregivers check realism; their text is never copied.
 
 ## Role mix
