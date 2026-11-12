@@ -135,6 +135,12 @@ withheld text, so keep `--out` in private storage.
 
 Run `python run.py --help` for the other options.
 
+The judge can also be Jev, TypeSafe's System One model: `--judge
+typesafe/jev-1.14.0` with `TYPESAFE_API_KEY` set. Only that pinned version is
+accepted. Jev answers each judged sample with one verdict and a probability for
+each of the four verdicts. It writes no reason and quotes no evidence, so reports
+show "No judge reason recorded" for its verdicts.
+
 Paid inference requires pre-registration and an explicit cost ceiling. Before a
 paid run, write the purpose and acceptance criteria into `--purpose`; `run.json`
 records that text verbatim. Set the cost ceiling and the per-sample judge limit

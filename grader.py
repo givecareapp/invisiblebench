@@ -14,6 +14,7 @@ from inspect_ai.model import ChatMessageSystem, ChatMessageUser, GenerateConfig
 from inspect_ai.scorer import Score, Scorer, Target, categorical, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
+import jev  # registers the typesafe/ judge provider and Jev's price
 from task import (
     PROJECT,
     VERSION,
@@ -277,6 +278,12 @@ def criterion_verdict() -> Scorer:
                 raise ValueError(f"Incomplete or blocked judge output: {state.output.stop_reason}")
             if not raw.strip():
                 raise ValueError("Missing judge response")
+            if str(state.model).startswith("typesafe/"):
+                # Jev returns a verdict with probabilities and no written reason or quotes.
+                answer = jev.parse_answer(raw)
+                return Score(value=answer["verdict"], answer=answer["verdict"],
+                             explanation="Jev choice; no written reason",
+                             metadata={**metadata, "evidence": answer})
             # Read the actual frozen input, not the current files or another turn.
             payload = json.loads(state.input[-1].text)
             answer = parse_judgment(raw, payload["conversation"])
@@ -316,8 +323,8 @@ def bounded_judge(cost_limit_usd: float | None = None, target: str | None = None
         if target is not None and same_company(model, target):
             raise ValueError(f"Target {target} is from the same company as the judge {model}")
         if not model.startswith("mockllm/"):
-            if not model.startswith("openrouter/"):
-                raise ValueError("Live judging requires an OpenRouter model")
+            if not model.startswith(("openrouter/", "typesafe/")):
+                raise ValueError("Live judging requires an OpenRouter model or a pinned Jev")
             if cost_limit_usd is None:
                 raise ValueError("Live judging requires an explicit per-sample cost_limit_usd")
         return await generate(state)
