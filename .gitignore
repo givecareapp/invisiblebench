@@ -51,6 +51,3 @@ results/
 # Public code must not depend on its presence.
 /.givecare/*
 !/.givecare/module.json
-
-# Aux desktop / local scratch (not part of the Inspect 0.1.4 slice)
-.aux/

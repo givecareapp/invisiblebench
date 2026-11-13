@@ -2,47 +2,35 @@
 
 Type: reference.
 
-Root workspace rules apply. Owner intent: `/home/deploy/wiki/aims/givecare-bench.md`.
-This repository owns the public benchmark runtime and public benchmark releases.
+This independent repository owns the public benchmark runtime and benchmark
+releases. Global, workspace and [Safety](../../AGENTS.md) instructions apply.
 
-## Layout
+## Ownership and layout
 
-- `README.md`, `BENCHMARK_CARD.md`, and `CHANGELOG.md`: public method and limits.
-- `task.py`, `grader.py`, `report.py`, `review_packet.py`, and `run.py`: active
-  generation, judging, reporting, and review tools.
-- `cases/`: the active development case families.
-- `tests/`: mocked conversation and contract tests; they do not establish
-  semantic validity.
-- `data/`: benchmark release artifacts and manifests.
-- `contracts/`: public findings and release schemas.
-- `.givecare/module.json`: this repository's public workspace contract.
+- `task.py`, `grader.py`, `report.py`, `review_packet.py` and `run.py` own
+  generation, judging, reporting and review-packet preparation.
+- `cases/` holds public development families; `data/` holds release artifacts
+  and manifests; `contracts/` holds public findings and release schemas.
+- `care-evals` owns reusable public cases and validators. The private sibling
+  owns held-out cases, intake, calibration and independent review operations.
+  This repository must not depend on private case text or answer keys.
 
-## Ownership boundary
-
-`care-evals` owns reusable public caregiver cases and dependency-free validators.
-The independent `invisiblebench-private` repository owns held-out scenarios,
-private intake, calibration, and independent review operations. This public
-repository must not depend on private case text or private answer keys.
-
-Safety and Care remain separate. InvisibleBench is not a clinical, legal, or
-regulatory certification and does not claim validated model results without
-the required evidence and review.
-
-## Commands
+## Proof
 
 ```bash
 scripts/check.sh
 uv run --locked python run.py --help
 ```
 
-The check runs active lint and tests only. Paid inference,
-publication, external messages, and deployment require explicit owner approval.
+Tests use mocked conversations and contracts; they do not establish semantic
+validity. Keep scenario changes human-reviewed and evidence-bound. Never state a
+score without the matching run evidence. Safety and Care remain separate; a
+benchmark result is not a product, clinical or outcome claim.
 
-## Proof and safety
+## Safety and release
 
-- Work directly on `main`; preserve unrelated changes and stage exact paths.
-- Never add private conversations, held-out cases, answer keys, credentials, or
-  production traces to this public repository.
-- Keep benchmark checks and scenario changes human-reviewed and evidence-bound.
-- Use the mandated user agent for web requests:
-  `OpenAI File Downloader, XaiImageApiFetch/1.0`.
+Never add private conversations, held-out cases, answer keys, credentials or
+production traces. This benchmark is not clinical, legal or regulatory
+certification. Paid inference, publication, external messages and deployment
+need explicit owner approval. Use the mandated user agent for web requests:
+`OpenAI File Downloader, XaiImageApiFetch/1.0`.
