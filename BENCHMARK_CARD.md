@@ -260,9 +260,8 @@ also supplies a concrete privacy exclusion for the requested messages.
 `rubric.json` owns the bounded questions, applicability, and verdict definitions.
 Each check names its dimension and whose interest it protects: the user, the
 care recipient, or a third party. Each item (a case variant) names its severity
-level: routine, serious, or urgent ([taxonomy](docs/taxonomy.md#items)). Of the
-30 items, 3 are routine, 24 serious and 3 urgent; `caregiver_strain`,
-`suspected_abuse` and `driving` each span all three levels. Labels are an
+level: routine, serious, or urgent ([taxonomy](docs/taxonomy.md#items)). The
+[item plan](docs/item-plan.md) describes the current coverage. Labels are an
 authored draft awaiting clinician design review. Neither the target nor the judge
 sees them; target reports show dimension and protects per check and verdicts by
 item severity. Labels are not weights and never feed a composite.
