@@ -18,6 +18,9 @@ from release import (
     record_run,
     write_release,
 )
+from release import (
+    main as release_main,
+)
 from task import OPENROUTER_PRICES, VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,11 +51,13 @@ def test_run_record_keeps_verdicts_and_only_the_worked_failures_carry_words(tmp_
     assert record["schema"] == RECORD_SCHEMA
     run = record["run"]
     assert run["id"] == "r1" and run["judge"] == MOCK and run["benchmark_version"] == VERSION
-    assert run["items"] == 1 and run["scenarios"] == 1 and run["repeats"] == 1
+    assert run["items"] == 3 and run["scenarios"] == 1 and run["repeats"] == 1
     assert record["columns"] == ["target", "scenario", "item", "epoch", "check", "layer",
                                  "dimension", "verdict"]
-    assert len(record["verdicts"]) == 3
-    assert sorted(row[-1] for row in record["verdicts"]) == ["FAIL", "PASS", "PASS"]
+    # This fixture generates one of three planned items and judges only three checks.
+    assert len(record["verdicts"]) == 54
+    assert sorted(row[-1] for row in record["verdicts"] if row[-1]) == ["FAIL", "PASS", "PASS"]
+    assert sum(row[-1] is None for row in record["verdicts"]) == 51
     # Words appear only in the candidates: each model's surest FAIL per dimension.
     [example] = record["examples"]
     assert example["verdict"] == "FAIL" and example["probability"] == 0.85
@@ -70,7 +75,7 @@ def test_runs_of_one_version_form_one_table_with_a_row_per_model(two_runs):
     assert table["version"] == VERSION and table["status"] == "release"
     assert table["date"] == "2026-11-12" and table["superseded_by"] is None
     assert table["judge"] == MOCK and table["repeats"] == 1
-    assert table["scenarios"] == 1 and table["items"] == 1
+    assert table["scenarios"] == 1 and table["items"] == 3
     assert [(r["id"], r["models"]) for r in table["runs"]] == [("r1", [MOCK]), ("r2", [LUNA])]
     assert [(m["model"], m["run"]) for m in table["models"]] == [(MOCK, "r1"), (LUNA, "r2")]
     input_price, output_price, _ = OPENROUTER_PRICES[LUNA]
@@ -81,7 +86,7 @@ def test_runs_of_one_version_form_one_table_with_a_row_per_model(two_runs):
     for model in table["models"]:
         assert all(set(v) == interval for v in model["layers"].values())
         assert model["counts"] == {"PASS": 2, "FAIL": 1, "UNCLEAR": 0, "NOT_APPLICABLE": 0,
-                                   "unscored": 0}
+                                   "unscored": 51}
     assert {(d["a"], d["b"]) for d in table["differences"]} == {(MOCK, LUNA)}
     # One worked failure per dimension across the table; a tie goes to the first model.
     [example] = table["examples"]
@@ -105,9 +110,60 @@ def test_a_newer_version_freezes_the_older_table(tmp_path):
     assert [t["version"] for t in results["versions"]] == ["0.2.1", "0.2.0"]
     assert results["versions"][1]["superseded_by"] == "0.2.1"
     assert results["versions"][1]["status"] == "development"
+    assert [(c["version"], c["models"]) for c in results["changes"]] == [
+        ("0.2.0", [MOCK]), ("0.2.1", [MOCK])]
     records["r3"] = _record(tmp_path, "r3", target=LUNA, version="0.2.0")
     with pytest.raises(ValueError, match="frozen"):
         build_results([*changes, _entry("2026-12-02", "0.2.0", ["r3"])], records)
+
+
+@pytest.mark.parametrize("keep", [0, 1, 3])
+def test_release_preserves_missing_generation_and_judging_opportunities(tmp_path, keep):
+    from grader import summarize_target
+    from report import summarize_rows, target_rows
+
+    log = _judged(tmp_path)
+    log.samples = log.samples[:keep]
+    summary = summarize_target(log)
+    counts = [c for layer in summary["by_layer"].values() for c in layer.values()]
+    planned = sum(c["planned"] for c in counts)
+    missing = sum(c["missing"] for c in counts)
+    assert planned == 54 and missing == planned - keep
+    rows = target_rows(log)
+    record = record_run([log], "partial")
+    assert len(rows) == len(record["verdicts"]) == planned
+    assert summarize_rows(rows)["unscored"] == missing
+    assert record["run"]["items"] == 3
+    result = build_results([_entry("2026-11-16", VERSION, ["partial"])], {"partial": record})
+    [model] = result["versions"][0]["models"]
+    assert model["counts"]["unscored"] == missing
+    assert sum(model["counts"].values()) == planned
+
+
+def test_run_loader_refuses_a_whole_missing_target_or_family(tmp_path, monkeypatch):
+    _judged(tmp_path)
+    args = {"family": ["backup_care"], "target": [MOCK], "cases": None}
+    path = tmp_path / "run.json"
+    path.write_text(json.dumps({"args": args}))
+    monkeypatch.setattr("sys.argv", ["release.py", "record", str(tmp_path),
+                                     "--out", str(tmp_path / "records")])
+    release_main()
+    for field, value in (("family", "driving"), ("target", LUNA)):
+        incomplete = {**args, field: [*args[field], value]}
+        path.write_text(json.dumps({"args": incomplete}))
+        with pytest.raises(ValueError, match="Missing or duplicate judge logs"):
+            release_main()
+
+
+def test_run_loader_keeps_external_case_runs_out_of_public_records(tmp_path, monkeypatch):
+    # No private text is needed to test the publication boundary.
+    _judged(tmp_path)
+    (tmp_path / "run.json").write_text(json.dumps({"args": {
+        "family": ["backup_care"], "target": [MOCK], "cases": "/private/fixture"}}))
+    monkeypatch.setattr("sys.argv", ["release.py", "record", str(tmp_path),
+                                     "--out", str(tmp_path / "records")])
+    with pytest.raises(ValueError, match="Public run records cannot include external cases"):
+        release_main()
 
 
 def _bad_changes(case, records):

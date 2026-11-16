@@ -12,7 +12,9 @@ Type: reference.
 - **Run record** (`data/runs/<run-id>.json`, committed). The verdicts of a run
   without conversation text, plus each model's surest FAIL per dimension with
   its words, rule and probability. A table can grow from these records after the
-  logs are gone. It holds public cases only.
+  logs are gone. It holds public cases only. Every planned check is a row;
+  missing generation or judging is `null`, counted as unscored. A wholly
+  unjudged item remains in the item count and has no score.
 - **Changes** (`data/releases/changes.json`, committed, edited by hand). The one
   record. Each entry has a date, a version, a status (`development` or
   `release`), the runs it adds and one sentence. Entries are only appended.
@@ -39,6 +41,18 @@ Type: reference.
   and `release_version` = `changes-<number of entries>`.
 
 The archive replaces the v6 contract. Nothing reads v6 afterward.
+
+`release.py record` reads the run's original `run.json` and judge logs. Every
+requested family and target must have one judge log. A missing whole log is
+refused, because it cannot supply the frozen rubric and cohort. Partial logs
+retain all planned checks through the shared report logic. Runs with external
+case folders cannot become public records.
+
+Model identity belongs to a version table. Re-running a model under a new
+version adds it to that version's change entry without changing older entries.
+The native tests rebuild the committed archive byte for byte. Web checks the
+same contract before it imports a release. Building or testing an archive does
+not authorize publication.
 
 ## Where it shows on bench.givecareapp.com
 

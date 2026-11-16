@@ -108,6 +108,31 @@ def test_a_fake_jev_verdict_is_scored_with_its_probabilities(fake_jev, tmp_path)
     assert usage.total_cost == pytest.approx(2000 * 0.042 / 1_000_000)
 
 
+@pytest.mark.parametrize("usage", [None, {}, {"input_tokens": 1000}, {"output_tokens": 12}])
+def test_missing_jev_usage_stays_unknown_even_beside_a_priced_sample(
+    fake_jev, monkeypatch, tmp_path, usage,
+):
+    post = fake_jev.post
+
+    def incomplete_usage(body, api_key):
+        reply = post(body, api_key)
+        if len(fake_jev.calls) == 1:
+            reply["usage"] = usage
+        return reply
+
+    monkeypatch.setattr(jev, "post_systemone", incomplete_usage)
+    [log] = inspect_eval(control_judge(cost_limit_usd=0.05), model=JEV, limit=2,
+                         max_connections=1, log_dir=str(tmp_path), display="none")
+    assert log.status == "success"
+    assert all(next(iter(s.scores.values())).value == "PASS" for s in log.samples)
+    # The valid answer survives, but its unknown cost must block the next paid eval.
+    assert sum(s.output.usage is None for s in log.samples) == 1
+    assert run.unknown_paid_cost(log)
+    cost, unknown = run.reported_cost([log])
+    assert cost == pytest.approx(1000 * 0.042 / 1_000_000)
+    assert unknown == 1
+
+
 @pytest.mark.parametrize("answer, message", [
     ({"type": "choice", "choice": "MAYBE", "confidence": 1.0,
       "probabilities": {"MAYBE": 1.0}}, "Unknown verdict"),

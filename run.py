@@ -118,7 +118,7 @@ def reported_cost(logs) -> tuple[float, int]:
     for log in logs:
         costs = [usage.total_cost for usage in usage_of(log).values()]
         total += sum(cost for cost in costs if cost is not None)
-        unknown += not costs or any(cost is None for cost in costs)
+        unknown += not costs or any(cost is None for cost in costs) or unknown_paid_cost(log)
     return total, unknown
 
 
@@ -128,7 +128,13 @@ def unknown_paid_cost(log: EvalLog) -> bool:
     paid = [item for model, item in usage.items() if not model.startswith("mockllm/")]
     if not paid:
         return not log.eval.model.startswith("mockllm/")
-    return any(item.total_cost is None for item in paid)
+    if any(item.total_cost is None for item in paid):
+        return True
+    # A known aggregate can hide an individual call with no usage. Judge samples
+    # each make one call; preserve unknown cost even beside fully priced samples.
+    return not log.eval.model.startswith("mockllm/") and any(
+        sample.output is None or sample.output.usage is None for sample in log.samples or []
+    )
 
 
 def execute(

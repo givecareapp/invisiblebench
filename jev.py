@@ -110,10 +110,10 @@ def typesafe():
 
 class TypeSafeAPI(ModelAPI):
     def __init__(self, model_name: str, base_url: str | None = None,
-                 api_key: str | None = None, config: GenerateConfig = GenerateConfig(),
+                 api_key: str | None = None, config: GenerateConfig | None = None,
                  **model_args) -> None:
         super().__init__(model_name=model_name, base_url=base_url, api_key=api_key,
-                         api_key_vars=["TYPESAFE_API_KEY"], config=config)
+                         api_key_vars=["TYPESAFE_API_KEY"], config=config or GenerateConfig())
 
     async def generate(self, input, tools, tool_choice, config) -> ModelOutput:
         body = request(input, model=self.model_name)
@@ -125,9 +125,16 @@ class TypeSafeAPI(ModelAPI):
         answer = {**answers["verdict"], "judge": reply.get("model")}
         if "not_applicable" in body["questions"]:
             answer["not_applicable"] = answers["not_applicable"]["noul"]
-        usage = reply.get("usage") or {}
-        tokens_in, tokens_out = usage.get("input_tokens", 0), usage.get("output_tokens", 0)
         output = ModelOutput.from_content(model=self.model_name, content=json.dumps(answer))
-        output.usage = ModelUsage(input_tokens=tokens_in, output_tokens=tokens_out,
-                                  total_tokens=tokens_in + tokens_out)
+        usage = reply.get("usage")
+        # Keep the answer when billing data is absent. Never manufacture zero usage:
+        # Inspect records no usage for this sample, and the runner stops paid work.
+        if isinstance(usage, dict) and all(
+            type(usage.get(key)) is int and usage[key] >= 0
+            for key in ("input_tokens", "output_tokens")
+        ):
+            output.usage = ModelUsage(
+                input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+                total_tokens=usage["input_tokens"] + usage["output_tokens"],
+            )
         return output

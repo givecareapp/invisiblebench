@@ -17,14 +17,13 @@ import io
 import json
 import re
 import tarfile
-from glob import glob
 from pathlib import Path
 
 from inspect_ai.log import EvalLog, read_eval_log
 
 from report import METHOD, build_jury_card, target_rows
 from stats import estimates, paired_difference
-from task import OPENROUTER_PRICES
+from task import CASES, OPENROUTER_PRICES
 
 RECORD_SCHEMA = "gc-bench.run-scores/v1"
 CHANGES_SCHEMA = "invisiblebench.changes/v1"
@@ -61,6 +60,9 @@ def _dimension_order(key: tuple) -> tuple:
 
 def record_run(logs: list[EvalLog], run_id: str) -> dict:
     """A run's verdicts without words, and each model's surest FAIL per dimension."""
+    public = {path.parent.name for path in CASES.glob("*/case.json")}
+    if any(log.eval.metadata.get("family") not in public for log in logs):
+        raise ValueError("Public run records cannot include external cases")
     versions = {log.eval.metadata["benchmark_version"] for log in logs}
     judges = {log.eval.model for log in logs}
     if len(versions) != 1 or len(judges) != 1:
@@ -88,6 +90,19 @@ def record_run(logs: list[EvalLog], run_id: str) -> dict:
         "examples": [{k: best[key][1][k] for k in EXAMPLE}
                      for key in sorted(best, key=_dimension_order)],
     }
+
+
+def load_run(directory: Path) -> list[EvalLog]:
+    """Bind the public export to the requested cohort, including whole missing logs."""
+    args = json.loads((directory / "run.json").read_text())["args"]
+    if args.get("cases"):
+        raise ValueError("Public run records cannot include external cases")
+    expected = {(family, target) for family in args["family"] for target in args["target"]}
+    logs = [read_eval_log(str(path)) for path in sorted((directory / "judge").rglob("*.eval"))]
+    actual = {(log.eval.metadata["family"], log.eval.metadata["source"]["model"]) for log in logs}
+    if not expected or actual != expected or len(logs) != len(expected):
+        raise ValueError("Missing or duplicate judge logs for the requested families and targets")
+    return logs
 
 
 def _rows(record: dict) -> list[dict]:
@@ -203,15 +218,13 @@ def build_results(changes: list[dict], records: dict) -> dict:
     tables = [_table(version, [e for e in changes if e["version"] == version], records,
                      versions[i + 1] if i + 1 < len(versions) else None)
               for i, version in enumerate(versions)]
-    owner = {model["model"]: model["run"] for table in tables for model in table["models"]}
     return {
         "schema": DATA_SCHEMA, "current": versions[-1] if versions else None, "method": METHOD,
         "versions": tables[::-1],
         "changes": [{"date": e["date"], "version": e["version"], "status": e["status"],
                      "text": e["text"],
-                     "models": [m for table in tables if table["version"] == e["version"]
-                                for m in (x["model"] for x in table["models"])
-                                if owner[m] in e["runs"]]}
+                     "models": [m["model"] for table in tables if table["version"] == e["version"]
+                                for m in table["models"] if m["run"] in e["runs"]]}
                     for e in changes],
     }
 
@@ -281,10 +294,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "record":
         run = Path(args.run)
-        logs = [read_eval_log(p)
-                for p in sorted(glob(str(run / "judge/**/*.eval"), recursive=True))]
-        if not logs:
-            parser.error(f"No judge logs under {run / 'judge'}")
+        logs = load_run(run)
         run_id = args.id or run.name
         out = Path(args.out) / f"{run_id}.json"
         out.parent.mkdir(parents=True, exist_ok=True)

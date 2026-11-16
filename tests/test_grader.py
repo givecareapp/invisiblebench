@@ -393,6 +393,12 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
     assert "Deliberate provider outage at turn 3" in readable
     assert "`backup_care/unasked` (epoch 1): interrupted, 1 of 3 turns completed" in readable
     assert "Unfinished draft" not in readable
+    # The same planned cohort reaches aggregate reports and release records.
+    from report import summarize_rows, target_rows
+    rows = target_rows(judged)
+    assert len(rows) == 54
+    assert sum(r["verdict"] == "PASS" for r in rows) == 37
+    assert summarize_rows(rows)["unscored"] == 17
 
 
 def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path):

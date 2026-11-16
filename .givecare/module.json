@@ -1,7 +1,7 @@
 {
   "schema_version": "givecare.module/v2",
   "repository": "invisiblebench",
-  "owns": "InvisibleBench: public checks, scenarios, the scan engine, the leaderboard, and public benchmark releases",
+  "owns": "InvisibleBench: public cases, Inspect generation and judging, reports, and versioned benchmark releases",
   "check": "scripts/check.sh",
   "produces": [
     {

@@ -1,5 +1,7 @@
 # InvisibleBench development benchmark card
 
+Type: reference.
+
 **Version:** 0.2.1 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
@@ -10,21 +12,22 @@ It is an author self-description, not external certification. The
 
 ## Intended measurement
 
-The first family tests whether a raw assistant can give useful respite coordination
-while respecting a care recipient's decisions and a helper's actual agreement.
-Its matched openings change one availability fact. Later turns change consent and
-the requested hours. The full history is visible within one conversation.
+The benchmark tests whether a raw assistant can help a family caregiver while
+respecting the care recipient's decisions, practical limits and changing facts.
+For example, `backup_care` changes a helper's availability and the recipient's
+consent during respite coordination. The full history is visible within one conversation.
 Safety and Care are reported separately, per criterion and turn.
 
 The [taxonomy](docs/taxonomy.md) defines the structure: every case is a dyad of
 a user (the caregiver) and a care recipient, and ten dimensions name the ways
 an assistant fails them: five Safety and five Care. Care holds about 75% of the
 checks and is the headline result; Safety is a floor. The two are never pooled. A scenario belongs only if removing the care
-relationship would change the right answer. The first six families predate the
-taxonomy and now carry its labels; the four added in 0.2.0 were written to it
-([item plan](docs/item-plan.md)).
+relationship would change the right answer. The [item plan](docs/item-plan.md)
+owns coverage; the [Anthropic criteria map](docs/bar.md) states the evidence
+needed for each quality of the evaluation.
 
-The families and their questions, from each family's README:
+Examples of family questions follow. `cases/` and each family's README own the
+complete set and its current rules:
 
 - `backup_care`: Can a model help arrange respite while tracking the care recipient's
   consent and the helper's actual availability as both change?
@@ -58,8 +61,9 @@ The families and their questions, from each family's README:
 
 ## Population and composition
 
-Ten fictional, authored families each have three matched variants, two common
-followups, six to eight criteria, and authored positive and negative controls.
+Fictional, authored families have matched fact variants, scripted followups,
+per-criterion rules, and authored positive and negative controls. Related
+families vary style, including implied conditions, distress and omitted wishes.
 Each family's controls and labels are development material. The families are not a
 representative sample of caregivers or caregiving situations. Each family's case,
 rubric, controls, and README are in `cases/<family>/`. Related cases must stay
@@ -74,12 +78,15 @@ without a scorer. Each directory under `cases/` is one family; the run names it
 with the `family` parameter.
 [grader.py](grader.py) separately judges authored controls or saved target logs,
 one response and one criterion at a time. A target never sees the rubric or
-control labels. The judge returns PASS, FAIL, UNCLEAR, or NOT_APPLICABLE with
-response and user-turn quotes; malformed or interrupted output is unscored.
+control labels. The judge returns PASS, FAIL, UNCLEAR, or NOT_APPLICABLE.
+The chat judge supplies a reason and exact quotes. The pinned Jev judge supplies
+probabilities without reasons or quotes. Malformed or interrupted output is unscored.
 Every target gets the same generation settings, including one `max_tokens`
 (8192 by default); `run.py` has no per-target override.
 Missing generation and judging opportunities, execution errors, and unknown
-cost remain visible. [report.py](report.py) reads native Inspect logs offline.
+cost remain visible. Reports and releases use the same frozen planned checks;
+missing evidence remains unscored and never counts as a pass.
+[report.py](report.py) reads native Inspect logs offline.
 Source hashes, version, model settings, plan, and usage travel with the logs.
 [run.py](run.py) runs the whole pass (controls on request, generation, judging, and
 reports) and writes `run.json` from the logs.
@@ -89,15 +96,17 @@ reports) and writes `run.json` from the logs.
 Mocked tests and the repo gate verify the harness, parser, source binding, and
 report arithmetic. The control labels were authored during development. No
 independent human-reviewed set has established grader precision, recall, or
-UNCLEAR calibration. No clinician validation or caregiver outcome evidence exists
-for this slice. A model score must not be inferred from a mock run. Real-model
+UNCLEAR calibration. Expert review is in progress. The study's locked version
+defines what it can validate; later case changes need their own review evidence.
+No validated grader or caregiver outcome claim follows from the current slice.
+A model score must not be inferred from a mock run. Real-model
 development runs exist in the private `results/` directory, and their verdicts are
 unvalidated judge output.
 
 ## Appropriate interpretation and limits
 
-This family can expose specific failures of availability tracking, consent,
-useful alternatives, privacy in drafted messages, and false claims of action.
+These families can expose specific failures of tracking, consent, useful help,
+practical fit and care relationships under the authored rules.
 It cannot establish clinical safety, actual respite, persistent cross-session
 memory, or model quality across caregiver populations. Criteria may overlap;
 their counts are not independent harm events. There is no composite score or
@@ -149,10 +158,11 @@ Every caregiver turn is written in advance and fixed. No model plays the
 caregiver, and no real caregiver took part. Scripted caregivers differ from real
 ones in known ways:
 
-- They write clearly, in one tone, in US English, without typos.
-- They state every key fact outright: capacity, consent, conditions and what
-  changed. Real caregivers often leave these out or get them wrong.
-- They never ask the assistant a question, push back, or react to its reply. The
+- They use authored US English. Some variants express distress, but they do not
+  represent the full range of caregiver language and communication.
+- Most key facts are explicit. Some variants imply conditions or initially omit
+  wishes. Real caregivers can also omit, misunderstand or contradict facts.
+- Their followups never adapt to the assistant's questions or reply. The
   next turn arrives whatever the assistant said.
 - Each conversation has three turns. Real conversations run longer or stop early.
 
@@ -163,10 +173,10 @@ for some groups, such as speakers of African American English and Indian English
 ([Seshadri et al., 2026](https://arxiv.org/abs/2601.17087)). Expect these cases to
 be easier than real conversations in the same ways.
 
-No comparison with real caregiver conversations exists yet. The first planned
-check compares the situations and wording with the public, real caregiver
-questions in Care Evals. Any use of real product conversations needs a separate
-owner decision on data access.
+Public caregiver questions inform the case design. They do not establish that
+the scripted conversations match real caregiver–assistant use. That comparison
+remains incomplete. Any use of real product conversations needs a separate owner
+decision on data access.
 
 ## Reproduction and access
 
@@ -300,10 +310,16 @@ as independent harms. Do not derive a composite score or model ranking.
 
 Each judge request contains one criterion and the conversation prefix ending at
 one response. The request omits the control's name, rationale, expected label,
-and future turns. The model returns a four-state verdict, explanation, quote from
+and future turns. The chat judge returns a four-state verdict, explanation, quote from
 the assessed response, and quote from a visible triggering user turn. Code rejects
 duplicate JSON keys, unknown fields, invalid verdicts, and quotes outside that
 evidence. These checks verify provenance, not relevance or semantic correctness.
+
+The pinned Jev path uses a choice among PASS, FAIL and UNCLEAR. A separate
+applicability question in the same request produces NOT_APPLICABLE at a working
+threshold of 0.5. Its probabilities are model output, not measured judge accuracy.
+Jev supplies no written reason or evidence quote. The Jury Card shows the reply
+and the rule for inspection; it does not invent an explanation.
 
 Inspect retains the raw output and parsed judgment in its native log. Invalid,
 missing, blocked, or truncated judge outputs remain unscored. API errors remain
@@ -388,21 +404,21 @@ Source framing supports a design rationale. It does not validate these authored
 criteria, their importance weights, or a future model judge.
 ## Independent review protocol
 
-**Status:** ready to prepare packets; no independent labels collected and no
-calibration claim. This protocol does not approve paid inference or contact
-reviewers.
+**Status:** review in progress; no established grader calibration claim. Preserve
+the active packet, reviewer identities and saved answers. The private study owner
+handles any later packet revision. This protocol does not approve paid inference
+or reviewer contact.
 
 ### Freeze and separation
 
 1. Select complete Inspect generation logs and record their SHA-256 hashes,
    source versions, model settings, and coverage before judging. Keep related
-   variants and rewrites in the same split. This authored backup-care family and
-   its controls are development material; they cannot be a withheld test set.
+   variants and rewrites in the same split. Public families and their authored
+   controls are development material; they cannot be a withheld test set.
 2. Freeze a separately authored set before looking at target or judge answers.
    Record sampling rule, populations, criterion opportunities, and exclusions.
-   Include matched benign and harmful responses for each check, especially
-   `privacy.message` and `scope.action`, which each have only one authored FAIL
-   in the current development controls. Review realism and legitimate alternatives.
+   Include matched benign and harmful responses for each check. Audit class
+   coverage before sampling. Review realism and legitimate alternatives.
 3. Run `python review_packet.py <generation.eval> > <packet.json>` in the locked
    environment. The packet contains the visible conversation prefix, one criterion,
    source hashes, and item IDs. It omits the target model name, judge verdicts,
@@ -435,13 +451,13 @@ and recall (judge FAIL among human FAIL), with numerators, denominators, and
 uncertainty. Do not pool Safety and Care into one number. If a denominator is
 zero, mark the estimate unavailable.
 
-The current judge emits discrete verdicts, not calibrated probabilities. There
-is therefore no numerical cutoff to tune or report. Adding a probability and
-cutoff would require a specified decision model, separate calibration split,
-and frozen cutoff before testing. The authored controls are useful for finding
-bugs but cannot estimate precision or recall on independent cases.
+Jev's verdict probabilities and its 0.5 applicability threshold are not calibrated
+against independent labels. Report agreement and class errors at that frozen
+threshold. Any tuning needs a separate calibration split and a frozen cutoff
+before testing. Authored controls find bugs; they cannot establish precision or
+recall on independent cases.
 
-Publishable claims require independent labels, reviewer and coverage disclosure,
+Claims of grader validity require independent labels, reviewer and coverage disclosure,
 source-bound results, and a review of failures. Neither this packet nor the repo
 gate establishes clinical validity, caregiver benefit, or model rank.
 
@@ -456,14 +472,14 @@ the repository.
   Every rubric change carries a version bump, a re-judge of the affected
   authored controls, and a verdict-for-verdict diff saved under the run
   record. A change that moves a saved verdict is explained in the run notes.
-- **Development and withheld families.** All ten families are development
-  material at 0.2.0: their rubrics were tuned against judge output.
+- **Development and withheld families.** All public families are development
+  material. Their cases and rubrics may be tuned against development output.
   `benefits_access` and `home_safety` were withheld from tuning after 0.1.4;
   0.2.0 edits their rubrics from the findings of the 2026-10-29 run, so they
   joined the development set and stay there. `caregiver_strain`,
   `suspected_abuse`, `covert_medication` and `driving` were written as
-  development families. The withheld set will be new
-  situations, written privately and frozen before any judge sees them
+  development families. The private repository owns separately authored
+  withheld situations, which must be frozen before any judge sees them
   ([item plan](docs/item-plan.md)). A judge disagreement on a withheld family is
   a finding, not a prompt to edit. Related families share a split.
 - **Conflicts.** The benchmark is maintained by GiveCare, which builds a
@@ -484,8 +500,9 @@ the repository.
   caregiver-outcome claim without the evidence the card names. Judge accuracy
   is stated only from independently labeled withheld material, with reviewer
   roles and relationships disclosed.
-- **Human review.** Individual runs need no human approval. Claims about the
-  evaluator need independent labels. Human review never edits a saved verdict.
+- **Human review.** Independent review validates the instrument; it is not a
+  per-run approval gate. Paid inference and publication still need owner approval.
+  Claims about the evaluator need independent labels. Human review never edits a saved verdict.
 
 ## Maintenance
 
