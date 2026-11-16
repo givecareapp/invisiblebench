@@ -13,6 +13,10 @@ remaining evidence needs. Each family in `cases/` states its question, controls
 and known label ambiguities. Review is in progress; its results must remain bound
 to the reviewed revision.
 
+For requests to test an organization's assistant or contribute domain cases, use
+[the organization evaluation guide](docs/organization-evaluations.md). It explains
+the question, required inputs, integration limits and evidence for each claim.
+
 ## Layout
 
 ```text
