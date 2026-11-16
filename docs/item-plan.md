@@ -1,11 +1,13 @@
-# Plan: from 4 scenarios to about 100 items
+# Item coverage and development plan
 
 Type: explanation.
 
-**Status:** accepted by the owner on 2026-11-09, with two defaults not yet
-confirmed: US English only at first release, and about 10 development and 6
-withheld scenarios. Steps 1 to 3 are done. It applies the [taxonomy](taxonomy.md) and addresses qualities 5, 12
-and 14 of [the bar](bar.md).
+The owner accepted the initial plan on 2026-11-09 and expanded its coverage on
+2026-11-12. The plan applies the [taxonomy](taxonomy.md) and addresses task
+realism, sample size and language coverage in [the bar](bar.md). US English only
+at first release remains a proposed scope, not evidence of broader coverage.
+Review findings apply to the exact packet version; preserve the active packet
+while that review is underway.
 
 ## Shape
 
@@ -158,51 +160,43 @@ verdicts, so items need to separate models, not only hold a floor.
 
 ## Split
 
-- About 10 scenarios for **development**: public, tunable, in this repository.
-- About 6 for **withheld**: written last, private, frozen before any judge sees
-  them. Twins and related scenarios share a split.
+The expanded plan assigns 12 scenarios to public development and 9 to the
+private withheld set. Twins and related scenarios share a split. Development
+cases can be revised from pilot findings. Withheld cases must be frozen before
+judging and cannot be selected or tuned from model results.
 
-## Order
+## Applying review and testing the instrument
 
-1. **0.2.0 on today's 4 scenarios.** Done: rubric fixes, severity, canary,
-   equal settings.
-2. **Labels.** Done: every criterion names its dimension and protects; every
-   item names its scenario, variation, style and severity. Tests require them.
-   The first 18 items are all serious.
-3. **4 new development scenarios.** Done: `caregiver_strain` (12),
-   `suspected_abuse` (13), `covert_medication` (5) and `driving` (7), each with
-   controls (supported, do-nothing, blanket refusal, agree-with-everything, and
-   one failure per check). Three of them span routine to urgent.
-4. **Clinician design review** of all 8 scenarios, the taxonomy and the
-   severity levels. The format is fixed after this. On 2026-11-12 the owner
-   moved step 5 ahead of this review: all items are drafted now, and the
-   review's feedback is folded in when it arrives.
-5. **The rest:** development to about 10 scenarios, then the withheld 6, with
-   the overlap check (`private/no-overlap`). Each new scenario also gets one
-   reworded twin of one item, written at the same time: same facts, labels and
-   severity, different wording. Comparing verdicts across each pair measures
-   sensitivity to rewording (quality 11 of the bar). Twins share their
-   scenario's split and do not count toward the 100 items. They add about a
-   sixth to the cost of each run.
-6. **Freeze, run, label study**, each with the owner's approval.
+- Complete the active design review against its locked packet. Apply accepted
+  feedback in a new case and rubric revision, with the version changes described
+  in [the release guide](releases.md). Preserve old packets and answers.
+- Review the taxonomy, borderline labels, severity and realism. Case design
+  feedback and judge accuracy are separate evidence needs.
+- Test sensitivity with matched rewordings: same facts, labels and severity,
+  different wording. Keep each pair in its scenario's split. Do not count
+  repeats or extra rewordings toward the planned distinct-item target.
+- Freeze the evaluated instrument and settings. Use the existing runner and
+  blind review process to measure agreement, errors and unresolved items.
+  Human review validates the instrument; it is not a new per-run approval gate.
 
 ## Cost
 
-Authoring is team and reviewer time. Model runs need approval. The October 29 run
-of 2 scenarios with 4 targets, 3 epochs and the judge cost about 1.60 USD. A full
-16-scenario run is in the tens of dollars, not hundreds.
+Estimate each proposed run from its actual cases, repetitions, model prices and
+judge calls. Prior run costs do not establish the next budget. Paid inference
+needs owner approval and an explicit ceiling. `run.py` checks reported cost
+between evaluations; the ceiling is not a hard bound on requests already in
+flight. Missing paid usage stops further paid evaluations.
 
 ## Decisions
 
-Accepted 2026-11-09: the taxonomy and the scenario list. Defaults to confirm:
-US English only at first release (UK English variations then wait); about 10
-development and 6 withheld scenarios.
+Accepted 2026-11-09: the taxonomy and the initial scenario list. The proposed
+first-release language scope is US English; UK English variations wait for an
+explicit scope decision. The expanded scenario allocation is in [Shape](#shape).
 
 Accepted 2026-11-12: the [role mix](#role-mix), applied after the clinician
 design review. Same day: draft every item now, before the review. New
 scenarios use the new roles at once; the 8 reviewed scenarios and their twins
-keep today's roles until the review. The split stays as accepted on
-2026-11-09: development is the 8 reviewed scenarios plus discharge (9) and
-the pressure to quit work (16); withheld is 6, 8, 10, 11, 14 and 15. The 8
-reviewed scenarios use the implied-cue twin; the 8 new ones take the second
-style from their 2026-11-09 outlines (see [Styles](#styles)).
+keep their reviewed roles until the review. The initial split assigned the
+8 reviewed scenarios, discharge (9) and pressure to quit work (16) to development;
+6, 8, 10, 11, 14 and 15 were withheld. The later coverage expansion adds scenarios
+17–21 as described in [Shape](#shape). [Styles](#styles) owns the variant choices.

@@ -1,23 +1,26 @@
 # InvisibleBench
 
+Type: how-to.
+
 InvisibleBench evaluates how an assistant handles multi-turn caregiver-support
 conversations. The active project is a **0.2.1 development slice**, not a
 validated InvisibleBench 6.0 release. There is no validated model result or validated
 grader. Safety and Care remain separate; there is no composite score or model rank.
 
-The [benchmark card](BENCHMARK_CARD.md) contains the measurement contract,
-validation status, review protocol, and interoperability limits. The first
-[case family](cases/backup_care/README.md) tests respite coordination as a
-helper's availability and the care recipient's consent change. Each family's
-README states its question. A README also holds that family's falsifier table
-and known label ambiguities, when the family has them.
+The [benchmark card](BENCHMARK_CARD.md) owns the measurement and review protocol.
+The [Anthropic criteria map](docs/bar.md) links each requirement to its code and
+remaining evidence needs. Each family in `cases/` states its question, controls
+and known label ambiguities. Review is in progress; its results must remain bound
+to the reviewed revision.
 
 ## Layout
 
 ```text
 task.py                  Inspect generation task (one family per run) and solver
 grader.py                Inspect control and target judging tasks; shared scorer
+jev.py                   Pinned TypeSafe judge provider and usage reporting
 report.py                Offline JSON or Markdown report from judge logs
+stats.py                 Item means and scenario-clustered uncertainty
 review_packet.py         Blind human-review packet from a generation log
 run.py                   One-command run: controls, generation, judging, reports,
                          run.json read back from the logs
@@ -29,7 +32,7 @@ cases/<family>/          One case family: case, rubric, authored controls, notes
 tests/                   Offline harness and contract tests
 scripts/check.sh         Active lint and tests
 BENCHMARK_CARD.md        Methods, evidence, limits, and review protocol
-docs/bar.md              What comparable benchmarks require, and where this one stands
+docs/bar.md              Anthropic criteria, implementation and evidence requirements
 docs/taxonomy.md         Construct, dyad, dimensions, scenarios, items, and labels
 docs/item-plan.md        Draft plan from 4 situations to about 100 items
 CHANGELOG.md             Notable changes per development version
@@ -37,6 +40,14 @@ data/releases/           The changes record and the one web release (v7)
 data/runs/               One record per published run: verdicts, worked failures
 docs/releases.md         How results are versioned and published
 ```
+
+The path is **cases → generation → judging → reports → release → Web**.
+`grader.py` supplies one full planned check list to reports and releases.
+Missing generation and judge checks remain unscored. Jury Cards show saved
+replies and verdicts; the reports also show checks with no reply or judgment.
+`release.py` builds the one public archive. Web imports and validates that
+archive; it never runs evaluations. The private repository prepares studies
+and held-out cases. Confer provides reviewer access and saves answers.
 
 `invisiblebench-private/` is a separate private repository. `care-evals` owns
 the public reusable case data. `results/` contains historical
@@ -158,8 +169,9 @@ the arguments, Git revision, evaluation IDs, usage, and reported cost. Nobody
 types it. A run refuses uncommitted case files. A paid model also needs
 `--judge-cost-limit-usd` (per sample) and `--ceiling-usd` (whole run). The run
 stops before the next evaluation once the reported cost passes the ceiling.
-If a completed evaluation lacks paid usage or a paid model cost, no further
-paid evaluation starts. Mock usage alone does not block paid work. Finished
+If any paid sample lacks usage, or a paid model lacks cost, no further paid
+evaluation starts. Known costs in other samples do not hide that gap. Mock usage
+alone does not block paid work. Finished
 logs, reports and the stop reason are preserved; no spend is retried or guessed.
 Held-out families live in a separate private repository and are never copied
 here. `--cases <folder>` (or `INVISIBLEBENCH_CASES`) adds that folder as a second

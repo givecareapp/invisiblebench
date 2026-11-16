@@ -5,7 +5,7 @@ import json
 
 from inspect_ai.log import EvalLog, read_eval_log
 
-from grader import VERDICTS, summarize, summarize_target
+from grader import sample_verdict, summarize, summarize_target, target_observations
 from stats import estimates, paired_difference
 
 
@@ -16,7 +16,7 @@ def build_report(log: EvalLog) -> dict:
     for sample in log.samples or []:
         scores = list((sample.scores or {}).values())
         score = scores[0] if len(scores) == 1 else None
-        verdict = score.value if score and isinstance(score.value, str) and score.value in VERDICTS else None
+        verdict = sample_verdict(sample)
         trials.append({
             "sample_id": str(sample.id),
             "epoch": sample.epoch,
@@ -69,20 +69,16 @@ SUMMARY_GROUPS = {"layer": "layer", "dimension": "dimension", "severity": "sever
 
 
 def target_rows(log: EvalLog) -> list[dict]:
-    """One row per judged verdict of a target-judging log, labeled for clustering."""
+    """One row per planned check; missing evidence remains an unscored observation."""
     metadata = log.eval.metadata or {}
     target, plan = metadata["source"]["model"], metadata["check_plan"]
     rows = []
-    for sample in log.samples or []:
-        scores = list((sample.scores or {}).values())
-        score = scores[0] if len(scores) == 1 else None
-        verdict = score.value if score and isinstance(score.value, str) and score.value in VERDICTS else None
-        labels = sample.metadata
+    for labels, sample, _gap in target_observations(log):
         rows.append({
             "target": target, "scenario": labels["scenario"], "item": labels["source_sample"],
             "check": labels["check"], "dimension": plan[labels["check"]]["dimension"],
-            "layer": labels["layer"], "severity": labels["severity"],
-            "epoch": labels.get("source_epoch"), "verdict": verdict,
+            "layer": labels["layer"], "severity": labels.get("severity") or "not recorded",
+            "epoch": labels.get("source_epoch"), "verdict": sample_verdict(sample),
         })
     return rows
 
@@ -203,9 +199,9 @@ def _finding_lines(trial: dict) -> list[str]:
 
 
 REASON = (
-    "The reason for each verdict is the rubric rule the judge applied (its question, pass "
-    "text and fail text) plus Jev's probability for that verdict. Jev returns a probability, "
-    "not written prose."
+    "Each entry shows the reply, the rubric rule and any recorded probability. "
+    "Jev supplies no written reason or evidence quote. A probability is judge output, "
+    "not measured accuracy or an explanation of the verdict."
 )
 CLOSE_CALL = 0.6
 _ORDER = {"FAIL": 0, "UNCLEAR": 1, "NOT_APPLICABLE": 2, "PASS": 3, None: 4}
@@ -221,8 +217,7 @@ def build_jury_card(logs: list[EvalLog]) -> dict:
         for sample in log.samples or []:
             scores = list((sample.scores or {}).values())
             score = scores[0] if len(scores) == 1 else None
-            verdict = (score.value if score and isinstance(score.value, str)
-                       and score.value in VERDICTS else None)
+            verdict = sample_verdict(sample)
             evidence = score.metadata.get("evidence") if score and score.metadata else None
             # The frozen judge input, not the current case files.
             payload = json.loads(sample.input[-1].text)
@@ -257,7 +252,7 @@ def render_jury_card(card: dict) -> str:
              f"**Judge:** {card['judge']}  ",
              f"**Targets:** {', '.join(card['targets'])}  ",
              f"**Verdicts:** {len(card['verdicts'])}", "",
-             f"**Why a verdict:** {card['reason']}", "",
+             f"**Evidence for review:** {card['reason']}", "",
              f"A close call is a verdict the judge gave with probability below "
              f"{card['close_call_below']:.2f}. Model comparisons from this card become claims "
              "once the judge is frozen and checked against independent human review.", "",

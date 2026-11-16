@@ -2,105 +2,69 @@
 
 Type: reference.
 
-**Status:** accepted by the owner on 2026-11-09 (goal step
-`labs/assurance/invisiblebench/bar-decided`).
+The owner accepted Anthropic's [What we look for in a wellbeing evaluation](https://www-cdn.anthropic.com/files/4zrzovbb/website/5ecb637cb206057cb93cf4a9e72e843fda5e9892.pdf)
+on 2026-11-09 as the method standard. This page maps that standard to the
+benchmark's existing code and evidence. It is not a certification or an
+aggregate quality score. The [benchmark card](../BENCHMARK_CARD.md) owns the
+measurement and review protocol; the [item plan](item-plan.md) owns coverage.
 
-The bar is Anthropic's *What we look for in a wellbeing evaluation* (2026): its
-14 qualities and 7 common issues, checked one by one. A private capture is in the
-owner's wiki. Marks are as of 0.2.0. `[x]` means met; `[ ]` means not met yet,
-with what is missing. It grants no authority and makes no validity claim.
+## Criteria and evidence
 
-**Score:** 4 of 13 applicable qualities met (one more is not applicable); 4 of 7
-common issues avoided.
+The implementation supports the checks below. A working check does not establish
+that the cases or judge are valid. Review is in progress. Its findings must name
+the reviewed case and rubric versions before they support a validation claim.
 
-## Qualities
+| Anthropic criterion | Existing implementation | Evidence still needed |
+| --- | --- | --- |
+| 1. Defined construct | The taxonomy defines the caregiver–care-recipient relationship and separate dimensions. Each family states its question and rules. | Expert review of the construct, boundaries and evidence gaps. |
+| 2. Harm and over-refusal | Safety and Care stay separate. Authored controls include harmful advice, blanket refusal and empty help. | Independent labels on both failure directions. |
+| 3. Severity | Cases label routine, serious and urgent items. Reports separate verdicts by severity. | Expert review of those labels and the distribution of cases. |
+| 4. Decomposed scoring | `grader.py` judges one criterion on one reply. Uncertain and inapplicable cases stay distinct. | Review of overlap and ambiguous pass/fail boundaries. |
+| 5. Realistic tasks | `task.py` runs three-turn conversations with changing facts. Case styles include implied conditions, distress and omitted wishes. | Review of realism and coverage beyond these authored styles. |
+| 6. External validity | Claims are limited to raw models tested through the API. | Product claims require tests through the product itself. |
+| 7. Internal validity | Frozen source hashes, controls and private case separation protect the evidence. | Resolve disputed rules; audit contamination and scoring artifacts. A canary alone does not prove absence of contamination. |
+| 8. Validated graders | Controls expose disagreements. Blind packets support comparison with expert labels. | Human–judge and human–human agreement, false passes, false failures and unresolved cases. |
+| 9. Simulation limits | The card records fixed-turn limits. Public caregiver material informs the design. | Comparison with real caregiver–assistant use where authorized and feasible. Public posts alone do not establish this. |
+| 10. Domain expertise | The private review study collects design feedback and owns its frozen packet. | Apply accepted feedback to a named revision. Design review alone does not measure judge accuracy. |
+| 11. Reliability and reproduction | Inspect logs retain settings, source hashes and repeated attempts. Reports use scenario-clustered intervals. | Repeatability and sensitivity to wording and format on the frozen instrument. |
+| 12. Sample size | The item plan specifies development and withheld scenarios with fact and style variants. | Adequate diversity and statistical precision. Repeated runs are not new items; related variants are not independent scenarios. |
+| 13. Relevant modalities | The declared surface is text through the API. | Reassess coverage if the claim expands to audio, images or documents. |
+| 14. Region and language | The cases use US English and US context. | Evidence for regional and linguistic variation within any claimed population. The first-release scope remains an owner decision. |
 
-- [x] **1. A clearly defined construct**, citing evidence and its gaps.
-  Each family states its question, falsifier, and written pass and fail rules.
-  The card's construct table cites outside evidence for each dimension and
-  names where it stops (privacy and condition-carrying have none).
-- [x] **2. Failure measured as both harm and over-refusal.**
-  Safety checks catch harm; Care checks fail refusal, hedging and empty
-  reassurance. The controls include blanket refusals.
-- [ ] **3. Multiple severity levels**, with results broken out by them.
-  Every item names routine, serious or urgent, and reports break verdicts out
-  by it. Three scenarios span routine to urgent; of 30 items, 3 are routine,
-  24 serious and 3 urgent. Missing: clinician review of the scale and of each
-  item's level, and more routine and urgent items.
-- [x] **4. Clear, decomposed scoring:** one pass/fail question per dimension.
-- [ ] **5. Realistic, well-constructed tasks:** multi-turn, rising risk,
-  shifting context, varied tone. Multi-turn with shifting facts, yes. Missing:
-  variation in tone and situation; every caregiver turn is scripted in one
-  voice.
-- [x] **6. External validity:** the access method matches the claim.
-  Models are tested through the API with no system prompt, and the card limits
-  claims to that surface: not consumer apps, not products built on a model.
-- [ ] **7. Internal validity:** no ambiguous items, scoring artifacts or
-  contamination. 0.2.0 fixes the two known ambiguous questions and adds a
-  canary. Missing: two disputed control-label patterns; the judge flips about
-  3% of verdicts on re-judging.
-- [ ] **8. Graders you can validate:** agreement with human experts reported,
-  a different model family as judge, transcripts read by hand.
-  The judge differs in family from every target, and transcripts are read.
-  Missing: expert agreement. The clinician study is a pilot.
-- [ ] **9. Honest about simulation**, and checked against real use.
-  The card lists how scripted caregivers differ from real ones, with evidence
-  that simulated users make evaluations optimistic. Partly checked
-  (2026-11-12, private notes): 47 public caregiver posts were coded by hand
-  and by a blind second coder. Most real posts vent or ask a question; 13%
-  state the person's wishes, and none ask for a drafted message. Every
-  scripted opening states the wishes and sets a task. Real assistant logs are
-  too rare to compare:
-  in WildChat-4.8M, a hand-read random sample of 200 keyword matches held 2
-  caregivers (1.0%, 95% interval 0.3% to 3.6%), about 21 of 1.68 million
-  English conversations. Missing: a comparison with real caregiver
-  conversations with an assistant.
-- [ ] **10. Built with domain expertise**, especially for borderline cases.
-  Missing: clinicians have not reviewed the cases, rubric or labels.
-- [ ] **11. Reliable and reproducible:** repeated attempts, stable to small
-  changes, enough released for a third party. Three epochs with consistency
-  shown, hash-bound runs, one setting for every model, and open development
-  code and data. Missing: a measure of sensitivity to rewording beyond the
-  implicit-cue twins.
-- [ ] **12. Large enough sample:** at least about 100 distinct items for a
-  complex multi-turn eval. There are 72 development items (12 scenarios);
-  54 withheld items (9 scenarios) are drafted privately. All are authored
-  drafts awaiting clinician review. See the [item plan](item-plan.md).
-- [x] **13. Multimodal coverage where relevant:** not applicable. Caregivers
-  reach assistants by text and SMS.
-- [ ] **14. Regional and linguistic variation.** Missing: everything is
-  US English.
+Anthropic's rough sample-size guide is about 100 distinct items for a complex
+multi-turn evaluation. The planned 126 items fit that scale. The number alone
+does not establish coverage, validity or adequate precision.
 
-## Common issues
+## Common failure modes
 
-- [ ] **No human validation.** Present: no frozen expert labels yet.
-- [ ] **Underspecified grading criteria.** Mostly avoided: every check has
-  written pass and fail rules and boundary notes. Two disputed label patterns
-  remain for the design review.
-- [x] **Circular AI-as-judge.** Avoided: an automated check confirms the judge's
-  family differs from every target.
-- [x] **Detached from real use.** Avoided: multi-turn, everyday situations, not
-  shock value, and both failure directions.
-- [x] **Trivially gameable.** Avoided for the shortcuts tested: generic
-  reassurance, blanket refusal, agree-with-everything and oppose-everything
-  replies all fail.
-- [ ] **Ambiguous items.** Partly: the two known items are fixed in 0.2.0; the
-  clinician pilot will show more.
-- [x] **Saturation.** Avoided so far: models fail often and differ from each
-  other. Re-check every release.
+- **No human validation:** the study is active, but software tests and authored
+  controls do not supply independent validation results.
+- **Underspecified rules and ambiguous items:** explicit rubrics help. Known
+  borderline cases remain questions for review, including the bathing-seat rule.
+- **Circular judging:** the runner rejects a target from the judge's company.
+  Disclose the actual judge and check its independence; a different provider
+  name alone does not establish it.
+- **Detached from real use:** multi-turn cases and both failure directions help.
+  Fixed followups still do not react to a model's reply.
+- **Trivial gaming:** controls test generic reassurance, refusal, agreement and
+  opposition. They do not replace tests of wording and configuration sensitivity.
+- **Saturation:** inspect saved item results before revising development cases.
+  Preserve hard-for-all cases and the original results. Never tune withheld cases.
 
-## Closing the gaps
+## System shape
 
-| Gap | Goal step |
-| --- | --- |
-| 3, 10, 7, ambiguous items | `scenarios-meet-bar/design-reviewed` |
-| 5, 12, 14, the rest of 3 | `scenarios-meet-bar/item-plan-decided`, then `hundred-items` |
-| 8, no human validation | `confer/judge-accuracy-stated`, then `judging-meets-bar` |
-| 11, rewording | `hundred-items`: one reworded twin per new scenario |
-| 9 | `strategy-meets-bar` |
-| 7 and 11, judge flips | `scenarios-meet-bar/controls-rejudged` |
+Keep the existing chain: **cases → Inspect generation → judging → reports →
+versioned release → Web**. `grader.py` owns the full planned check list, which
+both reports and releases consume. Missing evidence stays unscored. `run.py`
+owns execution and cost handling. `release.py` owns the public artifact; Web
+validates and presents it. The private repository owns held-out cases and study
+preparation. Confer owns reviewer access and saved answers.
 
-Collinear's published methods add four practices beyond this list: a second
-judge compared with the first, sign-off on each task by someone other than its
-author, cost shown beside results, and per-item difficulty analysis. They are
-candidates, not part of the bar unless the owner adds them.
+Use these blocks to finish the evidence work. The guidance does not require a
+new scheduler, dashboard, approval queue or evaluation platform. Human review
+validates the instrument; it does not add a per-run approval gate. Existing
+approval rules for paid inference and publication still apply.
+
+Keep the active study packet unchanged while review is underway. Carry accepted
+feedback into a separately versioned instrument and study revision. Current work
+belongs in Herald; this page defines the method and evidence requirements.

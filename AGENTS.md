@@ -7,10 +7,14 @@ releases. Global, workspace and [Safety](../../AGENTS.md) instructions apply.
 
 ## Ownership and layout
 
-- `task.py`, `grader.py`, `report.py`, `review_packet.py` and `run.py` own
-  generation, judging, reporting and review-packet preparation.
+- `task.py` owns generation; `grader.py` owns judging and the frozen planned
+  checks; `jev.py` owns the TypeSafe provider. `report.py` and `stats.py` turn
+  those checks into reports. `run.py` owns execution and cost handling.
+- `review_packet.py` prepares blind packets. The private study and Confer own
+  reviewer access, active packets and answers; preserve them during code cleanup.
+- `release.py` builds the one public release from run records and changes.
 - `cases/` holds public development families; `data/` holds release artifacts
-  and manifests; `contracts/` holds public findings and release schemas.
+  and manifests; `contracts/` holds the bounded findings schema.
 - `care-evals` owns reusable public cases and validators. The private sibling
   owns held-out cases, intake, calibration and independent review operations.
   This repository must not depend on private case text or answer keys.
@@ -26,6 +30,9 @@ Tests use mocked conversations and contracts; they do not establish semantic
 validity. Keep scenario changes human-reviewed and evidence-bound. Never state a
 score without the matching run evidence. Safety and Care remain separate; a
 benchmark result is not a product, clinical or outcome claim.
+Use [the Anthropic criteria map](docs/bar.md) for method reviews and
+[the benchmark card](BENCHMARK_CARD.md) for validation claims. Review in progress
+does not establish grader accuracy. Human review is not a per-run approval gate.
 
 ## Safety and release
 

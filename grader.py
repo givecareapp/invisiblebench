@@ -4,12 +4,13 @@ import hashlib
 import json
 import math
 from collections import Counter
+from collections.abc import Iterator
 from enum import StrEnum
 from pathlib import Path
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
-from inspect_ai.log import EvalLog, read_eval_log
+from inspect_ai.log import EvalLog, EvalSample, read_eval_log
 from inspect_ai.model import ChatMessageSystem, ChatMessageUser, GenerateConfig
 from inspect_ai.scorer import Score, Scorer, Target, categorical, scorer
 from inspect_ai.solver import Generate, Solver, TaskState, solver
@@ -22,6 +23,7 @@ from task import (
     item_labels,
     load_case,
     revision,
+    scenario_of,
     shown,
     user_turns,
 )
@@ -209,7 +211,8 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
                     "completed_turns": 0, "planned_turns": total_turns, "error": None,
                 })
     conversations.sort(key=lambda c: (c["sample_id"], c["epoch"]))
-    source = {"family": family, "eval_id": log.eval.eval_id, "model": log.eval.model,
+    source = {"family": family, "item_labels": labels,
+              "eval_id": log.eval.eval_id, "model": log.eval.model,
               "status": log.status,
               "settings": {
                   "model_generate_config": log.eval.model_generate_config.model_dump(mode="json")
@@ -453,8 +456,13 @@ def summarize(log: EvalLog) -> dict:
     }
 
 
-def summarize_target(log: EvalLog) -> dict:
-    """Criterion counts from a saved target-judge log; missing is never PASS."""
+def target_observations(log: EvalLog) -> Iterator[tuple[dict, EvalSample | None, str | None]]:
+    """Every planned check: frozen labels, saved sample, and any generation or judge gap.
+
+    Reports and releases consume this same cohort. Never read current case files to
+    reconstruct a historical run. Older logs lack labels for ungenerated items;
+    their family still identifies the scenario, but their severity is not recorded.
+    """
     metadata = log.eval.metadata or {}
     if metadata.get("use") != "target-judging":
         raise ValueError("Expected a target-judging log")
@@ -469,54 +477,85 @@ def summarize_target(log: EvalLog) -> dict:
         if sample.target or sample.metadata != reference:
             raise ValueError(f"Sample differs from frozen manifest: {key}")
         records[key] = sample
-    source = metadata["source"]
+    source, plan = metadata["source"], metadata["check_plan"]
+    references = {}
+    for sample_id, reference in manifest.items():
+        key = (reference["source_sample"], reference["source_epoch"],
+               reference["check"], reference["turn"])
+        if key in references:
+            raise ValueError(f"Duplicate planned check: {key}")
+        references[key] = (sample_id, reference)
+    for conversation in source["conversations"]:
+        item, epoch = conversation["sample_id"], conversation["epoch"]
+        labels = source.get("item_labels", {}).get(item, {})
+        for check, rule in plan.items():
+            for turn in rule["turns"]:
+                key = (item, epoch, check, turn)
+                reference = {"source_sample": item, "source_epoch": epoch,
+                             "scenario": scenario_of(source["family"]), **labels,
+                             "check": check, "layer": rule["layer"], "turn": turn}
+                gap = None
+                sample_id = None
+                if turn > conversation["completed_turns"]:
+                    gap = ("generation_unattempted" if conversation["status"] == "unattempted"
+                           else "generation_interrupted")
+                elif key in references:
+                    sample_id, reference = references.pop(key)
+                    if reference["layer"] != rule["layer"]:
+                        raise ValueError(f"Frozen manifest differs from check plan: {key}")
+                else:
+                    raise ValueError(f"Frozen manifest does not match source conversations: {key}")
+                for judge_epoch in range(1, epochs + 1):
+                    sample = records.get((sample_id, judge_epoch))
+                    yield reference, sample, gap or ("judge_missing" if sample is None else None)
+    if references:
+        raise ValueError("Frozen manifest has checks outside the source conversations")
+
+
+def sample_verdict(sample: EvalSample | None) -> str | None:
+    """An execution error or an absent/malformed score is never a verdict."""
+    if sample is None or sample.error:
+        return None
+    scores = list((sample.scores or {}).values())
+    value = scores[0].value if len(scores) == 1 else None
+    return value if isinstance(value, str) and value in VERDICTS else None
+
+
+def summarize_target(log: EvalLog) -> dict:
+    """Criterion counts from a saved target-judge log; missing is never PASS."""
+    metadata = log.eval.metadata or {}
     groups = {"Safety": {}, "Care": {}}
     for check_id, plan in metadata["check_plan"].items():
-        counts = groups[plan["layer"]][check_id] = {
+        groups[plan["layer"]][check_id] = {
             **{label: plan.get(label) for label in CRITERION_LABELS},
             "planned": 0, "recorded": 0, "missing": 0, "generation_missing": 0,
             "generation_interrupted": 0, "generation_unattempted": 0,
             "judge_missing": 0, "execution_error": 0, "unscored": 0,
             "PASS": 0, "FAIL": 0, "UNCLEAR": 0, "NOT_APPLICABLE": 0,
         }
-        # Each planned opportunity is a generation gap or a frozen manifest member.
-        for conversation in source["conversations"]:
-            for turn in plan["turns"]:
-                counts["planned"] += epochs
-                if turn > conversation["completed_turns"]:
-                    counts["missing"] += epochs
-                    counts["generation_missing"] += epochs
-                    kind = ("generation_unattempted" if conversation["status"] == "unattempted"
-                            else "generation_interrupted")
-                    counts[kind] += epochs
-        judged = sum(r["check"] == check_id for r in manifest.values()) * epochs
-        if counts["planned"] != counts["generation_missing"] + judged:
-            raise ValueError(f"Frozen manifest does not match the source conversations: {check_id}")
     # Verdicts by item severity, per layer. Logs from before item labels report "not recorded".
     by_severity = {"Safety": {}, "Care": {}}
-    for sample_id, reference in manifest.items():
+    for reference, sample, gap in target_observations(log):
         counts = groups[reference["layer"]][reference["check"]]
+        counts["planned"] += 1
+        if gap:
+            counts["missing"] += 1
+            counts[gap] += 1
+            counts["generation_missing"] += gap.startswith("generation_")
+            continue
+        counts["recorded"] += 1
         level = by_severity[reference["layer"]].setdefault(
             reference.get("severity") or "not recorded",
             {"PASS": 0, "FAIL": 0, "UNCLEAR": 0, "NOT_APPLICABLE": 0})
-        for epoch in range(1, epochs + 1):
-            sample = records.get((sample_id, epoch))
-            if sample is None:
-                counts["missing"] += 1
-                counts["judge_missing"] += 1
-                continue
-            counts["recorded"] += 1
-            if sample.error:
-                counts["execution_error"] += 1
-                continue
-            scores = list((sample.scores or {}).values())
-            if len(scores) != 1 or not isinstance(scores[0].value, str) or scores[0].value not in VERDICTS:
-                counts["unscored"] += 1
-                continue
-            counts[scores[0].value] += 1
-            level[scores[0].value] += 1
+        if sample.error:
+            counts["execution_error"] += 1
+        elif (verdict := sample_verdict(sample)) is None:
+            counts["unscored"] += 1
+        else:
+            counts[verdict] += 1
+            level[verdict] += 1
     return {"family": metadata["family"], "status": log.status, "judge_model": log.eval.model,
             "target": metadata["source"], "basis": metadata["basis"],
-            "source_sha256": metadata["source_sha256"], "epochs": epochs,
+            "source_sha256": metadata["source_sha256"], "epochs": log.eval.config.epochs or 1,
             "revision": native_revision(log), "uncommitted": metadata.get("uncommitted"),
             "by_layer": groups, "by_severity": by_severity}
