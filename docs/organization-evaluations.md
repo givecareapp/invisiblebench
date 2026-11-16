@@ -1,153 +1,95 @@
-# Evaluate an organization's assistant
+# Plan an organization evaluation
 
 Type: how-to.
 
-Use this guide to turn an organization's evaluation request into a bounded
-study. Keep partner names, correspondence, commercial terms and meeting notes
-in private Wiki pages. This repository owns the reusable method and code.
-Private evaluation operations own approved study data and restricted evidence.
+**Draft for internal review.** Use this page to scope a request before promising
+an integration or a result. Application evaluation still needs the work listed
+below. The [benchmark card](../BENCHMARK_CARD.md) owns the measurement rules.
 
-## 1. Identify the question behind the request
+## Identify the decision
 
-| What an organization asks | What it needs to learn | What the study must add |
+| Request | Question to settle | Evidence needed |
 | --- | --- | --- |
-| “Can you test our full assistant?” | How the delivered application behaves in the claimed setting | The real application surface or faithful exported traces, with a clear limit on what was observed |
-| “Which layer helps?” | Whether a prompt or application configuration changes behavior | Matched cases, separate configuration identities and fixed conditions |
-| “Can we contribute scenarios?” | Whether its domain is represented by a defensible test | Construct fit, domain expertise, label provenance and a separate validation split |
-| “We already have evals and monitoring.” | What a shared benchmark adds | A stable comparison and independent evidence, with a clear relation to internal regression tests and live monitoring |
-| “Can the result show impact?” | Whether people benefit outside the test | Separate outcome research; reply grades alone do not establish real-world benefit |
+| Test our full assistant | How does the delivered application behave? | Its actual interface or faithful exported traces |
+| Compare model, prompt and full application | Which configuration changes behavior? | Matched cases and fixed configurations |
+| Contribute domain cases | Does the benchmark cover the intended population and risks? | Construct fit, domain review and label provenance |
+| Complement our evals and monitoring | What does a shared comparison add? | A clear boundary between benchmark evidence, product regression tests and live monitoring |
+| Show impact | Does the system improve people's lives? | Separate outcome evidence beyond reply grades |
 
-Name the decision, population and observable behavior. State what would disprove
-the claim. Keep the [benchmark construct](../BENCHMARK_CARD.md#intended-measurement)
-and [Anthropic criteria](bar.md) as the method boundaries.
+State the population, observable behavior and decision. Define what would
+disprove the claim. Partner discussions and commercial terms belong in private
+Wiki pages. Keep approved study evidence with its evaluation owner.
 
-## 2. Explain what the existing tools support
+## Check what is implemented
 
-- `task.py` and Inspect generate scripted conversations and retain actual replies.
-- Inspect supports `GenerateConfig.system_message` and `--system-message`.
-  `run.py` does not currently expose that option.
-- `grader.py` checks saved reply prefixes against frozen criteria. Missing or
-  invalid evidence stays unscored.
-- `report.py` and `stats.py` report separate Safety and Care results and paired
-  differences. Public results group by model ID, not application configuration.
-- `review_packet.py` prepares blind answer-review material. Private review
-  operations own expert labels and source-bound analysis.
-- `release.py` builds the public archive from eligible public run records.
-  It is not a general publisher for private application studies.
+| Capability | Existing support | Work needed for an application study |
+| --- | --- | --- |
+| Model conversations | `task.py` and Inspect retain scripted turns and model replies | Verify the application interface, session isolation and completion rules |
+| Added instructions | Inspect accepts `GenerateConfig.system_message` and `--system-message` | Add pass-through if using `run.py`; verify the exact instruction roles and text |
+| Reply judging | `grader.py` checks saved prefixes bound to case and rule versions | Map application output to the required evidence without dropping actions or errors |
+| Comparisons | `report.py` and `stats.py` group results by model ID | Bind study-arm identities separately when configurations share a model |
+| Human review | `review_packet.py` prepares blind material; private tools analyze answer labels | Prepare the current study and obtain qualified labels; software checks do not validate the judge |
+| Public release | `release.py` accepts eligible public run records | Agree what can be published and follow the existing release process |
 
-These capabilities do not establish compatibility with an arbitrary endpoint,
-action stream or trace export. Mock tests establish execution, not grader validity.
+There is no general application connector or arbitrary trace importer in this
+workflow. The current grader expects alternating user/reply messages and exact
+case metadata. A new connection must preserve those checks.
 
-## 3. Request the smallest useful input
+## Obtain enough information to choose the connection
 
-Ask for a configuration description and two synthetic traces: one normal
-completion and one action, error or terminal path. Request only the details
-needed for the proposed claim:
+Request a configuration description and two synthetic traces: one normal
+completion and one action, error or terminal path. Establish:
 
-- Model/provider versions, instruction roles, routing and fallbacks.
-- Retrieval, memory, tool permissions and relevant initial state.
-- Session creation/reset, history handling, retries and completion semantics.
-- Exact delivered messages and action results, with timing and source identity.
-- Intended population, language, region and consequential failure types.
-- Domain reviewers, existing label definitions and relevant calibration evidence.
-- Allowed data use, review effort, run costs and the decision owner.
+- Model versions, instruction roles, routing and fallbacks.
+- Retrieval, memory, tool permissions and initial state.
+- Session reset, history handling, retries and completion states.
+- Delivered messages, action results and source identity.
+- Population, language, region and relevant domain reviewers.
+- Permitted data use, review effort and approved run costs.
 
-Do not request production conversations merely to design a connection. Preserve
-unknown fields as unknown. A product name does not establish model identity.
+An existing export may meet the need without endpoint access. Choose either an
+Inspect provider/solver or an importer for the supplied format. Verify that path
+with synthetic data before calling it runnable. For imports, retain the original
+bytes and digest, and identify execution as external.
 
-## 4. Choose one integration path
+Score the final reply after filters and repairs. Keep action results separate
+from claims that an action occurred. Preserve pending and unknown outcomes.
+Use only evidence available at the time of each judgment.
 
-Use an existing Inspect provider when the application fits its contract. Otherwise
-choose either a narrow provider/solver or an importer for the supplied export.
-Do not build both before a concrete need appears.
+## Define the comparison
 
-A live connection must isolate sessions. Determine whether it accepts a full
-history or only a new message. Prevent retries from duplicating actions.
-An import must preserve original bytes and a digest. Mark execution as external;
-do not claim Inspect witnessed it.
+Hold the model and settings fixed when testing added instructions. Confirm that
+a prompt-only configuration works without the tools its instructions describe.
+Label any substitute prompt. The full application changes a bundle of components;
+its result cannot identify the effect of each component by itself.
 
-The existing grader expects alternating user/reply messages and generation
-metadata bound to exact cases. It does not accept arbitrary application events.
-Preserve these checks. Add only the evidence boundary needed by the chosen study.
+Keep real model IDs for provenance and judge-independence checks. Freeze the
+case and rule versions, configurations, initial state, repetitions and failure
+handling. Pair the same item, repetition, turn and criterion across arms.
+Each arm retains its own history. Record fixed followups that no longer fit the
+exchange, using a handling rule chosen before outputs are reviewed.
 
-Score the final visible reply after filters and repairs. Keep intermediate drafts
-for diagnosis. For actions, distinguish proposed, queued, completed, failed and
-unknown states. A statement of completion is not a receipt. Judge each claim
-using only evidence available at that point; later events must not leak backward.
+Report the planned cohort and missing evidence beside the scored comparison.
+An arm with fewer judged replies must not appear safer because failures vanished
+from its denominator. Show application-only action checks separately from shared
+reply checks.
 
-## 5. Design a configuration comparison
+## Use the existing method
 
-A common comparison is base model, model with application instructions, and full
-application. Define every arm before execution.
+- [Construct and review protocol](../BENCHMARK_CARD.md): case inclusion, expert
+  labels, judge validation and limits on claims.
+- [Item plan](item-plan.md): scenario coverage, related variants and study size.
+- [Anthropic criteria map](bar.md): realism, both failure directions, severity,
+  uncertainty and evidence still needed.
+- [Release process](releases.md): records, versioning and publication authority.
 
-For the prompt contrast, hold the model and other settings fixed. Ensure the
-prompt-only configuration works without the tools it may describe. Label any
-substitute prompt. Provider-side instructions may still exist in the base arm.
+A domain contribution needs explicit actor roles and relevant expertise. Keep
+related cases together when separating development from validation. Agree credit
+and license terms before admission. Design feedback does not supply labels for
+model replies.
 
-The full application can change several components together. Its contrast tests
-that bundle. It does not isolate retrieval, memory, routing or guardrails. Use
-trace evidence to choose a later component ablation.
-
-Bind arm identity to its source logs. Keep the real model ID for provenance and
-judge-independence checks. The current model-keyed reports need an explicit arm
-mapping before they can compare configurations of the same model. Do not invent
-model IDs to avoid that constraint.
-
-Freeze cases, rule versions, settings, initial state, repetition count and
-failure handling. Pair the exact item, repetition, turn and criterion. Reset
-sessions and interleave execution order where practical. Retain each arm's own
-history. Flag fixed followups that no longer fit a reply; do not rewrite them
-after seeing which arm performs better.
-
-## 6. Review domain contributions
-
-Ask whether the care relationship changes the appropriate answer. Cases outside
-that construct may belong in a separately named companion evaluation.
-
-Define the user, care recipient and relevant third parties. Do not transfer one
-actor's permission, duties or interests to another. Include both harmful help
-and needless refusal. Review severity independently of ambiguity.
-
-Use relevant domain experts and people with lived experience. Define applicability,
-pass, fail and unresolved cases for each check. Disclose authorship, prior tuning
-and reviewer affiliations. Keep related cases together when separating development
-from untouched validation. Agree provenance, credit and license before admission.
-
-Design review asks whether the test is defensible. Answer review labels actual
-saved replies. Judge validation compares the judge against those labels. One does
-not establish the others. Use the existing
-[independent review protocol](../BENCHMARK_CARD.md#independent-review-protocol).
-
-## 7. Deliver a bounded result
-
-Start with a feasibility cohort sized for the integration and available review
-effort. Count independent scenarios as well as variants and repetitions. Choose
-repeatability and later precision requirements before examining the results.
-
-Report:
-
-- The claim, tested configurations and frozen source versions.
-- Planned, completed, judged and missing opportunities by arm.
-- Safety and Care separately, including harmful replies and needless refusals.
-- NOT_APPLICABLE and unresolved judgments, plus execution and judge errors.
-- Paired differences and uncertainty appropriate to the scenario structure.
-- Relevant cost, latency and specific failure traces.
-- What the evidence supports, what remains unknown and the next causal hypothesis.
-
-Compare shared reply criteria across arms. Show application-only action checks
-separately. An arm must not appear safer merely because it produces fewer
-judgeable replies or avoids an applicable task.
-
-Use the existing logs and run records. Add no partner registry, scheduler,
-dashboard or mandatory per-run review queue. Paid inference still needs the
-owner's approval and cost limit. The current total ceiling is checked between
-evaluations, so account for in-flight and tool costs. Publication follows the
-existing [release process](releases.md).
-
-## Completion evidence
-
-Before calling the study runnable, verify its request/response or import mapping,
-source binding, session isolation and failure handling with synthetic evidence.
-Before making grader-accuracy claims, obtain current expert labels and report
-errors with class counts and uncertainty. Before making product or outcome
-claims, establish evidence for that specific claim.
+Use native logs and reports for the study record. Include coverage, execution
+errors, judge uncertainty, separate Safety and Care results, cost and latency.
+The current total cost ceiling is checked between evaluations; account for
+in-flight calls and tool charges before paid work. Public or outcome claims
+require evidence for the specific claim.

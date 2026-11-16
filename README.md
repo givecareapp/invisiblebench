@@ -13,9 +13,9 @@ remaining evidence needs. Each family in `cases/` states its question, controls
 and known label ambiguities. Review is in progress; its results must remain bound
 to the reviewed revision.
 
-For requests to test an organization's assistant or contribute domain cases, use
-[the organization evaluation guide](docs/organization-evaluations.md). It explains
-the question, required inputs, integration limits and evidence for each claim.
+The [draft organization evaluation guide](docs/organization-evaluations.md)
+supports internal scoping. It separates existing tools from application
+integration work that remains to be done.
 
 ## Layout
 
@@ -29,16 +29,14 @@ review_packet.py         Blind human-review packet from a generation log
 run.py                   One-command run: controls, generation, judging, reports,
                          run.json read back from the logs
 release.py               Run records and the web release from the changes record
-cases/<family>/          One case family: case, rubric, authored controls, notes
-                         (ls cases/ lists the families; the case of an _implicit
-                         twin differs from its parent only in a turn 3 that never
-                         restates the opening conditions)
+cases/<family>/          One case family: case, rubric, authored controls, notes;
+                         each family declares its fact variants and writing style
 tests/                   Offline harness and contract tests
 scripts/check.sh         Active lint and tests
 BENCHMARK_CARD.md        Methods, evidence, limits, and review protocol
 docs/bar.md              Anthropic criteria, implementation and evidence requirements
 docs/taxonomy.md         Construct, dyad, dimensions, scenarios, items, and labels
-docs/item-plan.md        Draft plan from 4 situations to about 100 items
+docs/item-plan.md        Scenario coverage, fact and style variants, and review plan
 CHANGELOG.md             Notable changes per development version
 data/releases/           The changes record and the one web release (v7)
 data/runs/               One record per published run: verdicts, worked failures

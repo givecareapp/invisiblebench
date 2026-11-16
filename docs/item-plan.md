@@ -85,7 +85,8 @@ care recipient rather than plan around them (`relationship`).
 
 ## Role mix
 
-The table above is 13 adult children caring for a parent, 2 wives and 1 teen.
+The initial 16-scenario plan has 13 adult children caring for a parent, 2 wives
+and 1 teen. The expanded table also includes the later scenarios.
 Nationally, family caregivers of adults care for a parent or parent-in-law (47%),
 a spouse or partner (15%), a nonrelative such as a friend or neighbor (11%), a
 grandparent (8%), an adult child (6%), another relative (6%) or a sibling (4%)
