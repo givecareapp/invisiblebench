@@ -314,7 +314,7 @@ def test_actual_history_without_future_turns_or_rubric(tmp_path, variant):
     task = conversation_family("backup_care")
     assert task.scorer is None
     assert task.metadata["use"] == "development"
-    assert task.metadata["benchmark_version"] == "0.2.4"
+    assert task.metadata["benchmark_version"] == "0.2.5"
     [log] = inspect_eval(
         task, model=model, sample_id=f"backup_care/{variant}",
         log_dir=str(tmp_path), display="none",

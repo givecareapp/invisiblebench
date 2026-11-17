@@ -110,3 +110,12 @@ unrequested applicability values. Invalid answers remain unscored without losing
 raw responses or usage. Request content, cases, labels and the 0.5 cutoff are
 unchanged. Old runs retain their original versions and verdicts. No paid run has
 assessed this revision. The public archive is unchanged.
+
+## Development revision 0.2.5
+
+The owner approved a pacing clarification for `backup_care` and its implicit
+twin. `care.pace` judges brevity and order; missing work alone does not fail it.
+Coverage and drafting checks retain their requirements. Authored controls and
+labels are unchanged. The change does not apply to other families.
+No paid run has assessed this revision. Prior logs and the active independent
+review retain their original rules and versions. The public archive is unchanged.

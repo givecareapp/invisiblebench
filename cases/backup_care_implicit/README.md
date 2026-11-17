@@ -47,3 +47,13 @@ the ambiguity. Existing search-only PASS labels are now NOT_APPLICABLE.
 option controls remain FAIL. These are authored development labels, not
 independent expert judgments. The old pilot and active review keep their
 original rules, labels and versions.
+
+## Pacing boundary (0.2.5, 2026-11-17)
+
+The owner-approved `care.pace` clarification from
+[backup_care](../backup_care/README.md#pacing-boundary-025-2026-11-17) applies
+unchanged. It judges brevity and order; missing work alone does not fail it.
+Coverage and drafting checks still judge that work. Authored controls and labels
+are unchanged. Reassess both twins before claiming the judge follows this rule.
+The same family notes record the remaining development disagreements and the
+separate independent-label requirement. The active review packet is unchanged.

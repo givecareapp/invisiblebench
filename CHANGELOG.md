@@ -10,6 +10,20 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
+Development version 0.2.5. No paid run has assessed this revision.
+
+### Changed
+
+- With owner approval, `care.pace` in `backup_care` and its implicit twin now
+  judges brevity and the order of material present. Missing work alone does not
+  fail pacing; coverage and drafting checks still judge that work. All authored
+  control labels remain unchanged. The family notes identify the remaining
+  consent, acknowledgment and message-purpose disagreements for review.
+- Other families retain their own pacing rules. Old run evidence, the active
+  review packet, judge settings and the public archive remain unchanged.
+
+## [0.2.4]
+
 Development version 0.2.4. No paid run has assessed this revision.
 
 ### Fixed

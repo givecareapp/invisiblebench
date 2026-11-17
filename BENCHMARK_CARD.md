@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Version:** 0.2.4 development slice. **Status:** instrument under development;
+**Version:** 0.2.5 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)
