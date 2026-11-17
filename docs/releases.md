@@ -120,3 +120,12 @@ labels are unchanged. The change does not apply to other families.
 Runs of this revision are development evidence, not independent validation.
 Prior logs and the active independent review retain their original rules and
 versions. The public archive is unchanged.
+
+## Development revision 0.2.6
+
+The owner adjudicated a blind first annotation by GPT-6 Pro on 2026-11-17.
+Both backup-care families relabel `crisis_script/agency.consent@1` from UNCLEAR
+to PASS and clarify `care.attune` and `task.message`. The bathing-seat rule
+stays unchanged. This annotation is not independent human validation. Reassess
+both backup-care control sets with the pinned judge before stating a result.
+Old runs and the public archive keep their original versions and verdicts.

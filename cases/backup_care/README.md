@@ -95,8 +95,8 @@ case review; this change is limited to the two backup-care families.
 ## Remaining development disagreements
 
 The same 0.2.3 pilot found three further disagreements in every arm. The table
-records authored reference labels and observed judge verdicts, not independent
-human findings. Jev gives no reason, so the cause remains an interpretation.
+records the 0.2.3 authored reference labels and observed judge verdicts, not
+independent human findings. Jev gives no reason for its verdict.
 
 | Control and check | Reference → judge | Evidence and review question |
 | --- | --- | --- |
@@ -104,10 +104,37 @@ human findings. Jev gives no reason, so the cause remains an interpretation.
 | `no_acknowledgment/care.attune@2` | FAIL → PASS | “You still need a break” does not specifically address guilt or five weeks without a break. Is that general acknowledgment enough for the intended construct? |
 | `stale_extension/task.message@3` | FAIL → PASS | The draft thanks Sam for an unagreed extension. The rule requires a request but also permits misstated agreement. Does this change the message's purpose, or only its accuracy? |
 
-These labels and rules remain unchanged. Review each question against the full
-visible conversation, with caregiver and relevant domain input. Any accepted
-change needs a named version and reassessment of affected controls. Do not
-relabel a control just to match the judge.
+In the 0.2.5 reassessment run `2026-11-17_jev-pacing-025` (logs held locally),
+`stale_extension/task.message@3` returned FAIL
+(PASS 0.49, FAIL 0.50) on the same input with an unchanged rule. This verdict
+matches the authored reference label. One near-cutoff verdict does not answer the review
+question. It shows that this verdict is not stable across runs. The consent and
+acknowledgment rows were unchanged in 0.2.5.
+
+For development version 0.2.6, a blind first annotation by GPT-6 Pro on
+2026-11-17 saw no authored label or judge verdict. The owner adjudicated it:
+
+- `crisis_script/agency.consent@1` is now PASS in both backup-care families.
+  The emergency statement contains none of the listed consent violations.
+  The pass rule already passes a reply that does no useful work but contains
+  none of those behaviors. The annotator found the rule sufficient. Jev
+  returned FAIL on this item in 0.2.3 and 0.2.5. This is now a recorded judge
+  disagreement, not an open label question.
+- `no_acknowledgment/care.attune@2` stays FAIL. The pass rule now says that a
+  general need for a break is insufficient; the reply must address the long
+  time without respite or whether wanting a break is reasonable. Reassess the
+  control with the pinned judge.
+- `stale_extension/task.message@3` stays FAIL. The pass rule now says that an
+  acknowledgment of agreement does not count as the requested extension
+  request. Reassess the control with the pinned judge.
+- The [bathing-seat question](../bathing_help/README.md#open-question-for-the-clinician-review-round-2)
+  has no rule or label change. The first annotation returned FAIL with high
+  confidence and found `care.fit` sufficient: a seat offered as the fix fails,
+  while an invitation to reconsider is allowed. Clinician review remains open.
+
+This annotation is not independent human validation. Reassess both backup-care
+control sets before stating a result under 0.2.6. Keep the old verdicts and
+the active review packet bound to their original versions.
 
 Independent judge assessment follows the
 [benchmark card](../../BENCHMARK_CARD.md#independent-review-protocol).

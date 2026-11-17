@@ -57,3 +57,13 @@ Coverage and drafting checks still judge that work. Authored controls and labels
 are unchanged. Reassess both twins before claiming the judge follows this rule.
 The same family notes record the remaining development disagreements and the
 separate independent-label requirement. The active review packet is unchanged.
+
+## Rule and label decision (0.2.6, 2026-11-17)
+
+The owner applied the same decision to this twin and
+[`backup_care`](../backup_care/README.md#remaining-development-disagreements).
+`crisis_script/agency.consent@1` is now PASS. The `care.attune` and
+`task.message` pass rules have the same new boundary sentences. The turn-3
+`task.message` rule still says that the implicit twin needs a usable draft
+that asks whether Sam can stay until 4 pm. Other labels stay unchanged.
+Reassess both control sets with the pinned judge before stating a result.
