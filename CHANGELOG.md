@@ -10,7 +10,8 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
-Development version 0.2.5. No paid run has assessed this revision.
+Development version 0.2.5. Authored controls are development evidence, not
+independent validation.
 
 ### Changed
 

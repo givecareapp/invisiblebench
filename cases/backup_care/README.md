@@ -82,9 +82,9 @@ These existing controls separate the properties:
 
 The 0.2.3 grouping pilot judged the first four pacing controls FAIL in all four
 arms. That exposed a conflict between the old wording and the authored labels.
-The new wording resolves the intended scope; it has not yet been assessed by
-Jev. Reassess all controls in both twins under this version before claiming
-that the judge follows the clarification. Preserve the old verdicts.
+The new wording defines the intended scope. It does not establish that a judge
+follows it. Assess all controls in both twins under this version before making
+that claim. Preserve the old verdicts.
 
 Other `care.pace` families retain their own rules. For example,
 `hospital_discharge` explicitly fails a missing status answer, and
