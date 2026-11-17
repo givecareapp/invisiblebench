@@ -21,6 +21,7 @@ from pathlib import Path
 
 from inspect_ai.log import EvalLog, read_eval_log
 
+import jev
 from report import METHOD, build_jury_card, target_rows
 from stats import estimates, paired_difference
 from task import CASES, OPENROUTER_PRICES
@@ -65,8 +66,10 @@ def record_run(logs: list[EvalLog], run_id: str) -> dict:
         raise ValueError("Public run records cannot include external cases")
     versions = {log.eval.metadata["benchmark_version"] for log in logs}
     judges = {log.eval.model for log in logs}
-    if len(versions) != 1 or len(judges) != 1:
-        raise ValueError("A run holds one benchmark version and one judge")
+    methods = {log.eval.metadata.get("judge_method", jev.SINGLE_METHOD) for log in logs}
+    if len(versions) != 1 or len(judges) != 1 or len(methods) != 1:
+        raise ValueError("A run holds one benchmark version, one judge and one judge method")
+    method = methods.pop()
     rows = [row for log in logs for row in target_rows(log)]
     best = {}
     for entry in build_jury_card(logs)["verdicts"]:
@@ -81,6 +84,7 @@ def record_run(logs: list[EvalLog], run_id: str) -> dict:
         "schema": RECORD_SCHEMA,
         "run": {"id": run_id, "date": first.eval.created[:10],
                 "benchmark_version": versions.pop(), "judge": judges.pop(),
+                **({"judge_method": method} if method != jev.SINGLE_METHOD else {}),
                 "repeats": max((row["epoch"] or 1) for row in rows) if rows else 0,
                 "scenarios": len({row["scenario"] for row in rows}),
                 "items": len({row["item"] for row in rows})},
@@ -147,6 +151,10 @@ def _check_changes(changes: list[dict], records: dict) -> None:
 def _table(version: str, entries: list[dict], records: dict, superseded_by: str | None) -> dict:
     runs = [records[run] for entry in entries for run in entry["runs"]]
     first = runs[0]["run"]
+    # The current public contract has no judge-method field. Keep experimental
+    # records for comparisons, but never publish them as the established method.
+    if any(r["run"].get("judge_method", jev.SINGLE_METHOD) != jev.SINGLE_METHOD for r in runs):
+        raise ValueError("Experimental judge methods are not supported by the public release contract")
     for record in runs[1:]:
         for setting in ("judge", "repeats"):
             if record["run"][setting] != first[setting]:

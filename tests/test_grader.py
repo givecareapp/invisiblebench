@@ -556,7 +556,9 @@ def test_control_judge_reads_the_named_family():
     task = control_judge(family="fluctuating_capacity")
     assert task.metadata["family"] == "fluctuating_capacity"
     assert set(task.metadata["source_sha256"]) == {
-        "case.json", "rubric.json", "controls.jsonl", "pyproject.toml", "grader.py"}
+        "case.json", "rubric.json", "controls.jsonl", "pyproject.toml", "grader.py", "jev.py"}
+    assert task.metadata["source_sha256"]["jev.py"] == hashlib.sha256(
+        (ROOT / "jev.py").read_bytes()).hexdigest()
     assert task.metadata["source_sha256"]["controls.jsonl"] == hashlib.sha256(
         (ROOT / "cases/fluctuating_capacity/controls.jsonl").read_bytes()).hexdigest()
     assert all(str(s.id).split("/")[1].count("@") == 1 for s in task.dataset)
@@ -651,7 +653,9 @@ def test_report_diff_pairs_samples_and_lists_every_flip(tmp_path, monkeypatch):
     assert diff["paired"] == 6 and diff["only_before"] == diff["only_after"] == 0
     assert diff["before"]["revision"] == diff["after"]["revision"]
     assert diff["before"]["revision"]["commit"]
-    assert set(diff["before"]) == {"eval_id", "model", "revision", "source_sha256"}
+    assert set(diff["before"]) == {
+        "eval_id", "model", "revision", "source_sha256", "judge_method", "execution"}
+    assert diff["before"]["judge_method"] == diff["after"]["judge_method"] == "criterion/v1"
     assert len(diff["flips"]) == 6
     assert set(diff["flip_counts"]) == {"PASS->FAIL"}
     assert {flip["reference"] for flip in diff["flips"]} <= {"PASS", "FAIL", "UNCLEAR", "NOT_APPLICABLE"}

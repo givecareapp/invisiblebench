@@ -46,6 +46,18 @@ is its first published table.
 
 ### Added
 
+- Paired judge reports bind each recorded check to its exact criterion and
+  conversation prefix. Comparisons show per-check coverage, lost and gained
+  verdicts, control-label error directions and native execution evidence.
+  `report.py --diff` supports Markdown and rejects changed evidence or effective
+  settings in a judge-method comparison. Missing checks cannot appear as agreement.
+- Optional Jev batching (`run.py --batch-judge`, Inspect `-T batch=true`) sends
+  the checks for one reply in one request. Each question sees only its criterion
+  and the shared conversation prefix. Native per-check scores, the frozen cohort,
+  original review IDs and request usage remain available. Logs name the judge
+  method and hash `jev.py`; releases reject mixed methods. The default remains
+  single-check judging. Offline tests do not establish equivalent judgments,
+  live speed or grader accuracy.
 - Every run writes `reports/jury-card.md` and `jury-card.json`. The card lists each
   judged verdict with the caregiver turn, the reply, the rubric rule and the
   judge's probability, and shows each check's surest FAIL and closest call. The

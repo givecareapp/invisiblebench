@@ -48,6 +48,12 @@ refused, because it cannot supply the frozen rubric and cohort. Partial logs
 retain all planned checks through the shared report logic. Runs with external
 case folders cannot become public records.
 
+Experimental judge methods remain separate in run records and audit reports.
+The current public contract supports only the default `criterion/v1` method.
+It rejects `jev-prefix-batch/v1` records when building a release. Adopting a new
+method requires a named benchmark version and a release contract that identifies
+the method. Comparison records do not authorize that change.
+
 Model identity belongs to a version table. Re-running a model under a new
 version adds it to that version's change entry without changing older entries.
 The native tests rebuild the committed archive byte for byte. Web checks the
