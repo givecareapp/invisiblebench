@@ -5,6 +5,7 @@ import json
 import math
 from collections import Counter
 from collections.abc import Iterator
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
@@ -238,6 +239,133 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
     return result, source
 
 
+def batch_samples(samples: list[Sample]) -> tuple[list[Sample], dict]:
+    """Group checks within one source, repeat and turn. Never deduplicate evidence."""
+    groups = {}
+    for sample in samples:
+        prefix = str(sample.id).rsplit("/", 1)[0]
+        key = f"{prefix}/turn-{sample.metadata['turn']}"
+        groups.setdefault(key, []).append(sample)
+    dataset, manifest = [], {}
+    for sample_id, members in groups.items():
+        first = json.loads(members[0].input[-1].text)
+        state = {k: v for k, v in first.items() if k != "criterion"}
+        criteria, checks, expected = {}, {}, {}
+        for member in members:
+            payload = json.loads(member.input[-1].text)
+            if ({k: v for k, v in payload.items() if k != "criterion"} != state
+                    or member.input[0].text != members[0].input[0].text):
+                raise ValueError(f"Different evidence within batch {sample_id}")
+            check = member.metadata["check"]
+            if check in checks:
+                raise ValueError(f"Duplicate check within batch {sample_id}: {check}")
+            criteria[check] = payload["criterion"]
+            checks[check] = {"sample_id": str(member.id), **member.metadata}
+            if member.target:
+                expected[check] = member.target
+        manifest[sample_id] = [str(member.id) for member in members]
+        dataset.append(Sample(
+            id=sample_id, input=[members[0].input[0], ChatMessageUser(
+                content=json.dumps(jev.batch_request(members[0].input[0].text, state, criteria),
+                                   ensure_ascii=False))],
+            target=json.dumps(expected, sort_keys=True) if expected else "",
+            metadata={"checks": checks},
+        ))
+    return dataset, manifest
+
+
+@dataclass(frozen=True)
+class JudgedCheck:
+    """Read-only check view. Request usage and events stay on the native Inspect sample."""
+    id: str
+    request_sample_id: str
+    epoch: int
+    payload: dict
+    target: str
+    metadata: dict
+    scores: dict
+    error: object
+
+
+def judge_payload(sample: EvalSample | JudgedCheck) -> dict:
+    return sample.payload if isinstance(sample, JudgedCheck) else json.loads(sample.input[-1].text)
+
+
+def judged_samples(log: EvalLog) -> Iterator[EvalSample | JudgedCheck]:
+    """Read old single-check logs and expand batches into the same logical check cohort."""
+    metadata = log.eval.metadata or {}
+    method = metadata.get("judge_method", jev.SINGLE_METHOD)
+    if method == jev.SINGLE_METHOD:
+        yield from log.samples or []
+        return
+    if method != jev.BATCH_METHOD:
+        raise ValueError(f"Unknown judge method: {method}")
+    manifest, batches = metadata["reference_manifest"], metadata["batch_manifest"]
+    ids = [key for members in batches.values() for key in members]
+    if len(ids) != len(set(ids)) or set(ids) != set(manifest):
+        raise ValueError("Batch manifest must cover each frozen check exactly once")
+    planned_checks = {reference["check"] for reference in manifest.values()}
+    epochs, seen = log.eval.config.epochs or 1, set()
+    for sample in log.samples or []:
+        key = (str(sample.id), sample.epoch)
+        if str(sample.id) not in batches or key in seen or not 1 <= sample.epoch <= epochs:
+            raise ValueError(f"Unexpected or duplicate batch: {key}")
+        seen.add(key)
+        checks, expected = {}, {}
+        for logical_id in batches[str(sample.id)]:
+            reference = manifest[logical_id]
+            prefix = logical_id.rsplit("/", 1)[0]
+            if str(sample.id) != f"{prefix}/turn-{reference['turn']}":
+                raise ValueError(f"Batch crosses source, repeat or turn: {key}")
+            check = reference["check"]
+            if check in checks:
+                raise ValueError(f"Duplicate check within batch {key}: {check}")
+            checks[check] = {"sample_id": logical_id,
+                             **{k: v for k, v in reference.items() if k != "expected"}}
+            if "expected" in reference:
+                expected[check] = reference["expected"]
+        target = json.dumps(expected, sort_keys=True) if expected else ""
+        if sample.metadata != {"checks": checks} or sample.target != target:
+            raise ValueError(f"Batch differs from frozen manifest: {key}")
+        payload = json.loads(sample.input[-1].text)
+        state, questions = payload["state"], payload["questions"]
+        criteria = {check: questions[f"{check}.verdict"]["instructions"]["criterion"]
+                    for check in checks}
+        required = {f"{check}.verdict" for check in checks} | {
+            f"{check}.not_applicable" for check, rule in criteria.items()
+            if rule.get("not_applicable")}
+        if set(questions) != required or any(
+            labels["turn"] != state["response_turn"] for labels in checks.values()
+        ):
+            raise ValueError(f"Batch input differs from frozen checks: {key}")
+        scores, seen_scores = {}, set()
+        for score in (sample.scores or {}).values():
+            check = (score.metadata or {}).get("check")
+            if check in seen_scores:
+                raise ValueError(f"Duplicate score for frozen check: {key}, {check}")
+            seen_scores.add(check)
+            if (check in planned_checks - checks.keys() and score.reason == "not_scheduled"
+                    and score.metadata == {"check": check, "scheduled": False}
+                    and isinstance(score.value, float) and math.isnan(score.value)):
+                continue
+            labels = {k: v for k, v in checks.get(check, {}).items() if k != "sample_id"}
+            if (check not in checks or check in scores or
+                    any((score.metadata or {}).get(k) != v for k, v in labels.items()) or
+                    (score.metadata or {}).get("expected") != expected.get(check, "")):
+                raise ValueError(f"Score differs from frozen check: {key}, {check}")
+            scores[check] = score
+        for check, labels in checks.items():
+            yield JudgedCheck(
+                id=labels["sample_id"], epoch=sample.epoch,
+                request_sample_id=str(sample.id),
+                payload={**state, "criterion": criteria[check]},
+                target=expected.get(check, ""),
+                metadata={k: v for k, v in labels.items() if k != "sample_id"},
+                scores={"criterion_verdict": scores[check]} if check in scores else {},
+                error=sample.error,
+            )
+
+
 def _unique_object(pairs):
     result = {}
     for key, value in pairs:
@@ -272,10 +400,19 @@ def parse_judgment(text: str, transcript: list[dict]) -> dict:
 # Native per-verdict frequencies, zero-count categories included. Inspect leaves unscored
 # (grader_failed) samples out of the metric, so they never count as a category.
 @scorer(metrics=categorical(Verdict))
-def criterion_verdict() -> Scorer:
-    async def score(state: TaskState, target: Target) -> Score:
+def criterion_verdict(check: str | None = None) -> Scorer:
+    async def score(state: TaskState, target: Target) -> Score | None:
         raw = state.output.completion
         metadata = {**state.metadata, "expected": target.text}
+        if check is not None:
+            labels = state.metadata["checks"].get(check)
+            if labels is None:
+                # Inspect 0.3.287 re-scoring reuses a scorer's numeric suffix after
+                # None. Keep stable slots; no verdict or opportunity is fabricated.
+                return Score.unscored(reason="not_scheduled",
+                                      metadata={"check": check, "scheduled": False})
+            metadata = {**{k: v for k, v in labels.items() if k != "sample_id"},
+                        "expected": json.loads(target.text)[check] if target.text else ""}
         try:
             if state.output.stop_reason in {"max_tokens", "model_length", "content_filter"}:
                 raise ValueError(f"Incomplete or blocked judge output: {state.output.stop_reason}")
@@ -283,7 +420,10 @@ def criterion_verdict() -> Scorer:
                 raise ValueError("Missing judge response")
             if str(state.model).startswith("typesafe/"):
                 # Jev returns a verdict with probabilities and no written reason or quotes.
-                answer = jev.parse_answer(raw)
+                answer = (jev.parse_batch_answer(
+                    raw, check, with_rule=f"{check}.not_applicable" in
+                    json.loads(state.input[-1].text)["questions"])
+                    if check is not None else jev.parse_answer(raw))
                 return Score(value=answer["verdict"], answer=answer["verdict"],
                              explanation="Jev choice; no written reason",
                              metadata={**metadata, "evidence": answer})
@@ -320,9 +460,12 @@ def same_company(judge: str, target: str) -> bool:
 
 
 @solver
-def bounded_judge(cost_limit_usd: float | None = None, target: str | None = None) -> Solver:
+def bounded_judge(cost_limit_usd: float | None = None, target: str | None = None,
+                  batch: bool = False) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         model = str(state.model)
+        if batch and model != "typesafe/jev-1.14.0":
+            raise ValueError("Batched judging requires typesafe/jev-1.14.0")
         if target is not None and same_company(model, target):
             raise ValueError(f"Target {target} is from the same company as the judge {model}")
         if not model.startswith("mockllm/"):
@@ -335,24 +478,36 @@ def bounded_judge(cost_limit_usd: float | None = None, target: str | None = None
     return solve
 
 
+def judge_layout(samples: list[Sample], batch: bool) -> tuple:
+    """One native scorer per criterion keeps missing answers out of categorical metrics."""
+    if not batch:
+        return samples, criterion_verdict(), {"judge_method": jev.SINGLE_METHOD}
+    dataset, manifest = batch_samples(samples)
+    scorers = [criterion_verdict(check) for check in sorted({s.metadata["check"] for s in samples})]
+    return dataset, scorers, {"judge_method": jev.BATCH_METHOD, "batch_manifest": manifest}
+
+
 @task
-def control_judge(cost_limit_usd: float | None = None, family: str = "backup_care") -> Task:
+def control_judge(cost_limit_usd: float | None = None, family: str = "backup_care",
+                  batch: bool = False) -> Task:
     if cost_limit_usd is not None and (
         isinstance(cost_limit_usd, bool) or not math.isfinite(cost_limit_usd) or cost_limit_usd <= 0
     ):
         raise ValueError("cost_limit_usd must be a finite positive amount")
     dataset = control_samples(family)
-    paths = [*family_files(family), PROJECT, Path(__file__).resolve()]
+    physical, scorers, layout = judge_layout(dataset, batch)
+    paths = [*family_files(family), PROJECT, Path(__file__).resolve(), Path(jev.__file__)]
     return Task(
-        dataset=dataset,
-        solver=bounded_judge(cost_limit_usd),
-        scorer=criterion_verdict(),
+        dataset=physical,
+        solver=bounded_judge(cost_limit_usd, batch=batch),
+        scorer=scorers,
         config=GenerateConfig(max_tokens=4096, max_retries=0),
         cost_limit=cost_limit_usd,
         metadata={
             "use": "judge-development",
             "family": family,
             "benchmark_version": VERSION,
+            **layout,
             "basis": "authored controls; no independent validation",
             "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
             "reference_manifest": {
@@ -364,24 +519,27 @@ def control_judge(cost_limit_usd: float | None = None, family: str = "backup_car
 
 
 @task
-def target_judge(source_log: str, cost_limit_usd: float | None = None) -> Task:
+def target_judge(source_log: str, cost_limit_usd: float | None = None,
+                 batch: bool = False) -> Task:
     """Judge saved target conversations; never expose rubric to generation."""
     if cost_limit_usd is not None and (
         isinstance(cost_limit_usd, bool) or not math.isfinite(cost_limit_usd) or cost_limit_usd <= 0
     ):
         raise ValueError("cost_limit_usd must be a finite positive amount")
     dataset, source = target_samples(source_log)
+    physical, scorers, layout = judge_layout(dataset, batch)
     family = source["family"]
     case_file, rubric_path, _ = family_files(family)
-    paths = [case_file, rubric_path, PROJECT, Path(__file__).resolve()]
+    paths = [case_file, rubric_path, PROJECT, Path(__file__).resolve(), Path(jev.__file__)]
     return Task(
-        dataset=dataset, solver=bounded_judge(cost_limit_usd, target=source["model"]),
-        scorer=criterion_verdict(),
+        dataset=physical, solver=bounded_judge(cost_limit_usd, target=source["model"], batch=batch),
+        scorer=scorers,
         config=GenerateConfig(max_tokens=4096, max_retries=0), cost_limit=cost_limit_usd,
         metadata={
             "use": "target-judging", "family": family, "basis": "unvalidated development rubric",
             **judged_revision(family, Path(__file__).resolve()),
             "benchmark_version": VERSION,
+            **layout,
             "source": source,
             "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
             "check_plan": {check["id"]: {"layer": check["layer"], "turns": check["turns"],
@@ -400,7 +558,7 @@ def summarize(log: EvalLog) -> dict:
     manifest = metadata["reference_manifest"]
     epochs = log.eval.config.epochs or 1
     records = {}
-    for sample in log.samples or []:
+    for sample in judged_samples(log):
         key = (str(sample.id), sample.epoch)
         if str(sample.id) not in manifest or not 1 <= sample.epoch <= epochs or key in records:
             raise ValueError(f"Unexpected or duplicate sample: {key}")
@@ -456,7 +614,9 @@ def summarize(log: EvalLog) -> dict:
     }
 
 
-def target_observations(log: EvalLog) -> Iterator[tuple[dict, EvalSample | None, str | None]]:
+def target_observations(log: EvalLog) -> Iterator[
+    tuple[dict, EvalSample | JudgedCheck | None, str | None]
+]:
     """Every planned check: frozen labels, saved sample, and any generation or judge gap.
 
     Reports and releases consume this same cohort. Never read current case files to
@@ -469,7 +629,7 @@ def target_observations(log: EvalLog) -> Iterator[tuple[dict, EvalSample | None,
     manifest = metadata["reference_manifest"]
     epochs = log.eval.config.epochs or 1
     records = {}
-    for sample in log.samples or []:
+    for sample in judged_samples(log):
         key = (str(sample.id), sample.epoch)
         reference = manifest.get(str(sample.id))
         if reference is None or not 1 <= sample.epoch <= epochs or key in records:
@@ -512,7 +672,7 @@ def target_observations(log: EvalLog) -> Iterator[tuple[dict, EvalSample | None,
         raise ValueError("Frozen manifest has checks outside the source conversations")
 
 
-def sample_verdict(sample: EvalSample | None) -> str | None:
+def sample_verdict(sample: EvalSample | JudgedCheck | None) -> str | None:
     """An execution error or an absent/malformed score is never a verdict."""
     if sample is None or sample.error:
         return None

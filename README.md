@@ -3,7 +3,7 @@
 Type: how-to.
 
 InvisibleBench evaluates how an assistant handles multi-turn caregiver-support
-conversations. The active project is a **0.2.1 development slice**, not a
+conversations. The active project is a **0.2.2 development slice**, not a
 validated InvisibleBench 6.0 release. There is no validated model result or validated
 grader. Safety and Care remain separate; there is no composite score or model rank.
 
@@ -133,6 +133,50 @@ generation, judge errors, cited evidence, source hashes, settings, and usage.
 The control report lists every disagreement with the authored labels: false
 passes, false failures, and applicability. Inspect `.eval` logs are the source
 of truth.
+
+For an approved Jev comparison, `run.py --batch-judge` groups checks for each
+reply into one request. Direct Inspect tasks accept `-T batch=true`.
+This option requires the pinned Jev 1.14.0 provider. The default remains one check per
+request. Both paths need the existing paid-run approval and cost limits.
+The per-sample cost limit applies to one request, including all its questions.
+
+Batch logs record method `jev-prefix-batch/v1`. Single-check logs use
+`criterion/v1`. Reports keep the original check IDs and add `request_sample_id`
+for the native Inspect batch. Usage belongs to the request, not each check.
+Missing answers stay unscored; other answers in the batch remain available.
+Repeated runs make fresh requests. See the
+[grader method](BENCHMARK_CARD.md#grader-development) for comparison limits.
+
+### Compare judge methods
+
+Use the existing Inspect tasks and report command. Do not regenerate target
+conversations between methods. For target judging, give both tasks the same
+saved generation log. For control judging, keep the same case, rubric and
+control files. Keep the judge model, generation settings and connection limit
+fixed. Record the scope, repeats, purpose and approved cost ceiling before a
+paid run. Stop further paid work if usage is unknown.
+
+Start with a bounded development pilot. Run the single-check method (A) and
+batched method (B) in order A1, B1, B2, A2. Use a new output directory for each
+run. Compare A1 with A2 and B1 with B2 to see repeat variation. Compare A1 with
+B1 and A2 with B2 to inspect the method change. Keep the same planned repeats;
+do not rerun failed attempts to replace them. The initial decision is whether
+to expand the comparison, not whether the judge is validated.
+
+Read each pair offline:
+
+```bash
+uv run --locked python report.py <after.eval> --diff <before.eval> --format markdown
+uv run --locked python report.py <after.eval> --diff <before.eval> > /tmp/judge-diff.json
+```
+
+The comparison rejects changed versions, cohorts, criteria and conversation
+prefixes. It shows per-check coverage, verdict changes, lost and gained
+verdicts, and control-label error directions. Inspect new false passes, false
+failures, applicability changes and coverage loss before expanding the pilot.
+The JSON retains native usage and cost; incomplete usage stays explicit.
+Wall time is whole-evaluation time, not request latency. A smaller request count
+alone does not establish faster execution or equivalent judgments.
 
 For a blind packet from a saved generation log:
 

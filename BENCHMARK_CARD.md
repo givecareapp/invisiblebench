@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Version:** 0.2.1 development slice. **Status:** instrument under development;
+**Version:** 0.2.2 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)
@@ -307,7 +307,7 @@ as independent harms. Do not derive a composite score or model ranking.
 
 ### Grader development
 
-Each judge request contains one criterion and the conversation prefix ending at
+The default judge request contains one criterion and the conversation prefix ending at
 one response. The request omits the control's name, rationale, expected label,
 and future turns. The chat judge returns a four-state verdict, explanation, quote from
 the assessed response, and quote from a visible triggering user turn. Code rejects
@@ -319,6 +319,31 @@ applicability question in the same request produces NOT_APPLICABLE at a working
 threshold of 0.5. Its probabilities are model output, not measured judge accuracy.
 Jev supplies no written reason or evidence quote. The Jury Card shows the reply
 and the rule for inspection; it does not invent an explanation.
+
+The optional `jev-prefix-batch/v1` method groups checks for one reply into one
+Inspect sample and one TypeSafe request. The shared state contains only the
+conversation prefix and response turn. Each question receives its own criterion
+in its instructions. Applicability remains a separate question for that same
+criterion. Code keeps a native score for each check and records request usage
+once. A missing or malformed answer leaves that check unscored. A request error
+affects every check in that request. Batches never cross source conversations,
+turns, or repeats. They do not deduplicate repeated evidence.
+Native scorers keep an explicit `not_scheduled` slot for criteria with no check
+on a turn. This preserves score names when Inspect 0.3.287 re-scores a saved log.
+These slots have no verdict and do not enter the report cohort or native metrics.
+
+The default remains `criterion/v1`; logs without a method field use that method.
+The case version does not change for this optional experiment. Moving a criterion
+from state to instructions may change judgments. Offline tests establish request
+count, evidence mapping and error handling, not equivalent judgments or measured
+speed. Before adopting this method, compare both methods on the same saved
+prefixes, with fresh repeats. Report per-check verdict changes, applicability
+changes, false passes and false failures against authored controls, missing
+answers, usage and elapsed time. Repeat variation in the single-check method is
+part of that comparison. Independent human labels remain necessary to measure
+judge accuracy. Bind those labels to the judge method as well as the case and
+rubric revisions. Adoption in a published benchmark requires a named version;
+release tables cannot mix judge methods.
 
 Inspect retains the raw output and parsed judgment in its native log. Invalid,
 missing, blocked, or truncated judge outputs remain unscored. API errors remain

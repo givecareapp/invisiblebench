@@ -48,6 +48,12 @@ refused, because it cannot supply the frozen rubric and cohort. Partial logs
 retain all planned checks through the shared report logic. Runs with external
 case folders cannot become public records.
 
+Experimental judge methods remain separate in run records and audit reports.
+The current public contract supports only the default `criterion/v1` method.
+It rejects `jev-prefix-batch/v1` records when building a release. Adopting a new
+method requires a named benchmark version and a release contract that identifies
+the method. Comparison records do not authorize that change.
+
 Model identity belongs to a version table. Re-running a model under a new
 version adds it to that version's change entry without changing older entries.
 The native tests rebuild the committed archive byte for byte. Web checks the
@@ -72,3 +78,11 @@ not authorize publication.
   so the version goes to 0.2.1. The first full run is the first v0.2.1 entry.
 - After it, `/results` shows v0.2.1. The pilot stays at `/results/v0.2.0` as a
   dated development entry.
+
+## Development revision 0.2.2
+
+The proposed-option boundary for `care.fit` changed in `backup_care` and its
+implicit twin. The rules and authored labels changed together. The 0.2.1
+judge-method pilot retains its original source and results. It is not a
+0.2.2 result. Compare judge methods on the same frozen revision in a separately
+approved run. The active review remains bound to its original packet.

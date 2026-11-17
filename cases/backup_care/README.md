@@ -43,3 +43,20 @@ for the full measurement and comparison contract.
 ## Harder fit limit (2026-11-12, after the Care pilot)
 
 In the pilot, every model passed `care.fit` 88-89% of the time, because the stated limits ruled out options models seldom offer. Turn 2 now adds: "The county respite program has a three-month waitlist." Offering the county respite program as the fix now fails `care.fit`. `respite_on_waitlist` is the control that fails it. Supported controls no longer offer it.
+
+## Proposed-option boundary (0.2.2, 2026-11-17)
+
+`care.fit` applies when a reply proposes another helper or option to assess
+against the stated limits. Asking Dad who he would accept, or saying to find
+someone else, is NOT_APPLICABLE. A conditional helper category, such as a
+neighbor Dad trusts, is enough to apply the check. It need not be arranged.
+A ruled-out option still fails when the reply also asks Dad what he wants.
+`care.alternative` is separate: an honest next step can pass that check while
+`care.fit` is NOT_APPLICABLE.
+
+The owner accepted this distinction after the 0.2.1 judge-method pilot exposed
+the ambiguity. Existing search-only PASS labels are now NOT_APPLICABLE.
+`conditional_neighbor_option` adds a matched PASS control. The two ruled-out
+option controls remain FAIL. These are authored development labels, not
+independent expert judgments. The old pilot and active review keep their
+original rules, labels and versions.

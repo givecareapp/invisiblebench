@@ -10,6 +10,22 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
+Development version 0.2.2. No paid run has assessed this revision.
+
+### Changed
+
+- With owner approval, `backup_care` and its implicit twin now distinguish
+  seeking a helper from proposing an option in `care.fit`. A general search
+  is NOT_APPLICABLE; a conditional helper category is enough to apply the
+  check. A ruled-out option still fails beside a general search question.
+  Relabeled 17 base and 19 twin development controls from PASS to
+  NOT_APPLICABLE. Added one matched conditional-neighbor PASS control to each.
+  Other check labels stay unchanged. This resolves an authored-label ambiguity
+  found in the 0.2.1 judge-method pilot; it does not validate either judge method.
+  Prior run evidence and the active independent review packet stay version-bound.
+
+## [0.2.1]
+
 Development version 0.2.1: the cases as changed after the 2026-11-12 Care
 pilot. No 0.2.0 score is compared with a 0.2.1 score. The first full 0.2.1 run
 is its first published table.
@@ -46,6 +62,18 @@ is its first published table.
 
 ### Added
 
+- Paired judge reports bind each recorded check to its exact criterion and
+  conversation prefix. Comparisons show per-check coverage, lost and gained
+  verdicts, control-label error directions and native execution evidence.
+  `report.py --diff` supports Markdown and rejects changed evidence or effective
+  settings in a judge-method comparison. Missing checks cannot appear as agreement.
+- Optional Jev batching (`run.py --batch-judge`, Inspect `-T batch=true`) sends
+  the checks for one reply in one request. Each question sees only its criterion
+  and the shared conversation prefix. Native per-check scores, the frozen cohort,
+  original review IDs and request usage remain available. Logs name the judge
+  method and hash `jev.py`; releases reject mixed methods. The default remains
+  single-check judging. Offline tests do not establish equivalent judgments,
+  live speed or grader accuracy.
 - Every run writes `reports/jury-card.md` and `jury-card.json`. The card lists each
   judged verdict with the caregiver turn, the reply, the rubric rule and the
   judge's probability, and shows each check's surest FAIL and closest call. The

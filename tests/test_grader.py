@@ -107,7 +107,7 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
     }
     assert len(samples) == len(planned)
     if name == "backup_care":
-        assert len(samples) == 414
+        assert len(samples) == 432
     assert len({sample.id for sample in samples}) == len(samples)
     for sample in samples:
         control, check, turn = planned[sample.id]
@@ -260,11 +260,11 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
         fail_on_error=False,
     )
     assert log.status == "success", log.error
-    assert len(requests) == 414
+    assert len(requests) == 432
     report = summarize(log)
     audit = build_report(log)
     assert audit["summary"] == report
-    assert len(audit["trials"]) == 414
+    assert len(audit["trials"]) == 432
     assert audit["run"]["model"] == "mockllm/model"
     assert audit["summary"]["source_sha256"] == task.metadata["source_sha256"]
     assert all(trial["verdict"] == prediction and trial["evidence"] for trial in audit["trials"])
@@ -274,7 +274,7 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
     for layer in ("Safety", "Care"):
         for counts in report["by_layer"][layer].values():
             totals.update({key: value for key, value in counts.items() if isinstance(value, int)})
-    assert totals["planned"] == totals["recorded"] == 414
+    assert totals["planned"] == totals["recorded"] == 432
     assert totals["missing"] == totals["unscored"] == totals["execution_error"] == 0
     # The fake always returns one verdict: the report must expose its errors and
     # must not call the result grader accuracy or model quality.
@@ -443,12 +443,12 @@ def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path
 
     report = summarize(log)
     care = report["by_layer"]["Care"]["care.alternative"]
-    assert care["planned"] == 2 * 23
+    assert care["planned"] == 2 * 24
     assert care["recorded"] == care["unclear"] == 2
     assert care["missing"] == care["planned"] - care["recorded"]
     assert care["confusion"]["PASS"]["UNCLEAR"] == 2
     safety = report["by_layer"]["Safety"]["privacy.message"]
-    assert safety["planned"] == 2 * 23 * 3
+    assert safety["planned"] == 2 * 24 * 3
     assert safety["recorded"] == 2
     assert safety["missing"] == safety["planned"] - safety["recorded"]
     assert safety["applicability_error"] == 2
@@ -556,7 +556,9 @@ def test_control_judge_reads_the_named_family():
     task = control_judge(family="fluctuating_capacity")
     assert task.metadata["family"] == "fluctuating_capacity"
     assert set(task.metadata["source_sha256"]) == {
-        "case.json", "rubric.json", "controls.jsonl", "pyproject.toml", "grader.py"}
+        "case.json", "rubric.json", "controls.jsonl", "pyproject.toml", "grader.py", "jev.py"}
+    assert task.metadata["source_sha256"]["jev.py"] == hashlib.sha256(
+        (ROOT / "jev.py").read_bytes()).hexdigest()
     assert task.metadata["source_sha256"]["controls.jsonl"] == hashlib.sha256(
         (ROOT / "cases/fluctuating_capacity/controls.jsonl").read_bytes()).hexdigest()
     assert all(str(s.id).split("/")[1].count("@") == 1 for s in task.dataset)
@@ -651,7 +653,9 @@ def test_report_diff_pairs_samples_and_lists_every_flip(tmp_path, monkeypatch):
     assert diff["paired"] == 6 and diff["only_before"] == diff["only_after"] == 0
     assert diff["before"]["revision"] == diff["after"]["revision"]
     assert diff["before"]["revision"]["commit"]
-    assert set(diff["before"]) == {"eval_id", "model", "revision", "source_sha256"}
+    assert set(diff["before"]) == {
+        "eval_id", "model", "revision", "source_sha256", "judge_method", "execution"}
+    assert diff["before"]["judge_method"] == diff["after"]["judge_method"] == "criterion/v1"
     assert len(diff["flips"]) == 6
     assert set(diff["flip_counts"]) == {"PASS->FAIL"}
     assert {flip["reference"] for flip in diff["flips"]} <= {"PASS", "FAIL", "UNCLEAR", "NOT_APPLICABLE"}

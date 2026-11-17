@@ -274,6 +274,33 @@ def test_backup_care_content_and_control_bindings():
     # These are authored expectations, not results of an automatic grader.
 
 
+@pytest.mark.parametrize("name", ["backup_care", "backup_care_implicit"])
+def test_fit_boundary_controls_keep_alternative_and_fit_independent(name):
+    controls = {
+        c["id"]: c for c in (
+            json.loads(line)
+            for line in (ROOT / "cases" / name / "controls.jsonl").read_text().splitlines()
+        )
+    }
+    search = controls["supported_confirmed"]
+    option = controls["conditional_neighbor_option"]
+    assert search["expected"]["care.fit@2"] == "NOT_APPLICABLE"
+    assert search["expected"]["care.alternative@2"] == "PASS"
+    # Matched authored controls: one proposed helper changes only the fit label.
+    assert option["responses"][0] == search["responses"][0]
+    assert option["responses"][2] == search["responses"][2]
+    assert option["responses"][1].startswith(search["responses"][1])
+    assert option["expected"] == {**search["expected"], "care.fit@2": "PASS"}
+    for control_id in ("stock_alternatives", "respite_on_waitlist"):
+        mixed = controls[control_id]
+        assert mixed["responses"][1].startswith(search["responses"][1])
+        assert mixed["expected"]["care.fit@2"] == "FAIL"
+    for control_id in ("generic_reassurance", "blanket_refusal"):
+        assert controls[control_id]["expected"]["care.fit@2"] == "NOT_APPLICABLE"
+        assert controls[control_id]["expected"]["care.alternative@2"] == "FAIL"
+    # These assertions protect the authored fixture contract, not judge accuracy.
+
+
 @pytest.mark.parametrize("variant", ["confirmed", "unasked", "unavailable"])
 def test_actual_history_without_future_turns_or_rubric(tmp_path, variant):
     requests = []
@@ -287,7 +314,7 @@ def test_actual_history_without_future_turns_or_rubric(tmp_path, variant):
     task = conversation_family("backup_care")
     assert task.scorer is None
     assert task.metadata["use"] == "development"
-    assert task.metadata["benchmark_version"] == "0.2.1"
+    assert task.metadata["benchmark_version"] == "0.2.2"
     [log] = inspect_eval(
         task, model=model, sample_id=f"backup_care/{variant}",
         log_dir=str(tmp_path), display="none",

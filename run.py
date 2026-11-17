@@ -71,6 +71,8 @@ def build_parser() -> argparse.ArgumentParser:
              "(the private held-out cases); sets INVISIBLEBENCH_CASES")
     add("--target", action="append", default=[], help="target model; repeat for several")
     add("--judge", required=True, help="judge model")
+    add("--batch-judge", action="store_true",
+        help="experimental Jev questions batched per reply; default remains one check per call")
     add("--epochs", type=positive(int), default=1, help="generation epochs (default 1)")
     add("--max-tokens", type=positive(int), default=8192,
         help="generation max tokens, the same for every target (default 8192)")
@@ -85,6 +87,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def check_request(args: argparse.Namespace) -> None:
     """Raise ValueError for any request that must not start an evaluation."""
+    if args.batch_judge and args.judge != "typesafe/jev-1.14.0":
+        raise ValueError("--batch-judge requires typesafe/jev-1.14.0")
     for family in args.family:
         case_path(family)  # raises for an unknown family
         judged_revision(family, Path(__file__).resolve())  # raises for uncommitted case files
@@ -169,7 +173,8 @@ def execute(
     try:
         if args.controls:
             for family in args.family:
-                task = control_judge(cost_limit_usd=args.judge_cost_limit_usd, family=family)
+                task = control_judge(cost_limit_usd=args.judge_cost_limit_usd, family=family,
+                                     batch=args.batch_judge)
                 evaluate("CTRL", family, args.judge, task, args.judge, "controls")
         generated = []
         for family in args.family:
@@ -184,7 +189,8 @@ def execute(
             if not target_samples(location)[0]:
                 print(f"SKIP {family} {target} no judgeable samples", flush=True)
                 continue
-            task = target_judge(location, cost_limit_usd=args.judge_cost_limit_usd)
+            task = target_judge(location, cost_limit_usd=args.judge_cost_limit_usd,
+                                batch=args.batch_judge)
             evaluate("JUDGE", family, target, task, args.judge, "judge")
     except CeilingReached as stop:
         return done, str(stop), None

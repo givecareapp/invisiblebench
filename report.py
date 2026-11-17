@@ -1,11 +1,22 @@
 """Offline audit reports from saved Inspect judge logs."""
 
 import argparse
+import hashlib
 import json
+from collections import Counter
+from datetime import datetime
 
 from inspect_ai.log import EvalLog, read_eval_log
 
-from grader import sample_verdict, summarize, summarize_target, target_observations
+import jev
+from grader import (
+    judge_payload,
+    judged_samples,
+    sample_verdict,
+    summarize,
+    summarize_target,
+    target_observations,
+)
 from stats import estimates, paired_difference
 
 
@@ -13,12 +24,16 @@ def build_report(log: EvalLog) -> dict:
     use = (log.eval.metadata or {}).get("use")
     summary = summarize_target(log) if use == "target-judging" else summarize(log)
     trials = []
-    for sample in log.samples or []:
+    for sample in judged_samples(log):
         scores = list((sample.scores or {}).values())
         score = scores[0] if len(scores) == 1 else None
         verdict = sample_verdict(sample)
         trials.append({
             "sample_id": str(sample.id),
+            "input_sha256": hashlib.sha256(json.dumps(
+                judge_payload(sample), sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
+            **({"request_sample_id": sample.request_sample_id}
+               if hasattr(sample, "request_sample_id") else {}),
             "epoch": sample.epoch,
             "check": sample.metadata["check"],
             "layer": sample.metadata["layer"],
@@ -42,12 +57,25 @@ def build_report(log: EvalLog) -> dict:
             "task": log.eval.task,
             "family": summary["family"],
             "model": log.eval.model,
+            "judge_method": log.eval.metadata.get("judge_method", jev.SINGLE_METHOD),
+            "cohort_sha256": hashlib.sha256(json.dumps(
+                log.eval.metadata["reference_manifest"], sort_keys=True).encode()).hexdigest(),
             "benchmark_version": log.eval.metadata["benchmark_version"],
             "revision": summary["revision"],
             "versions": log.eval.model_dump(mode="json", include={
                 "task_version", "revision", "packages"}),
             "model_generate_config": log.eval.model_generate_config.model_dump(mode="json")
             if log.eval.model_generate_config else None,
+            "execution": {
+                "status": log.status, "native_samples": len(log.samples or []),
+                "samples_without_usage": sum(
+                    s.output is None or s.output.usage is None for s in log.samples or []),
+                "wall_seconds": (
+                    datetime.fromisoformat(log.stats.completed_at)
+                    - datetime.fromisoformat(log.stats.started_at)
+                ).total_seconds() if log.stats and log.stats.started_at and log.stats.completed_at
+                else None,
+            },
             "config": log.eval.config.model_dump(mode="json"),
             "plan": log.plan.model_dump(mode="json") if log.plan else None,
             "model_usage": {name: usage.model_dump(mode="json")
@@ -75,6 +103,7 @@ def target_rows(log: EvalLog) -> list[dict]:
     rows = []
     for labels, sample, _gap in target_observations(log):
         rows.append({
+            "judge_method": metadata.get("judge_method", jev.SINGLE_METHOD),
             "target": target, "scenario": labels["scenario"], "item": labels["source_sample"],
             "check": labels["check"], "dimension": plan[labels["check"]]["dimension"],
             "layer": labels["layer"], "severity": labels.get("severity") or "not recorded",
@@ -84,6 +113,8 @@ def target_rows(log: EvalLog) -> list[dict]:
 
 
 def summarize_rows(rows: list[dict]) -> dict:
+    if len({row.get("judge_method", jev.SINGLE_METHOD) for row in rows}) > 1:
+        raise ValueError("Cannot pool different judge methods in one cohort summary")
     targets = sorted({row["target"] for row in rows})
     by = {}
     for name, field in SUMMARY_GROUPS.items():
@@ -136,9 +167,34 @@ def diff_reports(before: dict, after: dict) -> dict:
     """Verdict-for-verdict comparison of two judge logs over the same samples."""
     if before["kind"] != after["kind"]:
         raise ValueError("Compare two control reports or two target reports, not one of each")
+    if before["run"]["benchmark_version"] != after["run"]["benchmark_version"]:
+        raise ValueError("Paired reports must use the same benchmark version")
+    for name in ("case.json", "rubric.json", "controls.jsonl"):
+        if (before["summary"]["source_sha256"].get(name)
+                != after["summary"]["source_sha256"].get(name)):
+            raise ValueError(f"Paired reports must use the same {name}")
+    if (before["run"]["cohort_sha256"] != after["run"]["cohort_sha256"]
+            or before["summary"]["epochs"] != after["summary"]["epochs"]):
+        raise ValueError("Paired reports must use the same frozen cohort and judge epochs")
+    if before["kind"] == "target-judging-audit" and (
+        before["summary"]["target"]["source_log_sha256"]
+        != after["summary"]["target"]["source_log_sha256"]
+    ):
+        raise ValueError("Paired reports must use the same source generation log")
+    if before["run"]["judge_method"] != after["run"]["judge_method"]:
+        same_model = all(before["run"][key] == after["run"][key]
+                         for key in ("model", "model_generate_config"))
+        configs = [(r["run"]["plan"] or {}).get("config") for r in (before, after)]
+        if not same_model or configs[0] != configs[1]:
+            raise ValueError("A judge-method comparison must keep the judge model and settings fixed")
     trials = lambda report: {(t["sample_id"], t["epoch"]): t for t in report["trials"]}  # noqa: E731
     first, second = trials(before), trials(after)
+    if any(len(index) != len(report["trials"])
+           for index, report in ((first, before), (second, after))):
+        raise ValueError("Duplicate check and epoch in comparison")
     shared = sorted(set(first) & set(second))
+    if any(first[key]["input_sha256"] != second[key]["input_sha256"] for key in shared):
+        raise ValueError("Paired checks must use the same frozen criterion and conversation")
     flips = [
         {"sample_id": key[0], "epoch": key[1], "check": first[key]["check"],
          "turn": first[key]["turn"], "reference": first[key]["reference"],
@@ -153,13 +209,111 @@ def diff_reports(before: dict, after: dict) -> dict:
         "eval_id": report["run"]["eval_id"], "model": report["run"]["model"],
         "revision": report["run"]["revision"],
         "source_sha256": report["summary"].get("source_sha256"),
+        "judge_method": report["run"]["judge_method"],
+        "execution": {**report["run"]["execution"],
+                      "model_usage": report["run"]["model_usage"]},
     }
+    by_check = []
+    union = set(first) | set(second)
+    for layer, checks in before["summary"]["by_layer"].items():
+        for check, earlier in checks.items():
+            later = after["summary"]["by_layer"][layer][check]
+            if earlier["planned"] != later["planned"]:
+                raise ValueError("Paired checks must have the same planned opportunities")
+            keys = [key for key in union if (first.get(key) or second[key])["check"] == check
+                    and (first.get(key) or second[key])["layer"] == layer]
+            pairs = Counter()
+            for key in keys:
+                a, b = first.get(key, {}).get("verdict"), second.get(key, {}).get("verdict")
+                label = ("unscored_both" if a is None and b is None else
+                         "gained_verdict" if a is None else "lost_verdict" if b is None else
+                         "same_verdict" if a == b else "verdict_changes")
+                pairs[label] += 1
+            by_check.append({
+                "layer": layer, "check": check, "planned": earlier["planned"],
+                "before": _check_coverage(earlier), "after": _check_coverage(later),
+                "paired_records": sum(key in first and key in second for key in keys),
+                "both_scored": pairs["same_verdict"] + pairs["verdict_changes"],
+                "missing_both": earlier["planned"] - len(keys),
+                **{name: pairs[name] for name in ("same_verdict", "verdict_changes",
+                                                  "lost_verdict", "gained_verdict",
+                                                  "unscored_both")},
+            })
     return {
         "kind": "verdict-diff", "before": identity(before), "after": identity(after),
         "paired": len(shared), "only_before": len(set(first) - set(second)),
         "only_after": len(set(second) - set(first)), "flip_counts": dict(sorted(counts.items())),
         "flips": flips,
+        "by_check": by_check,
+        "coverage_changes": [
+            {"sample_id": key[0], "epoch": key[1],
+             "check": (first.get(key) or second[key])["check"],
+             "before": _trial_status(first.get(key)), "after": _trial_status(second.get(key))}
+            for key in sorted(union)
+            if _trial_status(first.get(key)) != _trial_status(second.get(key))],
     }
+
+
+def _check_coverage(counts: dict) -> dict:
+    """Keep error directions and the full denominator beside each paired comparison."""
+    fields = ("planned", "recorded", "missing", "execution_error", "unscored",
+              "generation_interrupted", "generation_unattempted", "judge_missing",
+              "reference_counts", "exact_match", "false_pass", "false_fail",
+              "unclear", "applicability_error")
+    return {**{key: counts[key] for key in fields if key in counts},
+            "scored": counts["recorded"] - counts["execution_error"] - counts["unscored"]}
+
+
+def _trial_status(trial: dict | None) -> str:
+    if trial is None:
+        return "missing"
+    if trial["execution_error"]:
+        return "execution_error"
+    return "unscored" if trial["verdict"] is None else "scored"
+
+
+def render_diff(diff: dict) -> str:
+    """Show coverage before agreement. Counts are diagnostics, not a quality score."""
+    lines = ["# Paired judge comparison", "",
+             "The same inputs and planned checks are compared. Agreement does not establish "
+             "judge accuracy. Missing and unscored checks are not agreements.", "",
+             "| Run | Judge method | Status | Native samples | Without usage | Wall seconds |",
+             "| --- | --- | --- | ---: | ---: | ---: |"]
+    for side in ("before", "after"):
+        identity, execution = diff[side], diff[side]["execution"]
+        wall = execution["wall_seconds"]
+        lines.append(f"| {side} | {identity['judge_method']} | {execution['status']} | "
+                     f"{execution['native_samples']} | {execution['samples_without_usage']} | "
+                     f"{wall if wall is not None else 'unknown'} |")
+    lines += ["", "Wall time covers the whole evaluation, including queue and logging time. "
+              "Native timestamps can have one-second resolution. Usage is recorded per native "
+              "sample, not per check. Inspect the JSON comparison for reported usage and cost.", "",
+              "| Layer | Check | Planned | Scored before → after | Same | Changed | Lost | Gained | Missing both |",
+              "| --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
+    for c in diff["by_check"]:
+        lines.append(f"| {c['layer']} | `{c['check']}` | {c['planned']} | "
+                     f"{c['before']['scored']} → {c['after']['scored']} | {c['same_verdict']} | "
+                     f"{c['verdict_changes']} | {c['lost_verdict']} | {c['gained_verdict']} | "
+                     f"{c['missing_both']} |")
+    controls = [c for c in diff["by_check"] if "false_pass" in c["before"]]
+    if controls:
+        lines += ["", "Authored control labels are development references, not independent validation.",
+                  "", "| Layer | Check | False pass before → after | False fail before → after | Applicability error before → after |",
+                  "| --- | --- | --- | --- | --- |"]
+        for c in controls:
+            cells = [f"{c['before'][key]} → {c['after'][key]}"
+                     for key in ("false_pass", "false_fail", "applicability_error")]
+            lines.append(f"| {c['layer']} | `{c['check']}` | " + " | ".join(cells) + " |")
+    lines += ["", "Changed verdicts and coverage changes:", ""]
+    for row in diff["flips"]:
+        lines.append(f"- `{row['sample_id']}` (repeat {row['epoch']}): "
+                     f"{row['before'] or 'unscored'} → {row['after'] or 'unscored'}.")
+    for row in diff["coverage_changes"]:
+        lines.append(f"- `{row['sample_id']}` (repeat {row['epoch']}): "
+                     f"coverage {row['before']} → {row['after']}.")
+    if not diff["flips"] and not diff["coverage_changes"]:
+        lines.append("No recorded changes. Check scored coverage above before interpreting this.")
+    return "\n".join(lines) + "\n"
 
 
 def _disagreement(reference: str, verdict: str) -> str:
@@ -191,7 +345,8 @@ def _verdict_text(verdict: str | None, probability: float | None) -> str:
 def _finding_lines(trial: dict) -> list[str]:
     probability = _probability(trial["evidence"], trial["verdict"])
     return [
-        f"Inspect sample: `{trial['sample_id']}` (epoch {trial['epoch']}); "
+        f"Inspect sample: `{trial.get('request_sample_id', trial['sample_id'])}` "
+        f"(epoch {trial['epoch']}); check `{trial['check']}`; "
         f"judge {_verdict_text(trial['verdict'], probability)}. "
         "The run's jury card shows the caregiver turn, the reply and the rule.",
         "",
@@ -209,18 +364,21 @@ _ORDER = {"FAIL": 0, "UNCLEAR": 1, "NOT_APPLICABLE": 2, "PASS": 3, None: 4}
 
 def build_jury_card(logs: list[EvalLog]) -> dict:
     """Every judged verdict of target-judging logs with the turn, reply, rule and probability."""
+    methods = {(log.eval.metadata or {}).get("judge_method", jev.SINGLE_METHOD) for log in logs}
+    if len(methods) > 1:
+        raise ValueError("Cannot combine different judge methods in one jury card")
     verdicts, judges = [], set()
     for log in logs:
         metadata = log.eval.metadata or {}
         target, plan = metadata["source"]["model"], metadata["check_plan"]
         judges.add(log.eval.model)
-        for sample in log.samples or []:
+        for sample in judged_samples(log):
             scores = list((sample.scores or {}).values())
             score = scores[0] if len(scores) == 1 else None
             verdict = sample_verdict(sample)
             evidence = score.metadata.get("evidence") if score and score.metadata else None
             # The frozen judge input, not the current case files.
-            payload = json.loads(sample.input[-1].text)
+            payload = judge_payload(sample)
             turn = payload["response_turn"]
             said = {m["role"]: m["content"] for m in payload["conversation"] if m["turn"] == turn}
             labels = sample.metadata
@@ -228,6 +386,8 @@ def build_jury_card(logs: list[EvalLog]) -> dict:
                 "target": target, "scenario": labels["scenario"],
                 "item": labels["source_sample"], "epoch": labels.get("source_epoch"),
                 "sample_id": str(sample.id), "check": labels["check"],
+                **({"request_sample_id": sample.request_sample_id}
+                   if hasattr(sample, "request_sample_id") else {}),
                 "layer": labels["layer"], "dimension": plan[labels["check"]]["dimension"],
                 "turn": turn, "caregiver": said.get("user"), "reply": said.get("assistant"),
                 "rule": {k: payload["criterion"].get(k) for k in ("question", "pass", "fail")},
@@ -238,6 +398,7 @@ def build_jury_card(logs: list[EvalLog]) -> dict:
         _ORDER[v["verdict"]], 1.0 if v["probability"] is None else v["probability"],
         v["target"], v["item"], v["epoch"] or 0, v["check"], v["turn"]))
     return {"kind": "jury-card", "reason": REASON, "judge": ", ".join(sorted(judges)),
+            **({"judge_method": jev.BATCH_METHOD} if methods == {jev.BATCH_METHOD} else {}),
             "targets": sorted({v["target"] for v in verdicts}), "close_call_below": CLOSE_CALL,
             "verdicts": verdicts}
 
@@ -250,6 +411,7 @@ def render_jury_card(card: dict) -> str:
     """Counts by check, then worked verdicts: each check's likeliest FAIL and its closest call."""
     lines = ["# InvisibleBench jury card", "",
              f"**Judge:** {card['judge']}  ",
+             *([f"**Judge method:** {card['judge_method']}  "] if "judge_method" in card else []),
              f"**Targets:** {', '.join(card['targets'])}  ",
              f"**Verdicts:** {len(card['verdicts'])}", "",
              f"**Evidence for review:** {card['reason']}", "",
@@ -286,7 +448,7 @@ def render_jury_card(card: dict) -> str:
                       f"**Rule:** {rule['question']}", "",
                       f"- Pass: {rule['pass']}", f"- Fail: {rule['fail']}", "",
                       f"**Verdict:** {_verdict_text(r['verdict'], r['probability'])}. "
-                      f"Inspect sample `{r['sample_id']}`.", ""]
+                      f"Inspect sample `{r.get('request_sample_id', r['sample_id'])}`.", ""]
     return "\n".join(lines) + "\n"
 
 
@@ -305,6 +467,7 @@ def render_markdown(report: dict) -> str:
         f"**Family:** {run['family']}  ",
         f"**Status:** {summary['status']}  ",
         f"**Judge model:** {run['model']}  ",
+        f"**Judge method:** {run['judge_method']}  ",
         f"**Development version:** {run['benchmark_version']}  ",
         f"**Revision:** {revision_text}  ",
         f"**Validation:** {report['validation']}",
@@ -449,7 +612,10 @@ def main() -> None:
     report = build_report(read_eval_log(args.log))
     if args.diff:
         diff = diff_reports(build_report(read_eval_log(args.diff)), report)
-        print(json.dumps(diff, indent=2, ensure_ascii=False, default=str))
+        if args.format == "markdown":
+            print(render_diff(diff), end="")
+        else:
+            print(json.dumps(diff, indent=2, ensure_ascii=False, default=str))
         return
     if args.format == "markdown":
         print(render_markdown(report), end="")

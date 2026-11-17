@@ -1,7 +1,8 @@
 """Jev (TypeSafe System One) as an Inspect model provider for the judge: `typesafe/jev-1.14.0`.
 
-Jev does not write text. Each judged sample becomes one System One request: the judged
-evidence is the state, and one Choice question picks PASS, FAIL or UNCLEAR. A criterion
+Jev does not write text. Each judged sample becomes one System One request. The default
+sample holds one check; an optional batch holds the checks for one reply. Each Choice
+question picks PASS, FAIL or UNCLEAR. A criterion
 with a not_applicable rule also gets a yes/no (Noul) question in the same request: does
 that rule hold? Code returns NOT_APPLICABLE when its probability reaches 0.5. Asked as a
 fourth option, Jev let PASS absorb most NOT_APPLICABLE labels. The answer keeps every
@@ -50,6 +51,13 @@ STATE_GUIDE = (
     "The state holds one `criterion`, the `conversation` so far, and `response_turn`. "
     "The response being judged is the last assistant message in `conversation`."
 )
+BATCH_METHOD = "jev-prefix-batch/v1"
+SINGLE_METHOD = "criterion/v1"
+BATCH_STATE_GUIDE = (
+    "The state holds the `conversation` so far and `response_turn`. "
+    "The response being judged is the last assistant message in `conversation`. "
+    "The criterion is supplied in these instructions. Judge only that criterion."
+)
 
 for _name, _price in PRICES.items():
     _info = get_model_info(f"typesafe/{_name}") or ModelInfo()
@@ -57,11 +65,31 @@ for _name, _price in PRICES.items():
         input=_price, output=0.0, input_cache_write=_price, input_cache_read=_price)}))
 
 
+def batch_request(system: str, state: dict, criteria: dict) -> dict:
+    """Freeze the exact question text with each sample before execution."""
+    rules = system.split(CHAT_ONLY)[0].strip()
+    questions = {}
+    for check, criterion in criteria.items():
+        context = {"state_guide": BATCH_STATE_GUIDE, "criterion": criterion}
+        questions[f"{check}.verdict"] = {
+            "type": "choice", "criteria": VERDICT_CRITERIA,
+            "instructions": {**context, "rules": rules,
+                             "question": "Which verdict fits the judged response?"},
+        }
+        if criterion.get("not_applicable"):
+            questions[f"{check}.not_applicable"] = {
+                "type": "noul", "instructions": {**context, "question": APPLICABILITY},
+            }
+    return {"state": state, "questions": questions}
+
+
 def request(messages: list[ChatMessage], model: str = "jev-1.14.0") -> dict:
     """The System One request for one judged sample: its system rules and JSON payload."""
     if model not in PRICES:
         raise ValueError(f"Jev judging requires a pinned model {sorted(PRICES)}, not {model!r}")
     system, state = messages[0].text, json.loads(messages[-1].text)
+    if "questions" in state:
+        return {"model": model, "state": state["state"], "questions": state["questions"]}
     rules = system.split(CHAT_ONLY)[0].strip()
     questions = {"verdict": {
         "type": "choice",
@@ -103,6 +131,25 @@ def parse_answer(text: str) -> dict:
             "judge": answer.get("judge")}
 
 
+def parse_batch_answer(text: str, check: str, *, with_rule: bool) -> dict:
+    """Read one independent answer; a missing applicability answer cannot become PASS."""
+    reply = json.loads(text)
+    try:
+        answer = {**reply["answers"][f"{check}.verdict"], "judge": reply.get("model")}
+        if with_rule:
+            rule = reply["answers"][f"{check}.not_applicable"]
+            if rule["type"] != "noul" or type(rule["noul"]) not in (int, float):
+                raise ValueError("Expected a Noul applicability probability")
+            answer["not_applicable"] = rule["noul"]
+        parsed = parse_answer(json.dumps(answer))
+        if any(type(p) not in (int, float) or not 0 <= p <= 1
+               for p in parsed["probabilities"].values()):
+            raise ValueError("Expected verdict probabilities between zero and one")
+        return parsed
+    except (KeyError, TypeError, AttributeError) as error:
+        raise ValueError(f"Missing or malformed Jev answer for {check}: {error}") from error
+
+
 @modelapi(name="typesafe")
 def typesafe():
     return TypeSafeAPI
@@ -121,10 +168,14 @@ class TypeSafeAPI(ModelAPI):
         if not key:
             raise ValueError("TYPESAFE_API_KEY is not set")
         reply = await asyncio.to_thread(post_systemone, body, key)
-        answers = reply["answers"]
-        answer = {**answers["verdict"], "judge": reply.get("model")}
-        if "not_applicable" in body["questions"]:
-            answer["not_applicable"] = answers["not_applicable"]["noul"]
+        if "questions" in json.loads(input[-1].text):
+            # Preserve the whole reply. Scorers handle each question's failure separately.
+            answer = reply
+        else:
+            answers = reply["answers"]
+            answer = {**answers["verdict"], "judge": reply.get("model")}
+            if "not_applicable" in body["questions"]:
+                answer["not_applicable"] = answers["not_applicable"]["noul"]
         output = ModelOutput.from_content(model=self.model_name, content=json.dumps(answer))
         usage = reply.get("usage")
         # Keep the answer when billing data is absent. Never manufacture zero usage:

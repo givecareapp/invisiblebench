@@ -28,13 +28,16 @@ class FakeJev:
 
     def post(self, body, api_key):
         self.calls.append((body, api_key))
-        verdicts = list(body["questions"]["verdict"]["criteria"])
-        answers = {"verdict": {
-            "type": "choice", "choice": self.choice, "confidence": 0.9,
-            "probabilities": {v: (0.96 if v == self.choice else 0.02) for v in verdicts},
-        }}
-        if "not_applicable" in body["questions"]:
-            answers["not_applicable"] = {"type": "noul", "noul": self.not_applicable}
+        answers = {}
+        for name, question in body["questions"].items():
+            if question["type"] == "choice":
+                answers[name] = {
+                    "type": "choice", "choice": self.choice, "confidence": 0.9,
+                    "probabilities": {v: (0.96 if v == self.choice else 0.02)
+                                      for v in question["criteria"]},
+                }
+            else:
+                answers[name] = {"type": "noul", "noul": self.not_applicable}
         return {"model": body["model"], "answers": answers,
                 "usage": {"input_tokens": 1000, "output_tokens": 12}}
 
