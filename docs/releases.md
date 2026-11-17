@@ -100,4 +100,13 @@ state and question content. The native layout names remain `criterion/v1` and
 `jev-prefix-batch/v1`; version 0.2.3 and source hashes identify the new protocol.
 Old runs retain their original prompts, versions and verdicts. Reports show
 applicability uncertainty separately from Choice probability. The public
-archive and its schema are unchanged. No paid run has assessed this revision.
+archive and its schema are unchanged. No score from this revision is in the
+public archive.
+
+## Development revision 0.2.4
+
+Jev response validation now rejects missing or mismatched model identities and
+unrequested applicability values. Invalid answers remain unscored without losing
+raw responses or usage. Request content, cases, labels and the 0.5 cutoff are
+unchanged. Old runs retain their original versions and verdicts. No paid run has
+assessed this revision. The public archive is unchanged.

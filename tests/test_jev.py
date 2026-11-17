@@ -273,8 +273,70 @@ def test_historical_flattened_answer_remains_readable_and_requires_its_noul():
     answer = {'type': 'choice', 'choice': 'PASS', 'confidence': 0.85,
               'probabilities': {'PASS': 0.9, 'FAIL': 0.05, 'UNCLEAR': 0.05},
               'not_applicable': 0.1, 'judge': 'jev-1.14.0'}
-    assert jev.parse_response(json.dumps(answer), with_rule=True)['verdict'] == 'PASS'
+    assert jev.parse_response(json.dumps(answer), with_rule=True,
+                              model='jev-1.14.0')['verdict'] == 'PASS'
     del answer['not_applicable']
     with pytest.raises(ValueError, match='not_applicable'):
-        jev.parse_response(json.dumps(answer), with_rule=True)
-    assert jev.parse_response(json.dumps(answer), with_rule=False)['verdict'] == 'PASS'
+        jev.parse_response(json.dumps(answer), with_rule=True, model='jev-1.14.0')
+    assert jev.parse_response(json.dumps(answer), with_rule=False,
+                              model='jev-1.14.0')['verdict'] == 'PASS'
+
+
+@pytest.mark.parametrize('batch', [False, True])
+@pytest.mark.parametrize('returned_model', [None, 'jev-1.13.0'])
+def test_wrong_response_model_is_unscored_without_losing_usage(
+    fake_jev, monkeypatch, tmp_path, batch, returned_model,
+):
+    from report import build_report
+
+    original = fake_jev.post
+
+    def damage(body, key):
+        reply = original(body, key)
+        if returned_model is None:
+            del reply['model']
+        else:
+            reply['model'] = returned_model
+        return reply
+
+    monkeypatch.setattr(jev, 'post_systemone', damage)
+    sample_id = 'supported_confirmed/turn-1' if batch else 'supported_confirmed/agency.consent@1'
+    [log] = inspect_eval(control_judge(0.05, batch=batch), model=JEV, sample_id=sample_id,
+                         log_dir=str(tmp_path), display='none')
+    assert log.status == 'success' and log.samples[0].error is None
+    raw = json.loads(log.samples[0].output.completion)
+    assert raw.get('model') == returned_model
+    assert log.samples[0].output.usage.input_tokens == 1000
+    trials = build_report(log)['trials']
+    assert len(trials) == (6 if batch else 1)
+    assert all(t['verdict'] is None and 'model' in t['unscored_reason'] for t in trials)
+    assert not run.unknown_paid_cost(log)
+
+
+@pytest.mark.parametrize('batch', [False, True])
+def test_unrequested_applicability_cannot_remove_a_check(
+    fake_jev, monkeypatch, tmp_path, batch,
+):
+    from report import build_report
+
+    original = fake_jev.post
+
+    def damage(body, key):
+        reply = original(body, key)
+        choice = 'agency.consent.verdict' if batch else 'verdict'
+        reply['answers'][choice]['not_applicable'] = 1.0
+        return reply
+
+    monkeypatch.setattr(jev, 'post_systemone', damage)
+    sample_id = 'supported_confirmed/turn-1' if batch else 'supported_confirmed/agency.consent@1'
+    [log] = inspect_eval(control_judge(0.05, batch=batch), model=JEV, sample_id=sample_id,
+                         log_dir=str(tmp_path), display='none')
+    assert log.status == 'success' and log.samples[0].error is None
+    raw = json.loads(log.samples[0].output.completion)
+    choice = 'agency.consent.verdict' if batch else 'verdict'
+    assert raw['answers'][choice]['not_applicable'] == 1.0
+    assert log.samples[0].output.usage.input_tokens == 1000
+    trials = build_report(log)['trials']
+    assert [t['check'] for t in trials if t['verdict'] is None] == ['agency.consent']
+    assert all(t['verdict'] == 'PASS' for t in trials if t['check'] != 'agency.consent')
+    assert not run.unknown_paid_cost(log)

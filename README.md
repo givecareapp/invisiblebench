@@ -3,7 +3,7 @@
 Type: how-to.
 
 InvisibleBench evaluates how an assistant handles multi-turn caregiver-support
-conversations. The active project is a **0.2.3 development slice**, not a
+conversations. The active project is a **0.2.4 development slice**, not a
 validated InvisibleBench 6.0 release. There is no validated model result or validated
 grader. Safety and Care remain separate; there is no composite score or model rank.
 
@@ -149,6 +149,11 @@ and question IDs differ. Both retain the full raw response and request usage.
 The version and source hashes distinguish this prompt revision from earlier runs.
 Repeated runs make fresh requests. See the
 [grader method](BENCHMARK_CARD.md#grader-development) for comparison limits.
+
+From 0.2.4, the returned judge identity must match the requested pinned model.
+A response field cannot make a criterion inapplicable unless that criterion has
+an applicability rule. Invalid answers stay unscored; raw responses and usage
+remain available. The request content and 0.5 cutoff are unchanged.
 
 ### Compare judge methods
 

@@ -143,6 +143,8 @@ def parse_answer(text: str, *, with_rule: bool | None = None) -> dict:
     if not _probability(answer.get("confidence")):
         raise ValueError("Jev confidence must be a probability")
     rule = answer.get("not_applicable")
+    if with_rule is False and "not_applicable" in answer:
+        raise ValueError("Unexpected not_applicable answer for a criterion without that rule")
     if (with_rule or "not_applicable" in answer) and not _probability(rule):
         raise ValueError("Jev's not_applicable answer must be a probability")
     verdict = ("NOT_APPLICABLE" if rule is not None and rule >= NOT_APPLICABLE_AT
@@ -152,10 +154,14 @@ def parse_answer(text: str, *, with_rule: bool | None = None) -> dict:
             "judge": answer.get("judge")}
 
 
-def parse_response(text: str, check: str | None = None, *, with_rule: bool) -> dict:
+def parse_response(text: str, check: str | None = None, *, with_rule: bool, model: str) -> dict:
     """Read one check without losing request usage when another answer is invalid."""
     reply = json.loads(text)
-    if check is None and isinstance(reply, dict) and "answers" not in reply:
+    historical = check is None and isinstance(reply, dict) and "answers" not in reply
+    actual_model = reply.get("judge" if historical else "model") if isinstance(reply, dict) else None
+    if actual_model != model:
+        raise ValueError(f"Jev response model {actual_model!r} does not match requested {model!r}")
+    if historical:
         return parse_answer(text, with_rule=with_rule)  # Historical single-check output.
     prefix = f"{check}." if check is not None else ""
     try:

@@ -10,7 +10,22 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
-Development version 0.2.3. No paid run has assessed this revision.
+Development version 0.2.4. No paid run has assessed this revision.
+
+### Fixed
+
+- Jev answers must name the requested pinned model before they receive a verdict.
+  Missing or mismatched model identities stay unscored. Raw responses and usage
+  remain available, including when every answer in a batch is rejected.
+- A Choice answer cannot supply an applicability value for a criterion without
+  that rule. The malformed check stays unscored; other valid batch answers remain
+  available. Valid historical answers remain readable.
+- Request content, cases, labels, the 0.5 cutoff and the default judge method are
+  unchanged. The `care.pace` clarification is a proposal, not an active rule.
+
+## [0.2.3]
+
+Development version 0.2.3.
 
 ### Fixed
 

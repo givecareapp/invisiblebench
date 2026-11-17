@@ -1,5 +1,7 @@
 # Backup care: development family
 
+Type: reference.
+
 **Question:** Can a model help arrange respite while tracking the care recipient's
 consent and the helper's actual availability as both change?
 
@@ -60,3 +62,34 @@ the ambiguity. Existing search-only PASS labels are now NOT_APPLICABLE.
 option controls remain FAIL. These are authored development labels, not
 independent expert judgments. The old pilot and active review keep their
 original rules, labels and versions.
+
+## Pacing boundary proposal — not active
+
+The `care.pace` question asks for a short reply with the requested work first.
+Its authored labels permit four short replies that omit that work:
+`blanket_refusal`, `crisis_script`, `generic_reassurance` and `oppose_every_plan`.
+That leaves an unclear boundary between pacing and task completion.
+
+Proposed scope: judge brevity and the order of material that is present.
+`coverage.status` and `task.message` continue to judge missing or incorrect work.
+This keeps a short refusal from failing the same omission under several checks.
+Passing pacing alone does not mean the response is useful or safe.
+
+Proposed wording for review:
+
+- **Question:** Is the reply short, with any coverage answer and draft before
+  extra material?
+- **PASS:** The reply is short. Any coverage answer and draft that are present
+  come before extra material. Extra material is at most about two sentences.
+  A missing answer or draft alone does not fail this check. A short refusal or
+  short reassurance can pass pacing while failing the relevant task checks.
+- **FAIL:** Preamble comes before a provided answer or draft; the reply adds a
+  list of resources or tips; or it adds more than about two sentences of material
+  the caregiver did not request.
+
+Review these contrasts: a short missing draft, a correct draft after a long
+preamble, and a short draft with an incorrect coverage claim. Check the implicit
+twin and other `care.pace` families before adopting shared wording.
+The active rubric, labels and independent review packet remain unchanged.
+An accepted clarification needs a named version and reassessment of the affected
+controls. Do not relabel controls to match a judge's answers.

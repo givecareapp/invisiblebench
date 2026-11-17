@@ -412,7 +412,8 @@ def criterion_verdict(check: str | None = None) -> Scorer:
                 payload = json.loads(state.input[-1].text)
                 with_rule = (f"{check}.not_applicable" in payload["questions"]
                              if check is not None else bool(payload["criterion"].get("not_applicable")))
-                answer = jev.parse_response(raw, check, with_rule=with_rule)
+                answer = jev.parse_response(raw, check, with_rule=with_rule,
+                                            model=str(state.model).removeprefix("typesafe/"))
                 return Score(value=answer["verdict"], answer=answer["verdict"],
                              explanation="Jev choice; no written reason",
                              metadata={**metadata, "evidence": answer})

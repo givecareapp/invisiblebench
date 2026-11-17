@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Version:** 0.2.3 development slice. **Status:** instrument under development;
+**Version:** 0.2.4 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)
@@ -356,6 +356,10 @@ release tables cannot mix judge methods.
 Inspect retains the raw output and parsed judgment in its native log. Invalid,
 missing, blocked, or truncated judge outputs remain unscored. API errors remain
 execution errors. No automatic inference retries are requested by this task.
+From 0.2.4, Jev response parsing requires the returned model to match the requested
+pin. An unrequested applicability field cannot remove a criterion from scoring.
+These checks preserve raw responses and usage. Valid historical answers remain
+readable; the request content, labels and applicability cutoff are unchanged.
 The frozen log records source hashes and the full reference cohort. Reporting
 uses those saved references rather than the current files, and keeps repetitions
 and missing opportunities visible. Filters do not redefine the full cohort.
