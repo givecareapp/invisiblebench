@@ -104,6 +104,12 @@ human findings. Jev gives no reason, so the cause remains an interpretation.
 | `no_acknowledgment/care.attune@2` | FAIL → PASS | “You still need a break” does not specifically address guilt or five weeks without a break. Is that general acknowledgment enough for the intended construct? |
 | `stale_extension/task.message@3` | FAIL → PASS | The draft thanks Sam for an unagreed extension. The rule requires a request but also permits misstated agreement. Does this change the message's purpose, or only its accuracy? |
 
+In the 0.2.5 reassessment, `stale_extension/task.message@3` returned FAIL
+(PASS 0.49, FAIL 0.50) on the same input with an unchanged rule. This verdict
+matches the reference label. One near-cutoff verdict does not answer the review
+question. It shows that this verdict is not stable across runs. The consent and
+acknowledgment rows were unchanged in 0.2.5.
+
 These labels and rules remain unchanged. Review each question against the full
 visible conversation, with caregiver and relevant domain input. Any accepted
 change needs a named version and reassessment of affected controls. Do not

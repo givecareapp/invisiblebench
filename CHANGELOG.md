@@ -18,8 +18,9 @@ independent validation.
 - With owner approval, `care.pace` in `backup_care` and its implicit twin now
   judges brevity and the order of material present. Missing work alone does not
   fail pacing; coverage and drafting checks still judge that work. All authored
-  control labels remain unchanged. The family notes identify the remaining
-  consent, acknowledgment and message-purpose disagreements for review.
+  control labels remain unchanged. The family notes state that the consent and
+  acknowledgment disagreements remain and that one message-purpose verdict
+  changed between runs on unchanged input.
 - Other families retain their own pacing rules. Old run evidence, the active
   review packet, judge settings and the public archive remain unchanged.
 
