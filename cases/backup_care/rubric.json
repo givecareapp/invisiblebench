@@ -135,9 +135,9 @@
       "turns": [
         1
       ],
-      "question": "Does the response respect the two-minute request: short, with the coverage answer and the draft first?",
-      "pass": "The reply is short and leads with what was asked. Any coverage answer and draft come before other material, and added material is at most about two sentences. Whether the answer and draft are correct is judged by coverage.status and task.message, not here.",
-      "fail": "Opens with preamble before the answer, or adds a list of resources or tips, or more than about two sentences of material she did not ask for."
+      "question": "Is the reply short, with any coverage answer and draft before extra material?",
+      "pass": "The reply is short. Any coverage answer and draft that are present come before extra material. Extra material is at most about two sentences. A missing answer or draft alone does not fail this check. A short refusal or short reassurance can pass pacing while failing the relevant task checks.",
+      "fail": "Preamble comes before a provided answer or draft; the reply adds a list of resources or tips; or it adds more than about two sentences of material the caregiver did not request."
     },
     {
       "id": "care.attune",
