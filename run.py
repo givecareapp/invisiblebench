@@ -1,17 +1,21 @@
-"""Run chosen case families end to end into one new directory.
+"""Run case families end to end, or judge one saved generation run again.
 
 Steps: judge the authored controls (--controls), generate each target's conversations, judge
 them, then write offline reports and run.json. The Inspect logs are the evidence; run.json is
 read back from them, never typed. A paid model needs --judge-cost-limit-usd and --ceiling-usd.
+With --generation-run, read the saved GEN logs and perform only the judging step.
 Progress prints one CTRL, GEN, or JUDGE line per evaluation (a JUDGE line names the target it
 judged), then DONE or STOPPED. Exit 0 when the run finished, 1 when the ceiling stopped it,
 and 2 when the request was refused before any evaluation.
 """
 
 import argparse
+import hashlib
 import json
 import math
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -36,7 +40,7 @@ from report import (
     summarize_rows,
     target_rows,
 )
-from task import case_path, conversation_family
+from task import ROOT, VERSION, case_path, conversation_family
 
 
 class CeilingReached(Exception):
@@ -65,7 +69,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add = parser.add_argument
     add("--out", type=Path, required=True, help="new or empty run directory")
-    add("--family", action="append", required=True, help="case family; repeat for several")
+    add("--family", action="append", default=[], help="case family; repeat for several")
+    add("--generation-run", type=Path,
+        help="judge saved GEN logs from this run directory; no generation or controls")
     add("--cases", type=Path,
         help="a second family folder, read in place and gated on its own repository's commits "
              "(the private held-out cases); sets INVISIBLEBENCH_CASES")
@@ -89,6 +95,13 @@ def check_request(args: argparse.Namespace) -> None:
     """Raise ValueError for any request that must not start an evaluation."""
     if args.batch_judge and args.judge != "typesafe/jev-1.14.0":
         raise ValueError("--batch-judge requires typesafe/jev-1.14.0")
+    if args.generation_run:
+        if args.family or args.target or args.controls:
+            raise ValueError("--generation-run cannot use --family, --target, or --controls")
+        if args.out.resolve().is_relative_to(Path(args.generation_run).resolve()):
+            raise ValueError("--out must be outside the source generation directory")
+    elif not args.family:
+        raise ValueError("Give --family for a generation or control run")
     for family in args.family:
         case_path(family)  # raises for an unknown family
         judged_revision(family, Path(__file__).resolve())  # raises for uncommitted case files
@@ -106,10 +119,95 @@ def check_request(args: argparse.Namespace) -> None:
             f"No registered price for {unpriced}; add it to OPENROUTER_PRICES in task.py so "
             "Inspect records cost and the ceiling can count it"
         )
-    if not (args.target or args.controls):
+    if not (args.target or args.controls or args.generation_run):
         raise ValueError("Nothing to run: give --target, --controls, or both")
     if args.out.exists() and (not args.out.is_dir() or any(args.out.iterdir())):
         raise ValueError(f"--out must be new or empty: {args.out}")
+
+
+def prepare_generation_run(directory: Path, judge: str) -> tuple[list[dict], dict]:
+    """Check every saved GEN log before judging and bind the new record to its bytes."""
+    directory = directory.resolve()
+    manifest_path = directory / "run.json"
+    try:
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"Cannot read generation run: {manifest_path}: {error}") from error
+    if manifest.get("stop_reason") is not None:
+        raise ValueError("Generation run stopped before completion")
+    entries = [row for row in manifest.get("logs", [])
+               if row.get("task") == "conversation_family"]
+    if not entries:
+        raise ValueError("Generation run has no GEN logs")
+    seen_paths, seen_ids, saved, families = set(), set(), [], set()
+    family_inputs = []
+    source_commit = None
+    for entry in entries:
+        revision = entry.get("revision") or {}
+        commit = revision.get("commit")
+        if (not isinstance(commit, str) or not re.fullmatch(r"[0-9a-fA-F]{7,64}", commit)
+                or revision.get("dirty") is not False):
+            raise ValueError("GEN log has no clean source commit")
+        if source_commit is not None and commit != source_commit:
+            raise ValueError("GEN logs have different source commits")
+        source_commit = commit
+        location = Path(entry["location"]).resolve()
+        if not location.is_relative_to(directory) or not location.is_file():
+            raise ValueError(f"GEN log is missing or outside generation run: {location}")
+        if location in seen_paths or entry["eval_id"] in seen_ids:
+            raise ValueError(f"Duplicate GEN log: {location}")
+        seen_paths.add(location)
+        seen_ids.add(entry["eval_id"])
+        samples, source = target_samples(str(location))
+        family = source["family"]
+        if family not in families:
+            judged_revision(family, Path(__file__).resolve())
+            case_file = case_path(family).resolve()
+            if not case_file.is_relative_to(ROOT / "cases"):
+                raise ValueError(f"GEN family is outside the committed public cases tree: {family}")
+            tree = subprocess.run(
+                ["git", "-C", str(ROOT), "diff", "--quiet", commit, "HEAD", "--",
+                 f"cases/{family}"], capture_output=True, text=True, check=False,
+            )
+            if tree.returncode:
+                raise ValueError(
+                    f"Committed cases/{family} differs from source commit {commit}: "
+                    f"{tree.stderr.strip() or 'git diff found changes'}"
+                )
+            family_inputs.append({
+                "family": family,
+                **{f"{name}_sha256": hashlib.sha256(case_file.with_name(filename).read_bytes()).hexdigest()
+                   for name, filename in (("case", "case.json"), ("rubric", "rubric.json"),
+                                          ("controls", "controls.jsonl"))},
+            })
+            families.add(family)
+        current_hash = hashlib.sha256(case_path(family).read_bytes()).hexdigest()
+        if source["benchmark_version"] != VERSION:
+            raise ValueError(f"Benchmark version differs for GEN log: {location}")
+        if source["case_sha256"] != current_hash:
+            raise ValueError(f"Case hash differs for GEN log: {location}")
+        if (source["eval_id"] != entry["eval_id"] or
+                source["model"] != entry["model"] or
+                family != entry["family"]):
+            raise ValueError(f"GEN log differs from run.json: {location}")
+        if same_company(judge, source["model"]):
+            raise ValueError(f"Target from the same company as the judge {judge}: {source['model']}")
+        if (source["status"] != "success" or source["interrupted_samples"] or
+                source["recorded_samples"] != source["planned_samples"] or
+                source["recorded_samples"] != entry["samples"] or
+                entry["errors"] or not samples):
+            raise ValueError(f"Incomplete GEN log: {location}")
+        saved.append({"family": family, "target": source["model"],
+                      "location": str(location), "eval_id": source["eval_id"],
+                      "sha256": source["source_log_sha256"]})
+    binding = {"directory": str(directory),
+               "run_json_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+               "source_commit": source_commit,
+               "family_inputs": family_inputs,
+               "generation_logs": [{"eval_id": row["eval_id"], "sha256": row["sha256"]}
+                                   for row in saved]}
+    return saved, binding
 
 
 def usage_of(log: EvalLog) -> dict:
@@ -143,6 +241,7 @@ def unknown_paid_cost(log: EvalLog) -> bool:
 
 def execute(
     args: argparse.Namespace,
+    saved_generation: list[dict] | None = None,
 ) -> tuple[list[tuple[str, EvalLog]], str | None, Exception | None]:
     """Run every evaluation in order; return the logs, why the run stopped, and the error if any.
 
@@ -177,15 +276,25 @@ def execute(
                                      batch=args.batch_judge)
                 evaluate("CTRL", family, args.judge, task, args.judge, "controls")
         generated = []
-        for family in args.family:
-            for target in args.target:
-                log = evaluate(
-                    "GEN", family, target, conversation_family(family), target,
-                    f"generation/{family}", epochs=args.epochs,
-                    max_tokens=args.max_tokens,
-                )
-                generated.append((family, target, log.location))
+        if saved_generation is None:
+            for family in args.family:
+                for target in args.target:
+                    log = evaluate(
+                        "GEN", family, target, conversation_family(family), target,
+                        f"generation/{family}", epochs=args.epochs,
+                        max_tokens=args.max_tokens,
+                    )
+                    generated.append((family, target, log.location))
+        else:
+            generated = [(row["family"], row["target"], row["location"])
+                         for row in saved_generation]
+        source_hashes = ({row["location"]: row["sha256"] for row in saved_generation}
+                         if saved_generation is not None else {})
         for family, target, location in generated:
+            if location in source_hashes:
+                actual_hash = hashlib.sha256(Path(location).read_bytes()).hexdigest()
+                if actual_hash != source_hashes[location]:
+                    raise ValueError(f"GEN log changed after preflight: {location}")
             if not target_samples(location)[0]:
                 print(f"SKIP {family} {target} no judgeable samples", flush=True)
                 continue
@@ -240,17 +349,22 @@ def describe(log: EvalLog) -> dict:
 
 
 def write_record(args: argparse.Namespace, done: list[tuple[str, EvalLog]],
-                 stop: str | None) -> None:
+                 stop: str | None, source_binding: dict | None = None) -> None:
     """run.json: the arguments, then everything else read from the logs."""
     logs = [log for _, log in done]
     spent, unknown = reported_cost(logs)
+    recorded_args = {**vars(args), "out": str(args.out)}
+    if recorded_args["generation_run"] is None:
+        del recorded_args["generation_run"]
     record = {
-        "args": {**vars(args), "out": str(args.out)},
+        "args": recorded_args,
         "stop_reason": stop,
         "logs": [describe(log) for log in logs],
         "reported_cost_usd": spent,
         "unknown_cost_logs": unknown,
     }
+    if source_binding is not None:
+        record["source_generation_run"] = source_binding
     text = json.dumps(record, indent=2, ensure_ascii=False)
     (args.out / "run.json").write_text(text + "\n", encoding="utf-8")
 
@@ -259,17 +373,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     args.out = args.out.resolve()
+    if args.generation_run:
+        args.generation_run = str(args.generation_run.resolve())
     if args.cases:
         args.cases = str(args.cases.resolve())
         os.environ["INVISIBLEBENCH_CASES"] = args.cases
     try:
         check_request(args)
+        saved_generation, source_binding = (prepare_generation_run(
+            Path(args.generation_run), args.judge) if args.generation_run else (None, None))
     except ValueError as error:
         parser.error(str(error))
     args.out.mkdir(parents=True, exist_ok=True)
-    done, stop, error = execute(args)
+    done, stop, error = execute(args, saved_generation)
     write_reports(done, args.out / "reports")
-    write_record(args, done, stop)
+    write_record(args, done, stop, source_binding)
     spent, unknown = reported_cost(log for _, log in done)
     tail = f"{unknown} of {len(done)} logs report no cost"
     print(f"STOPPED {stop}; {tail}" if stop else f"DONE reported cost ${spent:.4f}; {tail}",

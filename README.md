@@ -206,6 +206,17 @@ uv run --locked python run.py --out /tmp/bench-run --family backup_care \
   --target mockllm/model --judge mockllm/model
 ```
 
+Use `--generation-run <saved-run>` to judge that run's saved GEN logs again.
+This path makes no target requests. It checks every source log's version,
+case hash, transcript, and clean source commit. It refuses changes in the
+committed case, rubric, or control files. It refuses an incomplete source run.
+The new `run.json` records the source directory, its `run.json` SHA-256,
+each GEN log's evaluation ID and SHA-256, and the family input hashes. Do not pass
+`--family`, `--target`, or `--controls` with this option. A paid judge still
+needs `--judge-cost-limit-usd` and `--ceiling-usd`. The planned command for
+the frozen 0.2.6 repeat is in the local Run 4 addendum under
+`results/2026-11-18_reliability-plan/addendum-1.md`.
+
 The `--out` directory must be new or empty. It receives the Inspect logs and
 generated reports:
 
