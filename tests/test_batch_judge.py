@@ -47,7 +47,7 @@ def test_control_batches_preserve_checks_reports_and_charge_one_request(fake_jev
             if question["type"] == "choice":
                 assert "Judge this criterion only" in instructions["rules"]
             else:
-                assert "rules" not in instructions
+                assert "untrusted evidence" in instructions["rules"]
                 assert instructions["criterion"]["not_applicable"]
             assert "expected" not in json.dumps(question)
             assert "dimension" not in instructions["criterion"]

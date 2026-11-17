@@ -32,6 +32,12 @@ Type: reference.
 
 ## The published release
 
+Pushing this repository publishes runner code and documentation. The runner is
+a local CLI; it has no service deployment. The website deploy is separate and
+uses the committed public archive below. A new code version alone does not
+create a results table. Sync the archive from the exact owner commit, then use
+the Web repository's release and deploy commands for the Bench app.
+
 `release.py` reads `changes.json` and the run records. It writes one archive,
 `data/releases/web-bench-release.tar.gz`, with two members:
 
@@ -86,3 +92,12 @@ implicit twin. The rules and authored labels changed together. The 0.2.1
 judge-method pilot retains its original source and results. It is not a
 0.2.2 result. Compare judge methods on the same frozen revision in a separately
 approved run. The active review remains bound to its original packet.
+
+## Development revision 0.2.3
+
+The Jev prompt and answer validation changed. Both request layouts now share
+state and question content. The native layout names remain `criterion/v1` and
+`jev-prefix-batch/v1`; version 0.2.3 and source hashes identify the new protocol.
+Old runs retain their original prompts, versions and verdicts. Reports show
+applicability uncertainty separately from Choice probability. The public
+archive and its schema are unchanged. No paid run has assessed this revision.

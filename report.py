@@ -329,25 +329,45 @@ def _disagreement(reference: str, verdict: str) -> str:
 
 
 def _probability(evidence: dict | None, verdict: str | None) -> float | None:
-    """The judge's probability for the verdict it gave; None when the judge reports none."""
+    """One raw answer probability, never a joint probability of the final verdict."""
     evidence = evidence or {}
     if verdict == "NOT_APPLICABLE":
         return evidence.get("not_applicable")
     return (evidence.get("probabilities") or {}).get(verdict)
 
 
-def _verdict_text(verdict: str | None, probability: float | None) -> str:
+def _verdict_text(verdict: str | None, probability: float | None,
+                  not_applicable: float | None = None) -> str:
     if verdict is None:
         return "unscored"
-    return verdict if probability is None else f"{verdict} (probability {probability:.2f})"
+    if not_applicable is None:
+        return verdict if probability is None else f"{verdict} (probability {probability:.2f})"
+    parts = ([f"Choice probability {probability:.2f}"]
+             if verdict != "NOT_APPLICABLE" and probability is not None else [])
+    parts.append(f"P(not applicable) {not_applicable:.2f}")
+    if max(not_applicable, 1 - not_applicable) < CLOSE_CALL:
+        parts.append("uncertain applicability")
+    return f"{verdict} (" + "; ".join(parts) + ")"
+
+
+def _review_strength(row: dict) -> float | None:
+    """Rank review candidates by the weaker used signal; not a joint probability."""
+    if row["verdict"] is None:
+        return None
+    probability = row["probability"]
+    rule = row.get("not_applicable_probability")
+    if rule is None or row["verdict"] == "NOT_APPLICABLE":
+        return probability
+    return min(probability, 1 - rule) if probability is not None else 1 - rule
 
 
 def _finding_lines(trial: dict) -> list[str]:
     probability = _probability(trial["evidence"], trial["verdict"])
+    rule = (trial["evidence"] or {}).get("not_applicable")
     return [
         f"Inspect sample: `{trial.get('request_sample_id', trial['sample_id'])}` "
         f"(epoch {trial['epoch']}); check `{trial['check']}`; "
-        f"judge {_verdict_text(trial['verdict'], probability)}. "
+        f"judge {_verdict_text(trial['verdict'], probability, rule)}. "
         "The run's jury card shows the caregiver turn, the reply and the rule.",
         "",
     ]
@@ -356,7 +376,8 @@ def _finding_lines(trial: dict) -> list[str]:
 REASON = (
     "Each entry shows the reply, the rubric rule and any recorded probability. "
     "Jev supplies no written reason or evidence quote. A probability is judge output, "
-    "not measured accuracy or an explanation of the verdict."
+    "not measured accuracy or an explanation of the verdict. Choice and applicability "
+    "probabilities are separate signals, not a joint probability of the final verdict."
 )
 CLOSE_CALL = 0.6
 _ORDER = {"FAIL": 0, "UNCLEAR": 1, "NOT_APPLICABLE": 2, "PASS": 3, None: 4}
@@ -393,9 +414,11 @@ def build_jury_card(logs: list[EvalLog]) -> dict:
                 "rule": {k: payload["criterion"].get(k) for k in ("question", "pass", "fail")},
                 "verdict": verdict, "probability": _probability(evidence, verdict),
                 "probabilities": (evidence or {}).get("probabilities"),
+                **({"not_applicable_probability": evidence["not_applicable"]}
+                   if evidence and evidence.get("not_applicable") is not None else {}),
             })
     verdicts.sort(key=lambda v: (
-        _ORDER[v["verdict"]], 1.0 if v["probability"] is None else v["probability"],
+        _ORDER[v["verdict"]], 1.0 if _review_strength(v) is None else _review_strength(v),
         v["target"], v["item"], v["epoch"] or 0, v["check"], v["turn"]))
     return {"kind": "jury-card", "reason": REASON, "judge": ", ".join(sorted(judges)),
             **({"judge_method": jev.BATCH_METHOD} if methods == {jev.BATCH_METHOD} else {}),
@@ -415,8 +438,10 @@ def render_jury_card(card: dict) -> str:
              f"**Targets:** {', '.join(card['targets'])}  ",
              f"**Verdicts:** {len(card['verdicts'])}", "",
              f"**Evidence for review:** {card['reason']}", "",
-             f"A close call is a verdict the judge gave with probability below "
-             f"{card['close_call_below']:.2f}. Model comparisons from this card become claims "
+             f"A close call has a used Choice or applicability signal below "
+             f"{card['close_call_below']:.2f}. For an applicable check, the applicability signal "
+             "is 1 minus P(not applicable). Review order uses the weaker signal, not a joint "
+             "probability. This flag does not change the verdict. Model comparisons become claims "
              "once the judge is frozen and checked against independent human review.", "",
              "## Verdicts by check", "",
              "| Layer | Check | Dimension | PASS | FAIL | UNCLEAR | N/A | Unscored | Close calls |",
@@ -427,17 +452,17 @@ def render_jury_card(card: dict) -> str:
     for (layer, check), rows in sorted(by_check.items()):
         tally = [sum(r["verdict"] == v for r in rows)
                  for v in ("PASS", "FAIL", "UNCLEAR", "NOT_APPLICABLE", None)]
-        close = sum(r["probability"] is not None and r["probability"] < card["close_call_below"]
-                    for r in rows)
+        close = sum(_review_strength(r) is not None
+                    and _review_strength(r) < card["close_call_below"] for r in rows)
         lines.append(f"| {layer} | `{check}` | {rows[0]['dimension']} | "
                      + " | ".join(map(str, tally)) + f" | {close} |")
     lines += ["", "## Worked verdicts", "",
               "For each check: the FAIL the judge was surest of, and the closest call.", ""]
     for (layer, check), rows in sorted(by_check.items()):
         fails = [r for r in rows if r["verdict"] == "FAIL"]
-        surest = max(fails, key=lambda r: r["probability"] or 0) if fails else None
-        scored = [r for r in rows if r["probability"] is not None]
-        closest = min(scored, key=lambda r: r["probability"]) if scored else None
+        surest = max(fails, key=lambda r: _review_strength(r) or 0) if fails else None
+        scored = [r for r in rows if _review_strength(r) is not None]
+        closest = min(scored, key=_review_strength) if scored else None
         shown = [r for r in (surest, closest) if r is not None]
         for r in [r for i, r in enumerate(shown) if r not in shown[:i]]:
             rule = r["rule"]
@@ -447,7 +472,7 @@ def render_jury_card(card: dict) -> str:
                       "**Reply:**", "", *_quote(r["reply"]), "",
                       f"**Rule:** {rule['question']}", "",
                       f"- Pass: {rule['pass']}", f"- Fail: {rule['fail']}", "",
-                      f"**Verdict:** {_verdict_text(r['verdict'], r['probability'])}. "
+                      f"**Verdict:** {_verdict_text(r['verdict'], r['probability'], r.get('not_applicable_probability'))}. "
                       f"Inspect sample `{r.get('request_sample_id', r['sample_id'])}`.", ""]
     return "\n".join(lines) + "\n"
 

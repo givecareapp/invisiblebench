@@ -10,6 +10,28 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
+Development version 0.2.3. No paid run has assessed this revision.
+
+### Fixed
+
+- Jev Choice instructions now use only PASS, FAIL and UNCLEAR. Each Choice
+  and applicability question receives the same evidence-handling rules.
+- Single-check and batched requests now use identical state and question
+  content. Only question grouping and response IDs differ. Native method
+  names still describe the Inspect layout; the benchmark version and source
+  hashes distinguish this prompt revision from earlier runs.
+- Both Jev paths preserve the full response and request usage. One shared
+  parser rejects missing, null, boolean and invalid probabilities. Bad answers
+  remain unscored, including when other answers in a batch are valid.
+- Jury Cards and findings show Choice and applicability probabilities
+  separately. Review ordering includes the weaker used signal and flags
+  uncertain applicability. This is not a joint probability or a scoring change.
+  The 0.5 applicability cutoff is unchanged and remains uncalibrated.
+- Historical logs and the published archive remain readable. No case, label,
+  active review packet or saved pilot result changed.
+
+## [0.2.2]
+
 Development version 0.2.2. No paid run has assessed this revision.
 
 ### Changed

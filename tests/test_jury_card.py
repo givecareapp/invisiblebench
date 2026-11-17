@@ -63,7 +63,7 @@ def test_jury_card_shows_each_verdict_with_its_rule_turn_reply_and_probability(t
     text = render_jury_card(card)
     assert text.startswith("# InvisibleBench jury card")
     assert REASON in text
-    assert "FAIL (probability 0.85)" in text
+    assert "FAIL (Choice probability 0.85" in text
     first = card["verdicts"][0]
     for part in (first["caregiver"], first["reply"], first["rule"]["fail"]):
         assert part in text
@@ -79,3 +79,18 @@ def test_report_findings_drop_empty_reason_and_quote_fields(tmp_path):
                  "Missing."):
         assert dead not in text
     assert "jury card" in text
+
+
+def test_applicability_uncertainty_is_visible_without_changing_verdict(tmp_path):
+    log = _judged(tmp_path)
+    sample = log.samples[-1]
+    [score] = sample.scores.values()
+    score.metadata['evidence']['not_applicable'] = 0.49
+    card = build_jury_card([log])
+    row = next(r for r in card['verdicts'] if r['sample_id'] == sample.id)
+    assert row['verdict'] == 'PASS'
+    assert row['probability'] == 0.97  # Choice probability stays a separate raw signal.
+    assert row['not_applicable_probability'] == 0.49
+    text = render_jury_card(card)
+    assert 'P(not applicable) 0.49' in text
+    assert 'uncertain applicability' in text

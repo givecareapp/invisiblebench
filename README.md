@@ -3,7 +3,7 @@
 Type: how-to.
 
 InvisibleBench evaluates how an assistant handles multi-turn caregiver-support
-conversations. The active project is a **0.2.2 development slice**, not a
+conversations. The active project is a **0.2.3 development slice**, not a
 validated InvisibleBench 6.0 release. There is no validated model result or validated
 grader. Safety and Care remain separate; there is no composite score or model rank.
 
@@ -144,6 +144,9 @@ Batch logs record method `jev-prefix-batch/v1`. Single-check logs use
 `criterion/v1`. Reports keep the original check IDs and add `request_sample_id`
 for the native Inspect batch. Usage belongs to the request, not each check.
 Missing answers stay unscored; other answers in the batch remain available.
+From 0.2.3, both Jev paths use identical state and question content. Only grouping
+and question IDs differ. Both retain the full raw response and request usage.
+The version and source hashes distinguish this prompt revision from earlier runs.
 Repeated runs make fresh requests. See the
 [grader method](BENCHMARK_CARD.md#grader-development) for comparison limits.
 
@@ -233,7 +236,9 @@ accepted. Jev picks PASS, FAIL or UNCLEAR for each judged sample, with a
 probability for each. Where a check has a not_applicable rule, a separate yes/no
 question in the same request asks whether the rule holds; at 0.5 or more the
 verdict is NOT_APPLICABLE. Jev writes no reason and quotes no evidence, so reports
-show "No judge reason recorded" for its verdicts.
+show the reply and rule for review. Jury Cards show Choice and applicability
+probabilities separately. An uncertain applicability flag affects review order,
+not the verdict. Neither signal is measured judge accuracy.
 
 Paid inference requires pre-registration and an explicit cost ceiling. Before a
 paid run, write the purpose and acceptance criteria into `--purpose`; `run.json`

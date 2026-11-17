@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Version:** 0.2.2 development slice. **Status:** instrument under development;
+**Version:** 0.2.3 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)
@@ -317,8 +317,12 @@ evidence. These checks verify provenance, not relevance or semantic correctness.
 The pinned Jev path uses a choice among PASS, FAIL and UNCLEAR. A separate
 applicability question in the same request produces NOT_APPLICABLE at a working
 threshold of 0.5. Its probabilities are model output, not measured judge accuracy.
-Jev supplies no written reason or evidence quote. The Jury Card shows the reply
-and the rule for inspection; it does not invent an explanation.
+Jev supplies no written reason or evidence quote. Each question receives the
+untrusted-evidence rule independently. Choice asks for PASS, FAIL or UNCLEAR
+assuming the criterion applies; code uses the separate applicability answer.
+The Jury Card shows the reply, rule, Choice probability and P(not applicable).
+Review order uses the weaker used signal, not a joint probability. Close
+applicability calls are visible without changing the verdict or cutoff.
 
 The optional `jev-prefix-batch/v1` method groups checks for one reply into one
 Inspect sample and one TypeSafe request. The shared state contains only the
@@ -333,8 +337,12 @@ on a turn. This preserves score names when Inspect 0.3.287 re-scores a saved log
 These slots have no verdict and do not enter the report cohort or native metrics.
 
 The default remains `criterion/v1`; logs without a method field use that method.
-The case version does not change for this optional experiment. Moving a criterion
-from state to instructions may change judgments. Offline tests establish request
+Version 0.2.3 gives both Jev paths identical state and question content; only
+grouping and question IDs differ. Both retain the complete raw response and use
+one answer validator. Earlier versions moved the criterion between state and
+instructions when batching, so their comparisons did not isolate grouping.
+The benchmark version and source hashes identify the prompt revision in addition
+to the native layout name. Offline tests establish request
 count, evidence mapping and error handling, not equivalent judgments or measured
 speed. Before adopting this method, compare both methods on the same saved
 prefixes, with fresh repeats. Report per-check verdict changes, applicability
