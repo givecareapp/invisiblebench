@@ -17,6 +17,23 @@ not validate the cases or judge.
 
 ### Development findings
 
+- Run `2026-11-18_judge-repeat-026` recorded 10,422/10,422 checks on the
+  same saved conversations. It changed 104 verdicts (1.0%), so the judge
+  repeated 99.0% of verdicts on identical inputs. Of 521 originally unstable
+  cells in `2026-11-18_dev-repeat-026b`, 71 (13.6%) changed in the judge-only
+  repeat. This crosses the predeclared 10% line and counts against judge
+  repeatability. It does not undo the failed 90% full-repeat target or prove
+  judge accuracy.
+- Run `2026-11-18_format-lower-026` recorded 10,422/10,422 checks. None of
+  six target-by-layer comparisons met the predeclared format-sensitivity rule.
+  The largest shift was Llama Safety −4.95 points with a 99.1667% interval of
+  −11.08 to 1.18. The largest pooled check shifts were `care.fit` −10.1,
+  `access.status` −7.4, and `care.pace` −6.4 points. One deterministic
+  transform regenerated conversations; this is not a paraphrase test.
+- **EXPLORATORY, not predeclared:** in `2026-11-18_dev-repeat-026b`, the
+  target-by-layer pass-rate range across three generated epochs was at most
+  1.51 points. This post hoc calculation cannot replace the failed
+  predeclared ordered-verdict stability target.
 - Run `2026-11-18_dev-repeat-026b` recorded 10,422/10,422 checks. Its
   ordered-sequence stability was 76.7% overall, 77.4% Safety, and 76.4% Care.
   All fell below the predeclared 90% repeatability target. Generation and
