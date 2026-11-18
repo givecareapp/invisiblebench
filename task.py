@@ -35,6 +35,7 @@ OPENROUTER_PRICES: dict[str, tuple[float, float, float]] = {
     "openrouter/google/gemini-3.1-flash-lite": (0.25, 1.50, 0.025),
     "openrouter/deepseek/deepseek-v4.1-flash": (0.022, 0.40, 0.004),
     "openrouter/meta-llama/llama-3.3-70b-instruct": (0.71, 0.71, 0.71),
+    "openrouter/qwen/qwen3.7-flash": (0.03, 0.13, 0.03),
 }
 
 

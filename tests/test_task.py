@@ -43,6 +43,7 @@ PRICED = [
     "openrouter/google/gemini-3.1-flash-lite",
     "openrouter/deepseek/deepseek-v4.1-flash",
     "openrouter/meta-llama/llama-3.3-70b-instruct",
+    "openrouter/qwen/qwen3.7-flash",
 ]
 
 
