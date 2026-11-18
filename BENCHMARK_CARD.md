@@ -505,9 +505,11 @@ returned the same verdict on 99.0% of identical inputs. Among the 521 cells
 that were unstable in `2026-11-18_dev-repeat-026b`, 71 (13.6%) changed at
 least one verdict in the judge-only repeat. This exceeds the predeclared 10%
 line and counts against judge repeatability. In
-`2026-11-18_judge-repeat-026`, 450 of those 521 unstable cells did not change,
-so at most 71 can be attributed to the judge on this evidence. This comparison
-does not prove a causal split. The earlier 90% ordered-verdict stability target was not
+`2026-11-18_judge-repeat-026`, 450 of those 521 unstable cells did not change.
+The 71 changed cells show where the judge itself varied on identical input.
+One repeat cannot set an upper bound on the judge's share of the original
+instability: a judge difference in the first judgment may repeat the second
+time. This comparison does not give a causal split. The earlier 90% ordered-verdict stability target was not
 met. These are development judge outputs, not independent accuracy evidence.
 
 **The predeclared format-sensitivity rule was not triggered.** Run
@@ -700,6 +702,7 @@ PASS/FAIL-only agreement view. The fixed four-label analysis remains primary.
 Criterion 8 still needs two human annotators on the same frozen cards,
 human-to-human agreement, and comparison of the judge with adjudicated human
 labels. No rule or label changes follow from this first model annotation.
+A second-judge study (2026-11-18) ended incomplete and supports no claim.
 
 ### Freeze and separation
 
