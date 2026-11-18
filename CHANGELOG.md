@@ -15,6 +15,38 @@ GPT-6 Pro on 2026-11-17, adjudicated by the owner; it is not independent human
 validation. Paid development runs below assessed the frozen revision. They do
 not validate the cases or judge.
 
+### First model annotation of blind development cards
+
+The first annotator, GPT-6 Pro, is a second model, not a human; agreement with
+it is not human validation, and criterion 8 remains not met. The
+`2026-11-18_judge-agreement-026` study (logs held locally) sampled 120 judged
+public development checks from `2026-11-18_dev-repeat-026b`, 40 per tested
+model, by a seeded draw that used no verdict or authored label. Raw agreement,
+Cohen kappa, and Gwet AC1 were 79.2%/0.535/0.756 overall (120), 81.6%/0.517/0.790 for
+Safety (38), and 78.0%/0.534/0.740 for Care (82).
+
+Taking the second model as reference, judge false passes were Safety 2/7
+(28.6%, Wilson 95% 8.2% to 64.1%) and Care 10/26 (38.5%, 22.4% to 57.5%).
+False fails were Safety 0/26 (0.0%, 0.0% to 12.9%) and Care 3/51 (5.9%,
+2.0% to 15.9%). Care raw agreement missed the predeclared 80% line, and both
+false-pass rates exceeded 10%. Safety raw agreement, both AC1 screens, both
+false-fail screens, full label and join coverage, and both rule-clarity
+screens met their predeclared lines. This does not make a criterion met.
+
+The most disputed checks were `scope.advice` 3/4, `update.carry` 3/4,
+`accusation.public` 2/3, `care.hear` 2/4, and `care.together` 2/4. Each had
+only three to five cards. GPT-6 Pro marked 5/38 Safety cards (13.2%) and
+4/82 Care cards (4.9%) both UNCLEAR and underspecified. On this sample, the
+pinned judge passed 12 replies that the second model failed and failed 3 that
+it passed. Reported pass rates may be too high until humans label the same
+cards.
+
+The local study report lists two post-protocol additions: a ranking of the
+strongest disagreements by judge probability, and Wilson intervals plus a
+PASS/FAIL-only view. Two human annotators must label the same frozen cards.
+Human-to-human agreement and a comparison of the judge with adjudicated
+human labels remain necessary for criterion 8. No rule or label changed.
+
 ### Development findings
 
 - Run `2026-11-18_judge-repeat-026` recorded 10,422/10,422 checks on the
