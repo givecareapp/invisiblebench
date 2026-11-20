@@ -61,6 +61,9 @@ source.
 
 ## Run offline checks
 
+Use Python 3.12 (`.python-version`). Install
+[uv](https://docs.astral.sh/uv/getting-started/installation/) first.
+
 ```bash
 scripts/check.sh
 ```
@@ -93,6 +96,18 @@ dimension; paired differences; counts; the registered list price per million
 tokens; one worked FAIL per dimension; and the changes list. A test rebuilds the
 committed archive from the committed changes and run records, byte for byte.
 Publishing it is an owner decision.
+
+Run `uv sync --locked` to set up the environment. This step can download
+dependencies. Then rebuild the archive offline and compare the hashes.
+
+```bash
+sha256sum data/releases/web-bench-release.tar.gz &&
+  uv run --locked --offline python release.py build &&
+  sha256sum data/releases/web-bench-release.tar.gz
+```
+
+The two hashes match. Pass rates and intervals come from the verdict rows in
+`data/runs/`. `stats.py` computes the intervals. No model call is made.
 
 ## Use the development tasks
 
@@ -215,7 +230,8 @@ each GEN log's evaluation ID and SHA-256, and the family input hashes. Do not pa
 `--family`, `--target`, or `--controls` with this option. A paid judge still
 needs `--judge-cost-limit-usd` and `--ceiling-usd`. The planned command for
 the frozen 0.2.6 repeat is in the local Run 4 addendum under
-`results/2026-11-18_reliability-plan/addendum-1.md`.
+`results/2026-11-18_reliability-plan/addendum-1.md` (held locally, not in this
+repository).
 
 The `--out` directory must be new or empty. It receives the Inspect logs and
 generated reports:
