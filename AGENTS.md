@@ -3,7 +3,7 @@
 Type: reference.
 
 This independent repository owns the public benchmark runtime and benchmark
-releases. Global, workspace and [Safety](../../AGENTS.md) instructions apply.
+releases. Global, workspace and [Safety](../AGENTS.md) instructions apply.
 
 ## Ownership and layout
 
