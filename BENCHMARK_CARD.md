@@ -198,6 +198,24 @@ generation, control judging, target judging, and an offline report. Inspect
 are not part of this public development package. The prior 5.8 public release
 is source revision `22552fe` in Git history; its results are not rebuild results.
 
+Generation uses `max_tokens` 8192 by default, the same for every target;
+`run.py --max-tokens` can change it. It sets no temperature and no seed, so
+provider defaults apply. The public run record does not state the generation
+settings a run used. Each run record in `data/runs/` names the
+judge ID and the number of repeats (epochs) in its `run` header, and each
+target ID in its verdict rows. Target rows give OpenRouter model IDs without
+dated revisions. The judge runs on a remote service. A new run can give
+different results.
+
+The Jev judge needs a TypeSafe API key. TypeSafe's public documentation says
+to get a key from the [TypeSafe console](https://console.typesafe.ai/keys) and
+lists `jev-1.14.0` as a [model ID](https://docs.typesafe.ai/models).
+
+The public record in `data/runs/` is derived from the `.eval` logs. It holds
+one row for each planned check and a small set of worked excerpts. The `.eval`
+logs are not in this repository. Results on the withheld split cannot be
+reproduced by a third party.
+
 ## Interoperability
 
 Inspect `.eval` is the canonical exchange and replay artifact for this slice.
