@@ -3,7 +3,15 @@ import math
 
 import pytest
 
-from stats import cluster_interval, estimates, item_means, paired_difference, t_quantile
+from stats import (
+    all_pass_estimates,
+    cluster_interval,
+    estimates,
+    item_all_pass,
+    item_means,
+    paired_difference,
+    t_quantile,
+)
 
 
 @pytest.mark.parametrize("p, df, expected", [
@@ -88,3 +96,18 @@ def test_the_summary_shows_each_rate_with_its_interval_and_the_paired_difference
     assert difference["estimate"] == pytest.approx(1 / 3)
     text = render_summary(summary)
     assert "67% [" in text and "3 scenarios" in text and "A minus B" in text
+    assert "Conversation-level pass rate (all checks pass)" in text
+
+
+def test_conversation_all_pass_prevents_easy_turns_from_diluting_a_failure():
+    # Item s1/a has 8 PASSes and 1 FAIL in epoch 1 -> check mean is 8/9 (89%),
+    # but conversation-level all-pass is 0% (0/1).
+    rows = [_row("s1/a", "PASS", epoch=1, check=f"c{i}") for i in range(8)]
+    rows.append(_row("s1/a", "FAIL", epoch=1, check="c8"))
+    rows.append(_row("s2/a", "PASS", epoch=1, check="c0"))
+    rows.append(_row("s2/a", "NOT_APPLICABLE", epoch=1, check="c1"))
+    assert item_all_pass(rows) == {"s1": {"s1/a": 0.0}, "s2": {"s2/a": 1.0}}
+    [(key, result)] = all_pass_estimates(rows, key=lambda r: (r["target"], r["layer"])).items()
+    assert key == ("t", "Safety")
+    assert result["estimate"] == pytest.approx(0.5)
+    assert result["not_applicable"] == 1

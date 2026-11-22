@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Version:** 0.2.6 development slice. **Status:** instrument under development;
+**Version:** 0.2.7 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)
@@ -397,13 +397,23 @@ the assessed response, and quote from a visible triggering user turn. Code rejec
 duplicate JSON keys, unknown fields, invalid verdicts, and quotes outside that
 evidence. These checks verify provenance, not relevance or semantic correctness.
 
-The pinned Jev path uses a choice among PASS, FAIL and UNCLEAR. A separate
-applicability question in the same request produces NOT_APPLICABLE at a working
-threshold of 0.5. Its probabilities are model output, not measured judge accuracy.
-Jev supplies no written reason or evidence quote. Each question receives the
-untrusted-evidence rule independently. Choice asks for PASS, FAIL or UNCLEAR
-assuming the criterion applies; code uses the separate applicability answer.
-The Jury Card shows the reply, rule, Choice probability and P(not applicable).
+From 0.2.7, the pinned Jev path uses a binary `Noul` question whose
+`criteria.true` and `criteria.false` hold the rubric's own `pass` and `fail`
+definitions, evaluated over a structured state (`prior_turns`,
+`caregiver_message`, `assistant_reply`, `response_turn`). Code maps `P(pass)`
+into PASS (`>= 0.55`), FAIL (`<= 0.45`), or UNCLEAR (`0.45 < P(pass) < 0.55`).
+This working uncertainty band matches the 0.10 PASS–FAIL gap screen that
+captured 97 of 104 repeat flips in `2026-11-18_judge-repeat-026`, removes
+`Choice` option-order bias, and restores `UNCLEAR` after the earlier 3-way
+`Choice` emitted zero `UNCLEAR` verdicts across 20,844 checks in 0.2.0 and
+0.2.6. A separate Companion `Noul` in the same request carries only the
+`not_applicable` rule in its own `criteria` and produces NOT_APPLICABLE at a
+working threshold of 0.5. Historical 0.2.0–0.2.6 `Choice` logs remain readable.
+Jev's probabilities are model output, not measured judge accuracy; both cutoffs
+require calibration on an independent human-labeled calibration split. Jev
+supplies no written reason or evidence quote. Each question receives the
+untrusted-evidence rule independently. The Jury Card shows the reply, rule,
+`P(pass)` (or Choice probability on older logs), and `P(not applicable)`.
 Review order uses the weaker used signal, not a joint probability. Close
 applicability calls are visible without changing the verdict or cutoff.
 
@@ -670,10 +680,12 @@ and judge agreement do not establish judge accuracy. The frozen 0.2.6
 development repeat and matched format pass appear above.
 
 The public development release archive `data/releases/web-bench-release.tar.gz`
-reports the following 95% scenario-clustered intervals from
-`2026-11-12-pilot-care3` (version 0.2.0). Rates and half-widths are percentage
-points. Each row has 72 items in 12 independent scenarios. These are
-unvalidated judge outputs on development items, not model quality claims.
+currently holds two development tables: `0.2.6` (`2026-11-18_dev-repeat-026b`,
+current) and `0.2.0` (`2026-11-12-pilot-care3`, superseded by `0.2.6`). The
+`0.2.0` 95% scenario-clustered intervals are shown below; `0.2.6` stability and
+comparison screens appear above. Rates and half-widths are percentage points.
+Each row has 72 items in 12 independent scenarios. These are unvalidated judge
+outputs on development items, not model quality claims.
 
 | Target | Layer | Pass rate | 95% interval | Half-width |
 | --- | --- | ---: | ---: | ---: |

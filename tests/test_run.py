@@ -232,6 +232,8 @@ def test_non_empty_out_refuses_and_an_empty_one_is_accepted(tmp_path, monkeypatc
 @pytest.mark.parametrize("kwargs, extra, message", [
     ({"family": "no_such_family"}, [], "Unknown family 'no_such_family'; known families"),
     ({"targets": ()}, [], "Nothing to run"),
+    ({"targets": ("mockllm/model", "mockllm/model")}, [], "Duplicate --target"),
+    ({}, ["--family", "backup_care"], "Duplicate --family"),
     ({}, ["--max-tokens", "0"], "must be finite and positive"),
     ({}, ["--epochs", "0"], "must be finite and positive"),
     ({}, ["--ceiling-usd", "nan"], "must be finite and positive"),

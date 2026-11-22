@@ -107,7 +107,7 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
     }
     assert len(samples) == len(planned)
     if name == "backup_care":
-        assert len(samples) == 432
+        assert len(samples) == 450
     assert len({sample.id for sample in samples}) == len(samples)
     for sample in samples:
         control, check, turn = planned[sample.id]
@@ -260,11 +260,11 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
         fail_on_error=False,
     )
     assert log.status == "success", log.error
-    assert len(requests) == 432
+    assert len(requests) == 450
     report = summarize(log)
     audit = build_report(log)
     assert audit["summary"] == report
-    assert len(audit["trials"]) == 432
+    assert len(audit["trials"]) == 450
     assert audit["run"]["model"] == "mockllm/model"
     assert audit["summary"]["source_sha256"] == task.metadata["source_sha256"]
     assert all(trial["verdict"] == prediction and trial["evidence"] for trial in audit["trials"])
@@ -274,7 +274,7 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
     for layer in ("Safety", "Care"):
         for counts in report["by_layer"][layer].values():
             totals.update({key: value for key, value in counts.items() if isinstance(value, int)})
-    assert totals["planned"] == totals["recorded"] == 432
+    assert totals["planned"] == totals["recorded"] == 450
     assert totals["missing"] == totals["unscored"] == totals["execution_error"] == 0
     # The fake always returns one verdict: the report must expose its errors and
     # must not call the result grader accuracy or model quality.
@@ -301,7 +301,7 @@ def test_fixed_verdict_mock_exposes_errors_without_claiming_accuracy(tmp_path, p
     assert f"; judge {prediction}. " in readable and "Response evidence:" not in readable
     assert "No recorded FAIL" not in readable
     if prediction == "PASS":
-        assert readable.count("### False pass:") == totals["false_pass"] == 49
+        assert readable.count("### False pass:") == totals["false_pass"] == 52
         assert "FAIL→PASS" in readable
     else:
         assert readable.count("### False fail:") == totals["false_fail"]
@@ -350,7 +350,7 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
     }
     errors = {c["sample_id"]: c["error"] for c in source["conversations"] if c["error"]}
     assert "Deliberate provider outage at turn 3" in errors["backup_care/unavailable"]
-    assert "Incomplete response at user turn 2" in errors["backup_care/unasked"]
+    assert "Incomplete or blocked response (max_tokens) at user turn 2" in errors["backup_care/unasked"]
     assert len(build_packet(source_log)["items"]) == 37
 
     def valid_judgment(messages, tools, tool_choice, config):
@@ -378,7 +378,11 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
     # Every backup_care item is serious; scored verdicts are reported by item severity.
     serious = report["summary"]["by_severity"]["Safety"]["serious"]
     safety_passes = sum(c["PASS"] for c in report["summary"]["by_layer"]["Safety"].values())
+    safety_planned = sum(c["planned"] for c in report["summary"]["by_layer"]["Safety"].values())
+    safety_missing = sum(c["missing"] for c in report["summary"]["by_layer"]["Safety"].values())
     assert serious["PASS"] == safety_passes > 0
+    assert serious["planned"] == safety_planned
+    assert serious["missing"] == safety_missing > 0
     assert set(report["summary"]["by_severity"]["Care"]) == {"serious"}
     assert all(sample.metadata["severity"] == "serious" and sample.metadata["scenario"] == "backup_care"
                for sample in task.dataset)
@@ -386,7 +390,7 @@ def test_interrupted_generation_keeps_completed_turns_and_its_error(tmp_path):
     readable = render_markdown(report)
     assert "| Safety | `agency.consent` | override | care_recipient |" in readable
     assert "### Verdicts by item severity" in readable
-    assert f"| Safety | serious | {safety_passes} | 0 | 0 | 0 |" in readable
+    assert f"| Safety | serious | {safety_planned} | {safety_passes} | 0 | 0 | 0 | {safety_missing} | 0 | 0 |" in readable
     assert "| Interrupted | Unattempted |" in readable
     assert "1 complete, 2 interrupted, of 3 planned" in readable
     assert "`backup_care/unavailable` (epoch 1): interrupted, 2 of 3 turns completed" in readable
@@ -443,12 +447,12 @@ def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path
 
     report = summarize(log)
     care = report["by_layer"]["Care"]["care.alternative"]
-    assert care["planned"] == 2 * 24
+    assert care["planned"] == 2 * 25
     assert care["recorded"] == care["unclear"] == 2
     assert care["missing"] == care["planned"] - care["recorded"]
     assert care["confusion"]["PASS"]["UNCLEAR"] == 2
     safety = report["by_layer"]["Safety"]["privacy.message"]
-    assert safety["planned"] == 2 * 24 * 3
+    assert safety["planned"] == 2 * 25 * 3
     assert safety["recorded"] == 2
     assert safety["missing"] == safety["planned"] - safety["recorded"]
     assert safety["applicability_error"] == 2

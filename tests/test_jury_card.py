@@ -1,6 +1,7 @@
 import json
 from glob import glob
 
+import pytest
 from inspect_ai import eval as inspect_eval
 from inspect_ai.model import ModelOutput, get_model
 
@@ -94,3 +95,33 @@ def test_applicability_uncertainty_is_visible_without_changing_verdict(tmp_path)
     text = render_jury_card(card)
     assert 'P(not applicable) 0.49' in text
     assert 'uncertain applicability' in text
+
+
+def test_noul_pass_probability_and_unclear_band_render_in_jury_card_and_summary(tmp_path):
+    from report import render_summary, summarize_rows, target_rows
+
+    log = _judged(tmp_path)
+    noul_shapes = [
+        ("FAIL", {"verdict": "FAIL", "pass_probability": 0.08, "not_applicable": 0.05}),
+        ("UNCLEAR", {"verdict": "UNCLEAR", "pass_probability": 0.51, "not_applicable": 0.05}),
+        ("NOT_APPLICABLE", {"verdict": "NOT_APPLICABLE", "pass_probability": 0.90, "not_applicable": 0.85}),
+    ]
+    for sample, (verdict, evidence) in zip(log.samples, noul_shapes, strict=True):
+        [score] = sample.scores.values()
+        score.value = score.answer = verdict
+        score.metadata["evidence"] = evidence
+    card = build_jury_card([log])
+    card["stop_reason"] = "reported cost $1.0500 exceeds ceiling $1.0000"
+    by_verdict = {v["verdict"]: v for v in card["verdicts"]}
+    assert by_verdict["FAIL"]["probability"] == pytest.approx(0.92)
+    assert by_verdict["UNCLEAR"]["probability"] == pytest.approx(0.51)
+    assert by_verdict["NOT_APPLICABLE"]["probability"] == pytest.approx(0.85)
+    rendered = render_jury_card(card)
+    assert "Incomplete run (stopped early):" in rendered
+    assert "FAIL (P(pass) 0.08; P(not applicable) 0.05)" in rendered
+    assert "UNCLEAR (P(pass) 0.51; within 0.45–0.55 band; P(not applicable) 0.05)" in rendered
+    summary = summarize_rows(target_rows(log))
+    summary["stop_reason"] = card["stop_reason"]
+    summary_md = render_summary(summary)
+    assert "Incomplete run (stopped early):" in summary_md
+    assert "1 N/A" in summary_md and "unscored" in summary_md

@@ -17,7 +17,7 @@ from grader import (
     summarize_target,
     target_observations,
 )
-from stats import estimates, paired_difference
+from stats import all_pass_estimates, estimates, paired_difference
 
 
 def build_report(log: EvalLog) -> dict:
@@ -127,28 +127,52 @@ def summarize_rows(rows: list[dict]) -> dict:
                 scoped = [row for row in rows if row["layer"] == layer]
                 differences.append({"a": a, "b": b, "layer": layer,
                                     **paired_difference(scoped, a, b)})
-    return {"method": METHOD, "targets": targets, "by": by, "differences": differences,
+    by_all_pass = [
+        {"target": target, "group": group, **interval}
+        for (target, group), interval
+        in all_pass_estimates(rows, key=lambda r: (r["target"], r["layer"])).items()
+    ]
+    return {"method": METHOD, "targets": targets, "by": by,
+            "by_conversation_all_pass": by_all_pass, "differences": differences,
             "unscored": sum(row["verdict"] is None for row in rows),
             "not_applicable": sum(row["verdict"] == "NOT_APPLICABLE" for row in rows)}
 
 
 def _interval(row: dict) -> str:
+    extra = []
+    if row.get("not_applicable"):
+        extra.append(f"{row['not_applicable']} N/A")
+    if row.get("unscored"):
+        extra.append(f"{row['unscored']} unscored")
+    suffix = (" · " + ", ".join(extra)) if extra else ""
     if row["estimate"] is None:
-        return "no scored verdicts"
+        return "no scored verdicts" + suffix
     if row["low"] is None:
-        return f"{row['estimate']:.0%} (one scenario, no interval) · {row['items']} items"
+        return f"{row['estimate']:.0%} (one scenario, no interval) · {row['items']} items{suffix}"
     return (f"{row['estimate']:.0%} [{row['low']:.0%}, {row['high']:.0%}] · "
-            f"{row['items']} items, {row['clusters']} scenarios")
+            f"{row['items']} items, {row['clusters']} scenarios{suffix}")
 
 
 def render_summary(summary: dict) -> str:
-    lines = ["# InvisibleBench run summary", "", f"**Method:** {summary['method']}", "",
-             f"Unscored verdicts: {summary['unscored']}. "
-             f"Not applicable: {summary['not_applicable']}.", ""]
+    lines = ["# InvisibleBench run summary", ""]
+    if summary.get("stop_reason"):
+        lines += [f"**Incomplete run (stopped early):** {summary['stop_reason']}", ""]
+    lines += [f"**Method:** {summary['method']}", "",
+              f"Unscored verdicts: {summary['unscored']}. "
+              f"Not applicable: {summary['not_applicable']}.", ""]
     for name, rows in summary["by"].items():
         lines += [f"## Pass rate by {name}", "", "| Target | Group | Pass rate [95% interval] |",
                   "| --- | --- | --- |"]
         lines += [f"| {r['target']} | {r['group']} | {_interval(r)} |" for r in rows]
+        lines.append("")
+    if summary.get("by_conversation_all_pass"):
+        lines += ["## Conversation-level pass rate (all checks pass)", "",
+                  "An item-epoch passes a layer only when every observed check in that layer "
+                  "passes across all turns, so easy turns cannot dilute a failure.", "",
+                  "| Target | Layer | All-checks-pass rate [95% interval] |",
+                  "| --- | --- | --- |"]
+        lines += [f"| {r['target']} | {r['group']} | {_interval(r)} |"
+                  for r in summary["by_conversation_all_pass"]]
         lines.append("")
     if summary["differences"]:
         lines += ["## Paired differences", "", "| Comparison | Layer | Difference [95% interval] |",
@@ -333,13 +357,30 @@ def _probability(evidence: dict | None, verdict: str | None) -> float | None:
     evidence = evidence or {}
     if verdict == "NOT_APPLICABLE":
         return evidence.get("not_applicable")
+    if "pass_probability" in evidence:
+        pass_prob = evidence["pass_probability"]
+        if pass_prob is None:
+            return None
+        return round(1.0 - pass_prob, 6) if verdict == "FAIL" else pass_prob
     return (evidence.get("probabilities") or {}).get(verdict)
 
 
 def _verdict_text(verdict: str | None, probability: float | None,
-                  not_applicable: float | None = None) -> str:
+                  not_applicable: float | None = None, *,
+                  pass_probability: float | None = None) -> str:
     if verdict is None:
         return "unscored"
+    if pass_probability is not None:
+        parts = []
+        if verdict != "NOT_APPLICABLE":
+            parts.append(f"P(pass) {pass_probability:.2f}")
+            if verdict == "UNCLEAR":
+                parts.append(f"within {jev.FAIL_AT:.2f}–{jev.PASS_AT:.2f} band")
+        if not_applicable is not None:
+            parts.append(f"P(not applicable) {not_applicable:.2f}")
+            if max(not_applicable, 1 - not_applicable) < CLOSE_CALL:
+                parts.append("uncertain applicability")
+        return f"{verdict} (" + "; ".join(parts) + ")"
     if not_applicable is None:
         return verdict if probability is None else f"{verdict} (probability {probability:.2f})"
     parts = ([f"Choice probability {probability:.2f}"]
@@ -354,7 +395,10 @@ def _review_strength(row: dict) -> float | None:
     """Rank review candidates by the weaker used signal; not a joint probability."""
     if row["verdict"] is None:
         return None
-    probability = row["probability"]
+    if row.get("pass_probability") is not None and row["verdict"] == "UNCLEAR":
+        probability = max(row["pass_probability"], 1.0 - row["pass_probability"])
+    else:
+        probability = row["probability"]
     rule = row.get("not_applicable_probability")
     if rule is None or row["verdict"] == "NOT_APPLICABLE":
         return probability
@@ -362,12 +406,13 @@ def _review_strength(row: dict) -> float | None:
 
 
 def _finding_lines(trial: dict) -> list[str]:
-    probability = _probability(trial["evidence"], trial["verdict"])
-    rule = (trial["evidence"] or {}).get("not_applicable")
+    evidence = trial["evidence"] or {}
+    probability = _probability(evidence, trial["verdict"])
+    rule = evidence.get("not_applicable")
     return [
         f"Inspect sample: `{trial.get('request_sample_id', trial['sample_id'])}` "
         f"(epoch {trial['epoch']}); check `{trial['check']}`; "
-        f"judge {_verdict_text(trial['verdict'], probability, rule)}. "
+        f"judge {_verdict_text(trial['verdict'], probability, rule, pass_probability=evidence.get('pass_probability'))}. "
         "The run's jury card shows the caregiver turn, the reply and the rule.",
         "",
     ]
@@ -376,7 +421,7 @@ def _finding_lines(trial: dict) -> list[str]:
 REASON = (
     "Each entry shows the reply, the rubric rule and any recorded probability. "
     "Jev supplies no written reason or evidence quote. A probability is judge output, "
-    "not measured accuracy or an explanation of the verdict. Choice and applicability "
+    "not measured accuracy or an explanation of the verdict. Pass/Choice and applicability "
     "probabilities are separate signals, not a joint probability of the final verdict."
 )
 CLOSE_CALL = 0.6
@@ -414,6 +459,10 @@ def build_jury_card(logs: list[EvalLog]) -> dict:
                 "rule": {k: payload["criterion"].get(k) for k in ("question", "pass", "fail")},
                 "verdict": verdict, "probability": _probability(evidence, verdict),
                 "probabilities": (evidence or {}).get("probabilities"),
+                **({"pass_probability": evidence["pass_probability"]}
+                   if evidence and evidence.get("pass_probability") is not None else {}),
+                **({"subchecks": evidence["subchecks"]}
+                   if evidence and evidence.get("subchecks") else {}),
                 **({"not_applicable_probability": evidence["not_applicable"]}
                    if evidence and evidence.get("not_applicable") is not None else {}),
             })
@@ -432,20 +481,22 @@ def _quote(text: str | None) -> list[str]:
 
 def render_jury_card(card: dict) -> str:
     """Counts by check, then worked verdicts: each check's likeliest FAIL and its closest call."""
-    lines = ["# InvisibleBench jury card", "",
-             f"**Judge:** {card['judge']}  ",
-             *([f"**Judge method:** {card['judge_method']}  "] if "judge_method" in card else []),
-             f"**Targets:** {', '.join(card['targets'])}  ",
-             f"**Verdicts:** {len(card['verdicts'])}", "",
-             f"**Evidence for review:** {card['reason']}", "",
-             f"A close call has a used Choice or applicability signal below "
-             f"{card['close_call_below']:.2f}. For an applicable check, the applicability signal "
-             "is 1 minus P(not applicable). Review order uses the weaker signal, not a joint "
-             "probability. This flag does not change the verdict. Model comparisons become claims "
-             "once the judge is frozen and checked against independent human review.", "",
-             "## Verdicts by check", "",
-             "| Layer | Check | Dimension | PASS | FAIL | UNCLEAR | N/A | Unscored | Close calls |",
-             "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    lines = ["# InvisibleBench jury card", ""]
+    if card.get("stop_reason"):
+        lines += [f"**Incomplete run (stopped early):** {card['stop_reason']}", ""]
+    lines += [f"**Judge:** {card['judge']}  ",
+              *([f"**Judge method:** {card['judge_method']}  "] if "judge_method" in card else []),
+              f"**Targets:** {', '.join(card['targets'])}  ",
+              f"**Verdicts:** {len(card['verdicts'])}", "",
+              f"**Evidence for review:** {card['reason']}", "",
+              f"A close call has a used Pass/Choice or applicability signal below "
+              f"{card['close_call_below']:.2f}. For an applicable check, the applicability signal "
+              "is 1 minus P(not applicable). Review order uses the weaker signal, not a joint "
+              "probability. This flag does not change the verdict. Model comparisons become claims "
+              "once the judge is frozen and checked against independent human review.", "",
+              "## Verdicts by check", "",
+              "| Layer | Check | Dimension | PASS | FAIL | UNCLEAR | N/A | Unscored | Close calls |",
+              "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
     by_check = {}
     for v in card["verdicts"]:
         by_check.setdefault((v["layer"], v["check"]), []).append(v)
@@ -472,8 +523,12 @@ def render_jury_card(card: dict) -> str:
                       "**Reply:**", "", *_quote(r["reply"]), "",
                       f"**Rule:** {rule['question']}", "",
                       f"- Pass: {rule['pass']}", f"- Fail: {rule['fail']}", "",
-                      f"**Verdict:** {_verdict_text(r['verdict'], r['probability'], r.get('not_applicable_probability'))}. "
-                      f"Inspect sample `{r.get('request_sample_id', r['sample_id'])}`.", ""]
+                      f"**Verdict:** {_verdict_text(r['verdict'], r['probability'], r.get('not_applicable_probability'), pass_probability=r.get('pass_probability'))}. "
+                      f"Inspect sample `{r.get('request_sample_id', r['sample_id'])}`.",
+                      *(["**Subchecks:** " + "; ".join(
+                          f"`{sid}` P(pass) {info['pass_probability']:.2f}"
+                          for sid, info in r["subchecks"].items()
+                      )] if r.get("subchecks") else []), ""]
     return "\n".join(lines) + "\n"
 
 
@@ -556,13 +611,21 @@ def render_markdown(report: dict) -> str:
             "",
             "### Verdicts by item severity",
             "",
-            "| Layer | Severity | PASS | FAIL | UNCLEAR | N/A |",
-            "| --- | --- | ---: | ---: | ---: | ---: |",
+            "| Layer | Severity | Planned | PASS | FAIL | UNCLEAR | N/A | Missing | Error | Unscored |",
+            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ])
         for layer, levels in summary.get("by_severity", {}).items():
             for level, counts in levels.items():
-                lines.append(f"| {layer} | {level} | {counts['PASS']} | {counts['FAIL']} | "
-                             f"{counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} |")
+                planned = counts.get(
+                    "planned",
+                    counts["PASS"] + counts["FAIL"] + counts["UNCLEAR"] + counts["NOT_APPLICABLE"],
+                )
+                lines.append(
+                    f"| {layer} | {level} | {planned} | {counts['PASS']} | {counts['FAIL']} | "
+                    f"{counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
+                    f"{counts.get('missing', 0)} | {counts.get('execution_error', 0)} | "
+                    f"{counts.get('unscored', 0)} |"
+                )
         source = summary["target"]
         lines.extend([
             "",

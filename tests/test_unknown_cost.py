@@ -160,3 +160,23 @@ def test_cli_stop_keeps_native_log_and_completed_reports_without_network(
     else:
         assert not (out / 'judge').exists()
         assert not (out / 'reports').exists()
+
+
+def test_multiturn_generation_missing_turn1_usage_still_flags_unknown_cost():
+    # A multi-turn sample whose final turn reports usage must still flag unknown paid cost
+    # when an earlier paid ModelEvent lacked usage.
+    log = NS(
+        eval=NS(model=PAID),
+        stats=NS(model_usage={PAID: NS(total_cost=0.01)}),
+        samples=[NS(
+            output=NS(usage=NS(input_tokens=10, output_tokens=5)),
+            events=[
+                NS(event='model', model=PAID, output=NS(usage=None)),
+                NS(event='model', model=PAID, output=NS(usage=NS(input_tokens=10, output_tokens=5))),
+            ],
+        )],
+    )
+    assert run.unknown_paid_cost(log)
+    # When all paid turns have usage, the log's cost is known.
+    log.samples[0].events[0].output.usage = NS(input_tokens=8, output_tokens=4)
+    assert not run.unknown_paid_cost(log)

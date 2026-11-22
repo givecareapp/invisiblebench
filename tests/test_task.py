@@ -315,7 +315,7 @@ def test_actual_history_without_future_turns_or_rubric(tmp_path, variant):
     task = conversation_family("backup_care")
     assert task.scorer is None
     assert task.metadata["use"] == "development"
-    assert task.metadata["benchmark_version"] == "0.2.6"
+    assert task.metadata["benchmark_version"] == "0.2.7"
     [log] = inspect_eval(
         task, model=model, sample_id=f"backup_care/{variant}",
         log_dir=str(tmp_path), display="none",
@@ -336,12 +336,19 @@ def test_actual_history_without_future_turns_or_rubric(tmp_path, variant):
     assert not log.samples[0].scores
 
 
-def test_truncation_is_an_execution_gap_not_a_completed_conversation(tmp_path):
+@pytest.mark.parametrize("stop_reason, text, expected_msg", [
+    ("max_tokens", "Unfinished", "Incomplete or blocked response (max_tokens) at user turn 1"),
+    ("content_filter", "Blocked", "Incomplete or blocked response (content_filter) at user turn 1"),
+    ("stop", "   ", "Empty response at user turn 1"),
+])
+def test_truncation_is_an_execution_gap_not_a_completed_conversation(
+    tmp_path, stop_reason, text, expected_msg,
+):
     requests = []
 
     def respond(messages, tools, tool_choice, config):
         requests.append(messages)
-        return ModelOutput.from_content("mockllm/model", "Unfinished", stop_reason="max_tokens")
+        return ModelOutput.from_content("mockllm/model", text, stop_reason=stop_reason)
 
     [log] = inspect_eval(
         conversation_family("backup_care"), model=get_model("mockllm/model", custom_outputs=respond),
@@ -350,7 +357,7 @@ def test_truncation_is_an_execution_gap_not_a_completed_conversation(tmp_path):
     )
     assert len(requests) == 1
     assert log.samples[0].error is not None
-    assert "Incomplete response at user turn 1" in log.samples[0].error.message
+    assert expected_msg in log.samples[0].error.message
     assert log.samples[0].metadata["completed_turns"] == 0
     assert not log.samples[0].scores
 

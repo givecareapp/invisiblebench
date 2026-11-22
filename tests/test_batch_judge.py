@@ -39,19 +39,26 @@ def test_control_batches_preserve_checks_reports_and_charge_one_request(fake_jev
     assert len(list(judged_samples(batched))) == logical_count
     assert not hasattr(next(judged_samples(batched)), "output")
     for body, _ in fake_jev.calls:
-        assert set(body["state"]) == {"response_turn", "conversation"}
-        assert body["state"]["conversation"][-1]["turn"] == body["state"]["response_turn"]
-        for question in body["questions"].values():
+        assert set(body["state"]) == {
+            "response_turn", "prior_turns", "caregiver_message", "assistant_reply",
+        }
+        assert body["state"]["assistant_reply"]
+        assert body["state"]["caregiver_message"]
+        for name, question in body["questions"].items():
+            assert question["type"] == "noul"
             instructions = question["instructions"]
-            assert {"state_guide", "criterion", "question"} <= set(instructions)
-            if question["type"] == "choice":
+            assert {"state_guide", "rules", "question"} <= set(instructions)
+            assert set(question["criteria"]) == {"true", "false"}
+            if name.endswith(".verdict"):
                 assert "Judge this criterion only" in instructions["rules"]
+            elif ".verdict." in name:
+                assert "specific sub-question" in instructions["rules"]
             else:
                 assert "untrusted evidence" in instructions["rules"]
-                assert instructions["criterion"]["not_applicable"]
+                assert question["criteria"]["true"]
             assert "expected" not in json.dumps(question)
-            assert "dimension" not in instructions["criterion"]
-            assert "protects" not in instructions["criterion"]
+            assert "dimension" not in json.dumps(question)
+            assert "protects" not in json.dumps(question)
     fake_jev.calls.clear()
     single = evaluate(control_judge(0.05), tmp_path / "single", limit=logical_count)
     assert len(fake_jev.calls) == logical_count
@@ -83,13 +90,13 @@ def test_one_bad_question_keeps_other_results_and_usage(fake_jev, tmp_path, monk
         if fault == "missing_choice":
             del reply["answers"][f"{check}.verdict"]
         elif fault == "malformed_choice":
-            reply["answers"][f"{check}.verdict"] = {"type": "choice", "choice": "MAYBE"}
+            reply["answers"][f"{check}.verdict"] = {"type": "score", "score": 0.5}
         elif fault == "missing_noul":
             del reply["answers"][name]
         elif fault == "malformed_noul":
             reply["answers"][name]["noul"] = None
         else:
-            reply["answers"][f"{check}.verdict"]["probabilities"]["PASS"] = True
+            reply["answers"][f"{check}.verdict"]["noul"] = True
         return reply
 
     monkeypatch.setattr(jev, "post_systemone", damage)
@@ -161,7 +168,7 @@ def test_complete_runner_writes_reports_without_changing_public_release(fake_jev
         "--judge", JEV, "--target", "mockllm/model",
         "--judge-cost-limit-usd", "0.05", "--ceiling-usd", "1",
     ]) == 0
-    assert len(fake_jev.calls) == 72 + 9
+    assert len(fake_jev.calls) == 75 + 9
     logs = load_run(out)
     [log] = logs
     assert len(log.samples) == 9
@@ -240,18 +247,20 @@ def test_answers_dispatch_by_check_even_when_reordered(fake_jev, tmp_path, monke
 
     def distinct(body, key):
         reply = post(body, key)
-        for index, (name, question) in enumerate(body["questions"].items()):
-            check, kind = name.rsplit(".", 1)
-            if kind == "verdict":
-                verdict = ["PASS", "FAIL", "UNCLEAR"][index % 3]
-                reply["answers"][name].update(
-                    choice=verdict,
-                    probabilities={v: (0.96 if v == verdict else 0.02)
-                                   for v in question["criteria"]})
-                expected[check] = verdict
-            else:
+        for index, name in enumerate(body["questions"]):
+            if name.endswith(".not_applicable"):
+                check = name.removesuffix(".not_applicable")
                 reply["answers"][name]["noul"] = 0.9
                 expected[check] = "NOT_APPLICABLE"
+            elif ".verdict." in name:
+                check = name.split(".verdict.", 1)[0]
+                reply["answers"][name]["noul"] = 0.96
+                expected[check] = "FAIL"
+            else:
+                check = name.removesuffix(".verdict")
+                prob, verdict = [(0.96, "PASS"), (0.04, "FAIL"), (0.50, "UNCLEAR")][index % 3]
+                reply["answers"][name]["noul"] = prob
+                expected[check] = verdict
         reply["answers"] = dict(reversed(list(reply["answers"].items())))
         return reply
 

@@ -183,10 +183,19 @@ def conversation() -> Solver:
                     ChatMessageUser(content=state.metadata["followups"][index - 1])
                 )
             state = await generate(state)
-            if state.output.stop_reason in {"max_tokens", "model_length"}:
-                raise RuntimeError(f"Incomplete response at user turn {index + 1}")
+            if state.output.stop_reason in {"max_tokens", "model_length", "content_filter"}:
+                raise RuntimeError(
+                    f"Incomplete or blocked response ({state.output.stop_reason}) "
+                    f"at user turn {index + 1}"
+                )
+            if not state.output.completion.strip():
+                raise RuntimeError(f"Empty response at user turn {index + 1}")
             # A reply is judgeable evidence only once complete. The log keeps truncated text.
             state.metadata["completed_turns"] = index + 1
+        if state.metadata["completed_turns"] < len(state.metadata["followups"]) + 1:
+            raise RuntimeError(
+                f"Conversation stopped early after {state.metadata['completed_turns']} turns"
+            )
         return state
 
     return solve

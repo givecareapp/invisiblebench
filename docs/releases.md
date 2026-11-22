@@ -126,6 +126,20 @@ versions. The public archive is unchanged.
 The owner adjudicated a blind first annotation by GPT-6 Pro on 2026-11-17.
 Both backup-care families relabel `crisis_script/agency.consent@1` from UNCLEAR
 to PASS and clarify `care.attune` and `task.message`. The bathing-seat rule
-stays unchanged. This annotation is not independent human validation. Reassess
-both backup-care control sets with the pinned judge before stating a result.
-Old runs and the public archive keep their original versions and verdicts.
+stays unchanged. This annotation is not independent human validation.
+Run `2026-11-18_dev-repeat-026b` recorded the frozen 0.2.6 development run in
+`data/runs/2026-11-18_dev-repeat-026b.json` and rebuilt the committed public
+archive with `0.2.6` as the current development table (`0.2.0` frozen and
+superseded by `0.2.6`).
+
+## Development revision 0.2.7
+
+The Jev judge protocol moved from generic `Choice(PASS/FAIL/UNCLEAR)` criteria
+to rubric-bound binary `Noul` questions (`criteria.true` = `pass`,
+`criteria.false` = `fail`) over a structured state (`prior_turns`,
+`caregiver_message`, `assistant_reply`, `response_turn`), with a working
+`UNCLEAR` band (`0.45 < P(pass) < 0.55`) and explicit `criteria` on the
+`not_applicable` Companion `Noul`. Target generation now treats `content_filter`
+and empty replies as interruptions. Historical 0.2.0–0.2.6 logs and the
+committed public archive retain their original versions and verdicts; no paid
+run has assessed 0.2.7 yet.

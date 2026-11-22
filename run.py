@@ -102,6 +102,10 @@ def check_request(args: argparse.Namespace) -> None:
             raise ValueError("--out must be outside the source generation directory")
     elif not args.family:
         raise ValueError("Give --family for a generation or control run")
+    if len(set(args.family)) != len(args.family):
+        raise ValueError(f"Duplicate --family entries: {args.family}")
+    if len(set(args.target)) != len(args.target):
+        raise ValueError(f"Duplicate --target entries: {args.target}")
     for family in args.family:
         case_path(family)  # raises for an unknown family
         judged_revision(family, Path(__file__).resolve())  # raises for uncommitted case files
@@ -224,6 +228,19 @@ def reported_cost(logs) -> tuple[float, int]:
     return total, unknown
 
 
+def _sample_missing_paid_usage(sample) -> bool:
+    """Check every model call in a sample (all turns of generation, or the single judge call)."""
+    events = [event for event in (getattr(sample, "events", None) or [])
+              if getattr(event, "event", None) == "model"]
+    if events:
+        return any(
+            not str(getattr(event, "model", "")).startswith("mockllm/")
+            and (event.output is None or event.output.usage is None)
+            for event in events
+        )
+    return sample.output is None or sample.output.usage is None
+
+
 def unknown_paid_cost(log: EvalLog) -> bool:
     """Mock usage is free; absent paid usage cannot establish zero spend."""
     usage = usage_of(log)
@@ -232,10 +249,10 @@ def unknown_paid_cost(log: EvalLog) -> bool:
         return not log.eval.model.startswith("mockllm/")
     if any(item.total_cost is None for item in paid):
         return True
-    # A known aggregate can hide an individual call with no usage. Judge samples
-    # each make one call; preserve unknown cost even beside fully priced samples.
+    # A known aggregate can hide an individual call with no usage (including an earlier
+    # turn of a multi-turn generation). Preserve unknown cost beside fully priced samples.
     return not log.eval.model.startswith("mockllm/") and any(
-        sample.output is None or sample.output.usage is None for sample in log.samples or []
+        _sample_missing_paid_usage(sample) for sample in log.samples or []
     )
 
 
@@ -308,7 +325,8 @@ def execute(
     return done, None, None
 
 
-def write_reports(done: list[tuple[str, EvalLog]], directory: Path) -> None:
+def write_reports(done: list[tuple[str, EvalLog]], directory: Path,
+                  stop: str | None = None) -> None:
     """One report per control or judge log, plus a summary with intervals over judge logs."""
     for kind, log in done:
         if kind == "GEN":
@@ -322,10 +340,14 @@ def write_reports(done: list[tuple[str, EvalLog]], directory: Path) -> None:
     judged = [log for kind, log in done if kind == "JUDGE"]
     if judged:
         summary = summarize_rows([row for log in judged for row in target_rows(log)])
+        if stop is not None:
+            summary["stop_reason"] = stop
         text = json.dumps(summary, indent=2, ensure_ascii=False)
         (directory / "summary.json").write_text(text + "\n", encoding="utf-8")
         (directory / "summary.md").write_text(render_summary(summary), encoding="utf-8")
         card = build_jury_card(judged)
+        if stop is not None:
+            card["stop_reason"] = stop
         text = json.dumps(card, indent=2, ensure_ascii=False)
         (directory / "jury-card.json").write_text(text + "\n", encoding="utf-8")
         (directory / "jury-card.md").write_text(render_jury_card(card), encoding="utf-8")
@@ -386,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(error))
     args.out.mkdir(parents=True, exist_ok=True)
     done, stop, error = execute(args, saved_generation)
-    write_reports(done, args.out / "reports")
+    write_reports(done, args.out / "reports", stop)
     write_record(args, done, stop, source_binding)
     spent, unknown = reported_cost(log for _, log in done)
     tail = f"{unknown} of {len(done)} logs report no cost"

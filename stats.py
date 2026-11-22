@@ -112,6 +112,39 @@ def estimates(rows: list[dict], key, level: float = 0.95) -> dict:
     return result
 
 
+def item_all_pass(rows: list[dict]) -> dict:
+    """{scenario: {item: share of observed item-epochs where every observed check is PASS}}."""
+    epochs = defaultdict(list)
+    for row in rows:
+        if row["verdict"] in OBSERVED:
+            epochs[(row["scenario"], row["item"], row.get("epoch") or 1)].append(
+                row["verdict"] == "PASS"
+            )
+    by_item = defaultdict(list)
+    for (scenario, item, _epoch), passes in epochs.items():
+        by_item[(scenario, item)].append(1.0 if all(passes) else 0.0)
+    result = defaultdict(dict)
+    for (scenario, item), outcomes in by_item.items():
+        result[scenario][item] = sum(outcomes) / len(outcomes)
+    return dict(result)
+
+
+def all_pass_estimates(rows: list[dict], key, level: float = 0.95) -> dict:
+    """Clustered conversation-level all-checks-pass rate per group (no easy-turn dilution)."""
+    groups = defaultdict(list)
+    for row in rows:
+        groups[key(row)].append(row)
+    result = {}
+    for name, members in sorted(groups.items(), key=lambda pair: str(pair[0])):
+        means = item_all_pass(members)
+        result[name] = {
+            **cluster_interval({s: list(items.values()) for s, items in means.items()}, level),
+            "not_applicable": sum(r["verdict"] == "NOT_APPLICABLE" for r in members),
+            "unscored": sum(r["verdict"] is None for r in members),
+        }
+    return result
+
+
 def paired_difference(rows: list[dict], a: str, b: str, level: float = 0.95) -> dict:
     """Pass-rate difference A minus B on the items both targets have."""
     first = item_means([r for r in rows if r["target"] == a])

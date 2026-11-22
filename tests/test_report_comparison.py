@@ -27,10 +27,10 @@ def compare(logs):
 def test_agreement_keeps_full_denominator_and_physical_usage(paired_logs):
     diff = compare(paired_logs)
     assert diff["paired"] == 6 and not diff["flips"]
-    assert sum(c["planned"] for c in diff["by_check"]) == 432
+    assert sum(c["planned"] for c in diff["by_check"]) == 450
     assert sum(c["both_scored"] for c in diff["by_check"]) == 6
     assert sum(c["same_verdict"] for c in diff["by_check"]) == 6
-    assert sum(c["missing_both"] for c in diff["by_check"]) == 432 - 6
+    assert sum(c["missing_both"] for c in diff["by_check"]) == 450 - 6
     assert {c["layer"] for c in diff["by_check"]} == {"Safety", "Care"}
     a, b = (diff[side]["execution"] for side in ("before", "after"))
     assert (a["native_samples"], b["native_samples"]) == (6, 1)
@@ -67,7 +67,7 @@ def test_no_records_cannot_look_like_full_agreement(paired_logs):
     diff = compare(paired_logs)
     assert not diff["flips"] and diff["paired"] == 0
     assert sum(c["both_scored"] for c in diff["by_check"]) == 0
-    assert sum(c["missing_both"] for c in diff["by_check"]) == 432
+    assert sum(c["missing_both"] for c in diff["by_check"]) == 450
     text = render_diff(diff)
     assert "Missing and unscored checks are not agreements" in text
     assert "Check scored coverage above" in text
@@ -93,8 +93,9 @@ def test_matching_ids_do_not_permit_changed_reply_or_rule(paired_logs):
         if change == "reply":
             payload["state"]["conversation"][-1]["content"] += " Changed reply."
         else:
-            question = next(q for q in payload["questions"].values() if q["type"] == "choice")
-            question["instructions"]["criterion"]["question"] += " Changed rule."
+            check = next(c for c, rule in payload["criteria"].items() if not rule.get("subchecks"))
+            payload["criteria"][check]["question"] += " Changed rule."
+            payload["questions"][f"{check}.verdict"]["instructions"]["question"] += " Changed rule."
         sample.input[-1].content = json.dumps(payload)
         with pytest.raises(ValueError, match="same frozen criterion and conversation"):
             compare((before, after))
