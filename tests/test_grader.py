@@ -109,6 +109,8 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
     if name == "backup_care":
         assert len(samples) == 450
     assert len({sample.id for sample in samples}) == len(samples)
+    family = load_case(name)
+    variant_turns = {v["id"]: user_turns(family, v) for v in family["variants"]}
     for sample in samples:
         control, check, turn = planned[sample.id]
         assert sample.target == control["expected"][f"{check['id']}@{turn}"]
@@ -124,9 +126,7 @@ def test_control_samples_bind_each_control_to_one_prefix_only_check(name):
         assert '"protects"' not in sample.input[1].text
         assert prompt["response_turn"] == turn
         conversation = prompt["conversation"]
-        family = load_case(name)
-        variant = next(v for v in family["variants"] if v["id"] == control["variant"])
-        users = user_turns(family, variant)
+        users = variant_turns[control["variant"]]
         assert [entry["role"] for entry in conversation] == [
             role for _ in range(turn) for role in ("user", "assistant")
         ]

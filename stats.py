@@ -96,14 +96,14 @@ def item_means(rows: list[dict]) -> dict:
     return dict(result)
 
 
-def estimates(rows: list[dict], key, level: float = 0.95) -> dict:
+def estimates(rows: list[dict], key, level: float = 0.95, *, aggregator=item_means) -> dict:
     """One clustered interval per group, with left-out verdicts counted."""
     groups = defaultdict(list)
     for row in rows:
         groups[key(row)].append(row)
     result = {}
     for name, members in sorted(groups.items(), key=lambda pair: str(pair[0])):
-        means = item_means(members)
+        means = aggregator(members)
         result[name] = {
             **cluster_interval({s: list(items.values()) for s, items in means.items()}, level),
             "not_applicable": sum(r["verdict"] == "NOT_APPLICABLE" for r in members),
@@ -131,18 +131,7 @@ def item_all_pass(rows: list[dict]) -> dict:
 
 def all_pass_estimates(rows: list[dict], key, level: float = 0.95) -> dict:
     """Clustered conversation-level all-checks-pass rate per group (no easy-turn dilution)."""
-    groups = defaultdict(list)
-    for row in rows:
-        groups[key(row)].append(row)
-    result = {}
-    for name, members in sorted(groups.items(), key=lambda pair: str(pair[0])):
-        means = item_all_pass(members)
-        result[name] = {
-            **cluster_interval({s: list(items.values()) for s, items in means.items()}, level),
-            "not_applicable": sum(r["verdict"] == "NOT_APPLICABLE" for r in members),
-            "unscored": sum(r["verdict"] is None for r in members),
-        }
-    return result
+    return estimates(rows, key, level, aggregator=item_all_pass)
 
 
 def paired_difference(rows: list[dict], a: str, b: str, level: float = 0.95) -> dict:

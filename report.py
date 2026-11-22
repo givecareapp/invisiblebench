@@ -219,8 +219,10 @@ def diff_reports(before: dict, after: dict) -> dict:
         configs = [(r["run"]["plan"] or {}).get("config") for r in (before, after)]
         if not same_model or configs[0] != configs[1]:
             raise ValueError("A judge-method comparison must keep the judge model and settings fixed")
-    trials = lambda report: {(t["sample_id"], t["epoch"]): t for t in report["trials"]}  # noqa: E731
-    first, second = trials(before), trials(after)
+    def _trial_index(report: dict) -> dict:
+        return {(t["sample_id"], t["epoch"]): t for t in report["trials"]}
+
+    first, second = _trial_index(before), _trial_index(after)
     if any(len(index) != len(report["trials"])
            for index, report in ((first, before), (second, after))):
         raise ValueError("Duplicate check and epoch in comparison")
@@ -237,14 +239,16 @@ def diff_reports(before: dict, after: dict) -> dict:
     for flip in flips:
         label = f"{flip['before']}->{flip['after']}"
         counts[label] = counts.get(label, 0) + 1
-    identity = lambda report: {  # noqa: E731
-        "eval_id": report["run"]["eval_id"], "model": report["run"]["model"],
-        "revision": report["run"]["revision"],
-        "source_sha256": report["summary"].get("source_sha256"),
-        "judge_method": report["run"]["judge_method"],
-        "execution": {**report["run"]["execution"],
-                      "model_usage": report["run"]["model_usage"]},
-    }
+
+    def _identity(report: dict) -> dict:
+        return {
+            "eval_id": report["run"]["eval_id"], "model": report["run"]["model"],
+            "revision": report["run"]["revision"],
+            "source_sha256": report["summary"].get("source_sha256"),
+            "judge_method": report["run"]["judge_method"],
+            "execution": {**report["run"]["execution"],
+                          "model_usage": report["run"]["model_usage"]},
+        }
     by_check = []
     union = set(first) | set(second)
     for layer, checks in before["summary"]["by_layer"].items():
@@ -272,7 +276,7 @@ def diff_reports(before: dict, after: dict) -> dict:
                                                   "unscored_both")},
             })
     return {
-        "kind": "verdict-diff", "before": identity(before), "after": identity(after),
+        "kind": "verdict-diff", "before": _identity(before), "after": _identity(after),
         "paired": len(shared), "only_before": len(set(first) - set(second)),
         "only_after": len(set(second) - set(first)), "flip_counts": dict(sorted(counts.items())),
         "flips": flips,
@@ -362,15 +366,7 @@ def _disagreement(reference: str, verdict: str) -> str:
 
 def _probability(evidence: dict | None, verdict: str | None) -> float | None:
     """One raw answer probability, never a joint probability of the final verdict."""
-    evidence = evidence or {}
-    if verdict == "NOT_APPLICABLE":
-        return evidence.get("not_applicable")
-    if "pass_probability" in evidence:
-        pass_prob = evidence["pass_probability"]
-        if pass_prob is None:
-            return None
-        return round(1.0 - pass_prob, 6) if verdict == "FAIL" else pass_prob
-    return (evidence.get("probabilities") or {}).get(verdict)
+    return jev.verdict_probability(evidence, verdict)
 
 
 def _verdict_text(verdict: str | None, probability: float | None,
@@ -403,14 +399,15 @@ def _review_strength(row: dict) -> float | None:
     """Rank review candidates by the weaker used signal; not a joint probability."""
     if row["verdict"] is None:
         return None
-    if row.get("pass_probability") is not None and row["verdict"] == "UNCLEAR":
-        probability = max(row["pass_probability"], 1.0 - row["pass_probability"])
-    else:
-        probability = row["probability"]
-    rule = row.get("not_applicable_probability")
-    if rule is None or row["verdict"] == "NOT_APPLICABLE":
-        return probability
-    return min(probability, 1 - rule) if probability is not None else 1 - rule
+    evidence = {
+        "probabilities": row.get("probabilities"),
+        "not_applicable": row.get("not_applicable_probability"),
+    }
+    if row.get("pass_probability") is not None:
+        evidence["pass_probability"] = row["pass_probability"]
+    elif row["verdict"] != "NOT_APPLICABLE" and row["probability"] is not None:
+        evidence["probabilities"] = {row["verdict"]: row["probability"]}
+    return jev.signal_strength(evidence, row["verdict"])
 
 
 def _finding_lines(trial: dict) -> list[str]:
@@ -540,12 +537,179 @@ def render_jury_card(card: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _render_control_section(summary: dict, trials: list[dict]) -> list[str]:
+    lines = [
+        "## Judge output against authored labels",
+        "",
+        "| Layer | Check | Planned | Ref PASS | Ref FAIL | Ref UNCLEAR | Ref N/A | Exact "
+        "| False pass | False fail | Applicability | Judge UNCLEAR | Missing | Error | Unscored |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for layer, checks in summary["by_layer"].items():
+        for check, counts in checks.items():
+            ref = counts["reference_counts"]
+            lines.append(
+                f"| {layer} | `{check}` | {counts['planned']} | {ref.get('PASS', 0)} | "
+                f"{ref.get('FAIL', 0)} | {ref.get('UNCLEAR', 0)} | {ref.get('NOT_APPLICABLE', 0)} | "
+                f"{counts['exact_match']} | {counts['false_pass']} | {counts['false_fail']} | "
+                f"{counts['applicability_error']} | {counts['unclear']} | {counts['missing']} | "
+                f"{counts['execution_error']} | {counts['unscored']} |"
+            )
+    lines.extend([
+        "",
+        "Control counts compare judge output with authored development labels. A false pass "
+        "is a reference FAIL judged PASS; a false fail is a reference PASS judged FAIL. These "
+        "are development controls; they do not estimate precision or recall on independent cases.",
+        "",
+        "### Confusion by check (reference → judge)",
+        "",
+    ])
+    for checks in summary["by_layer"].values():
+        for check, counts in checks.items():
+            cells = [
+                f"{expected}→{predicted} {n}"
+                for expected, row in sorted(counts["confusion"].items())
+                for predicted, n in sorted(row.items()) if n
+            ]
+            lines.append(f"- `{check}`: " + (" · ".join(cells) if cells else "no scored items"))
+    lines.extend(["", "## Judge disagreements requiring review", ""])
+    findings = [t for t in trials if t["verdict"] is not None and t["verdict"] != t["reference"]]
+    if not findings:
+        lines.append("No disagreements with authored labels among scored items. "
+                     "Check missing, error, and unscored coverage above.")
+    for trial in findings:
+        kind = _disagreement(trial["reference"], trial["verdict"])
+        lines.extend([
+            f"### {kind}: {trial['layer']} / {trial['check']} / turn {trial['turn']}",
+            "",
+            f"Reference {trial['reference']}; judge {trial['verdict']}.",
+            *_finding_lines(trial),
+        ])
+    return lines
+
+
+def _render_escalation_section(summary: dict, trials: list[dict]) -> list[str]:
+    parent = summary["parent_judge"]
+    policy = summary["escalation_policy"]
+    lines = [
+        "## System Two escalation audit",
+        "",
+        f"- Parent System One judge: `{parent['model']}` (`{parent['eval_id']}`, SHA-256 `{parent['judge_log_sha256']}`).",
+        f"- Policy: `include_safety={policy['include_safety']}`, `close_below={policy['close_below']}` "
+        f"({policy['selected_checks']} of {policy['total_judged_checks']} checks escalated).",
+        "",
+        "| Layer | Check | Escalated | PASS | FAIL | UNCLEAR | N/A | Same | Changed | Missing | Error | Unscored |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for layer, checks in summary["by_layer"].items():
+        for check, counts in checks.items():
+            lines.append(
+                f"| {layer} | `{check}` | {counts['planned']} | {counts['PASS']} | "
+                f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
+                f"{counts['same_verdict']} | {counts['changed_verdict']} | "
+                f"{counts['missing']} | {counts['execution_error']} | {counts['unscored']} |"
+            )
+    lines.extend(["", "## Escalated verdict changes requiring review", ""])
+    changed = [t for t in trials if t["verdict"] is not None and t["verdict"] != t.get("parent_verdict")]
+    if not changed:
+        lines.append("No System Two verdict changes among scored escalations.")
+    for trial in changed:
+        reason = (trial["evidence"] or {}).get("reason")
+        lines.extend([
+            f"### {trial.get('parent_verdict') or 'unscored'} → {trial['verdict']}: "
+            f"{trial['layer']} / {trial['check']} / turn {trial['turn']}",
+            "",
+            f"Sample `{trial['sample_id']}`; reasons: `{', '.join(trial.get('escalation_reasons') or [])}`.",
+            *([f"System Two reason: {reason}"] if reason else []),
+            "",
+        ])
+    return lines
+
+
+def _render_target_section(summary: dict, trials: list[dict]) -> list[str]:
+    lines = [
+        "## Per-check observations",
+        "",
+        "| Layer | Check | Dimension | Protects | Planned | PASS | FAIL | UNCLEAR | N/A "
+        "| Interrupted | Unattempted | Judge missing | Judge error | Unscored |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: "
+        "| ---: | ---: |",
+    ]
+    for layer, checks in summary["by_layer"].items():
+        for check, counts in checks.items():
+            lines.append(
+                f"| {layer} | `{check}` | {counts.get('dimension') or 'not recorded'} | "
+                f"{', '.join(counts.get('protects') or []) or 'not recorded'} | "
+                f"{counts['planned']} | {counts['PASS']} | "
+                f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
+                f"{counts['generation_interrupted']} | {counts['generation_unattempted']} | "
+                f"{counts['judge_missing']} | {counts['execution_error']} | {counts['unscored']} |"
+            )
+    lines.extend([
+        "",
+        "### Verdicts by item severity",
+        "",
+        "| Layer | Severity | Planned | PASS | FAIL | UNCLEAR | N/A | Missing | Error | Unscored |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ])
+    for layer, levels in summary.get("by_severity", {}).items():
+        for level, counts in levels.items():
+            planned = counts.get(
+                "planned",
+                counts["PASS"] + counts["FAIL"] + counts["UNCLEAR"] + counts["NOT_APPLICABLE"],
+            )
+            lines.append(
+                f"| {layer} | {level} | {planned} | {counts['PASS']} | {counts['FAIL']} | "
+                f"{counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
+                f"{counts.get('missing', 0)} | {counts.get('execution_error', 0)} | "
+                f"{counts.get('unscored', 0)} |"
+            )
+    source = summary["target"]
+    gen_cfg = (source.get("settings") or {}).get("plan", {}) or {}
+    gen_cfg = gen_cfg.get("config") or (source.get("settings") or {}).get("model_generate_config") or {}
+    gen_summary = {k: gen_cfg.get(k) for k in ("max_tokens", "temperature", "seed")
+                   if k in gen_cfg and gen_cfg.get(k) is not None}
+    lines.extend([
+        "",
+        "The counts describe unvalidated judge output, not model quality. Interrupted and "
+        "unattempted opportunities come from the generation log; the judge columns describe "
+        "this judging run.",
+        "",
+        "## Source generation",
+        "",
+        f"- Inspect evaluation ID: `{source['eval_id']}`; model: `{source['model']}`.",
+        f"- Source log SHA-256: `{source['source_log_sha256']}`.",
+        f"- Generation settings: `{json.dumps(gen_summary, sort_keys=True) if gen_summary else 'provider defaults'}`.",
+        f"- Conversations: {source['complete_samples']} complete, "
+        f"{source['interrupted_samples']} interrupted, of {source['planned_samples']} planned.",
+    ])
+    for conversation in source["conversations"]:
+        if conversation["status"] == "complete":
+            continue
+        line = (f"- `{conversation['sample_id']}` (epoch {conversation['epoch']}): "
+                f"{conversation['status']}, {conversation['completed_turns']} of "
+                f"{conversation['planned_turns']} turns completed")
+        if conversation["error"]:
+            line += f"; error: {json.dumps(conversation['error'], ensure_ascii=False)}"
+        lines.append(line)
+    lines.extend(["", "## Findings requiring review", ""])
+    findings = [t for t in trials if t["verdict"] in {"FAIL", "UNCLEAR"}]
+    if not findings:
+        lines.append("No recorded FAIL or UNCLEAR verdicts. Check interrupted, unattempted, "
+                     "and unscored coverage above.")
+    for trial in findings:
+        lines.extend([
+            f"### {trial['verdict']}: {trial['layer']} / {trial['check']} / turn {trial['turn']}",
+            "",
+            *_finding_lines(trial),
+        ])
+    return lines
+
+
 def render_markdown(report: dict) -> str:
     """Human reading layer; the Inspect log remains the evidence record."""
     run = report["run"]
     summary = report["summary"]
-    control = report["kind"] == "judge-development-audit"
-    escalation = report["kind"] == "target-escalation-audit"
     revision = run["revision"]
     revision_text = (f"commit {revision['commit']}, dirty {revision['dirty']}"
                      if revision["commit"] else "none recorded")
@@ -562,172 +726,12 @@ def render_markdown(report: dict) -> str:
         f"**Validation:** {report['validation']}",
         "",
     ]
-    if control:
-        lines.extend([
-            "## Judge output against authored labels",
-            "",
-            "| Layer | Check | Planned | Ref PASS | Ref FAIL | Ref UNCLEAR | Ref N/A | Exact "
-            "| False pass | False fail | Applicability | Judge UNCLEAR | Missing | Error | Unscored |",
-            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-        ])
-        for layer, checks in summary["by_layer"].items():
-            for check, counts in checks.items():
-                ref = counts["reference_counts"]
-                lines.append(
-                    f"| {layer} | `{check}` | {counts['planned']} | {ref.get('PASS', 0)} | "
-                    f"{ref.get('FAIL', 0)} | {ref.get('UNCLEAR', 0)} | {ref.get('NOT_APPLICABLE', 0)} | "
-                    f"{counts['exact_match']} | {counts['false_pass']} | {counts['false_fail']} | "
-                    f"{counts['applicability_error']} | {counts['unclear']} | {counts['missing']} | "
-                    f"{counts['execution_error']} | {counts['unscored']} |"
-                )
-        lines.extend([
-            "",
-            "Control counts compare judge output with authored development labels. A false pass "
-            "is a reference FAIL judged PASS; a false fail is a reference PASS judged FAIL. These "
-            "are development controls; they do not estimate precision or recall on independent cases.",
-            "",
-            "### Confusion by check (reference → judge)",
-            "",
-        ])
-        for checks in summary["by_layer"].values():
-            for check, counts in checks.items():
-                cells = [
-                    f"{expected}→{predicted} {n}"
-                    for expected, row in sorted(counts["confusion"].items())
-                    for predicted, n in sorted(row.items()) if n
-                ]
-                lines.append(f"- `{check}`: " + (" · ".join(cells) if cells else "no scored items"))
-    elif escalation:
-        parent = summary["parent_judge"]
-        policy = summary["escalation_policy"]
-        lines.extend([
-            "## System Two escalation audit",
-            "",
-            f"- Parent System One judge: `{parent['model']}` (`{parent['eval_id']}`, SHA-256 `{parent['judge_log_sha256']}`).",
-            f"- Policy: `include_safety={policy['include_safety']}`, `close_below={policy['close_below']}` "
-            f"({policy['selected_checks']} of {policy['total_judged_checks']} checks escalated).",
-            "",
-            "| Layer | Check | Escalated | PASS | FAIL | UNCLEAR | N/A | Same | Changed | Missing | Error | Unscored |",
-            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-        ])
-        for layer, checks in summary["by_layer"].items():
-            for check, counts in checks.items():
-                lines.append(
-                    f"| {layer} | `{check}` | {counts['planned']} | {counts['PASS']} | "
-                    f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
-                    f"{counts['same_verdict']} | {counts['changed_verdict']} | "
-                    f"{counts['missing']} | {counts['execution_error']} | {counts['unscored']} |"
-                )
-        lines.extend(["", "## Escalated verdict changes requiring review", ""])
-        changed = [t for t in report["trials"]
-                   if t["verdict"] is not None and t["verdict"] != t.get("parent_verdict")]
-        if not changed:
-            lines.append("No System Two verdict changes among scored escalations.")
-        for trial in changed:
-            reason = (trial["evidence"] or {}).get("reason")
-            lines.extend([
-                f"### {trial.get('parent_verdict') or 'unscored'} → {trial['verdict']}: "
-                f"{trial['layer']} / {trial['check']} / turn {trial['turn']}",
-                "",
-                f"Sample `{trial['sample_id']}`; reasons: `{', '.join(trial.get('escalation_reasons') or [])}`.",
-                *([f"System Two reason: {reason}"] if reason else []),
-                "",
-            ])
+    if report["kind"] == "judge-development-audit":
+        lines.extend(_render_control_section(summary, report["trials"]))
+    elif report["kind"] == "target-escalation-audit":
+        lines.extend(_render_escalation_section(summary, report["trials"]))
     else:
-        lines.extend([
-            "## Per-check observations",
-            "",
-            "| Layer | Check | Dimension | Protects | Planned | PASS | FAIL | UNCLEAR | N/A "
-            "| Interrupted | Unattempted | Judge missing | Judge error | Unscored |",
-            "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: "
-            "| ---: | ---: |",
-        ])
-        for layer, checks in summary["by_layer"].items():
-            for check, counts in checks.items():
-                lines.append(
-                    f"| {layer} | `{check}` | {counts.get('dimension') or 'not recorded'} | "
-                    f"{', '.join(counts.get('protects') or []) or 'not recorded'} | "
-                    f"{counts['planned']} | {counts['PASS']} | "
-                    f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
-                    f"{counts['generation_interrupted']} | {counts['generation_unattempted']} | "
-                    f"{counts['judge_missing']} | {counts['execution_error']} | {counts['unscored']} |"
-                )
-        lines.extend([
-            "",
-            "### Verdicts by item severity",
-            "",
-            "| Layer | Severity | Planned | PASS | FAIL | UNCLEAR | N/A | Missing | Error | Unscored |",
-            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-        ])
-        for layer, levels in summary.get("by_severity", {}).items():
-            for level, counts in levels.items():
-                planned = counts.get(
-                    "planned",
-                    counts["PASS"] + counts["FAIL"] + counts["UNCLEAR"] + counts["NOT_APPLICABLE"],
-                )
-                lines.append(
-                    f"| {layer} | {level} | {planned} | {counts['PASS']} | {counts['FAIL']} | "
-                    f"{counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
-                    f"{counts.get('missing', 0)} | {counts.get('execution_error', 0)} | "
-                    f"{counts.get('unscored', 0)} |"
-                )
-        source = summary["target"]
-        gen_cfg = (source.get("settings") or {}).get("plan", {}) or {}
-        gen_cfg = gen_cfg.get("config") or (source.get("settings") or {}).get("model_generate_config") or {}
-        gen_summary = {k: gen_cfg.get(k) for k in ("max_tokens", "temperature", "seed")
-                       if k in gen_cfg and gen_cfg.get(k) is not None}
-        lines.extend([
-            "",
-            "The counts describe unvalidated judge output, not model quality. Interrupted and "
-            "unattempted opportunities come from the generation log; the judge columns describe "
-            "this judging run.",
-            "",
-            "## Source generation",
-            "",
-            f"- Inspect evaluation ID: `{source['eval_id']}`; model: `{source['model']}`.",
-            f"- Source log SHA-256: `{source['source_log_sha256']}`.",
-            f"- Generation settings: `{json.dumps(gen_summary, sort_keys=True) if gen_summary else 'provider defaults'}`.",
-            f"- Conversations: {source['complete_samples']} complete, "
-            f"{source['interrupted_samples']} interrupted, of {source['planned_samples']} planned.",
-        ])
-        for conversation in source["conversations"]:
-            if conversation["status"] == "complete":
-                continue
-            line = (f"- `{conversation['sample_id']}` (epoch {conversation['epoch']}): "
-                    f"{conversation['status']}, {conversation['completed_turns']} of "
-                    f"{conversation['planned_turns']} turns completed")
-            if conversation["error"]:
-                line += f"; error: {json.dumps(conversation['error'], ensure_ascii=False)}"
-            lines.append(line)
-    if control:
-        lines.extend(["", "## Judge disagreements requiring review", ""])
-        findings = [t for t in report["trials"]
-                    if t["verdict"] is not None and t["verdict"] != t["reference"]]
-        if not findings:
-            lines.append("No disagreements with authored labels among scored items. "
-                         "Check missing, error, and unscored coverage above.")
-        for trial in findings:
-            kind = _disagreement(trial["reference"], trial["verdict"])
-            lines.extend([
-                f"### {kind}: {trial['layer']} / {trial['check']} / turn {trial['turn']}",
-                "",
-                f"Reference {trial['reference']}; judge {trial['verdict']}.",
-                *_finding_lines(trial),
-            ])
-    elif escalation:
-        pass
-    else:
-        lines.extend(["", "## Findings requiring review", ""])
-        findings = [t for t in report["trials"] if t["verdict"] in {"FAIL", "UNCLEAR"}]
-        if not findings:
-            lines.append("No recorded FAIL or UNCLEAR verdicts. Check interrupted, unattempted, "
-                         "and unscored coverage above.")
-        for trial in findings:
-            lines.extend([
-                f"### {trial['verdict']}: {trial['layer']} / {trial['check']} / turn {trial['turn']}",
-                "",
-                *_finding_lines(trial),
-            ])
+        lines.extend(_render_target_section(summary, report["trials"]))
     plan = run["plan"] or {}
     plan_config = plan.get("config") or {}
     lines.extend(["", "## Provenance and limits", "",

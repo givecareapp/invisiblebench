@@ -350,15 +350,17 @@ def execute(
                 actual_hash = hashlib.sha256(Path(location).read_bytes()).hexdigest()
                 if actual_hash != source_hashes[location]:
                     raise ValueError(f"GEN log changed after preflight: {location}")
-            if not target_samples(location)[0]:
+            loaded_samples, loaded_source = target_samples(location)
+            if not loaded_samples:
                 print(f"SKIP {family} {target} no judgeable samples", flush=True)
                 continue
+            extra = {"preloaded": (loaded_samples, loaded_source)} if loaded_source is not None else {}
             task = target_judge(location, cost_limit_usd=args.judge_cost_limit_usd,
-                                batch=args.batch_judge)
+                                batch=args.batch_judge, **extra)
             judge_log = evaluate("JUDGE", family, target, task, args.judge, "judge")
             if args.escalate_judge:
                 include_safety = args.escalate_scope == "all-safety"
-                flagged, _ = escalation_samples(
+                flagged, parent = escalation_samples(
                     judge_log.location, include_safety=include_safety,
                     close_below=args.escalate_below,
                 )
@@ -368,6 +370,7 @@ def execute(
                     esc_task = escalate_judge(
                         judge_log.location, cost_limit_usd=args.judge_cost_limit_usd,
                         include_safety=include_safety, close_below=args.escalate_below,
+                        preloaded=(flagged, parent),
                     )
                     evaluate("ESCALATE", family, target, esc_task, args.escalate_judge, "escalate")
     except CeilingReached as stop:

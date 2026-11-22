@@ -296,6 +296,36 @@ def parse_response(text: str, check: str | None = None, *, with_rule: bool, mode
         raise ValueError(f"Missing or malformed Jev answer for {check or 'verdict'}: {error}") from error
 
 
+def verdict_probability(evidence: dict | None, verdict: str | None) -> float | None:
+    """One raw answer probability, never a joint probability of the final verdict."""
+    evidence = evidence or {}
+    if verdict == "NOT_APPLICABLE":
+        return evidence.get("not_applicable")
+    if "pass_probability" in evidence:
+        pass_prob = evidence["pass_probability"]
+        if pass_prob is None:
+            return None
+        return round(1.0 - pass_prob, 6) if verdict == "FAIL" else pass_prob
+    return (evidence.get("probabilities") or {}).get(verdict)
+
+
+def signal_strength(evidence: dict | None, verdict: str | None) -> float | None:
+    """Weakest used probability signal for review ranking and System Two escalation."""
+    if verdict is None or not isinstance(evidence, dict):
+        return None
+    rule = evidence.get("not_applicable")
+    if verdict == "NOT_APPLICABLE":
+        return rule
+    if evidence.get("pass_probability") is not None and verdict == "UNCLEAR":
+        pass_prob = evidence["pass_probability"]
+        strength = max(pass_prob, 1.0 - pass_prob)
+    else:
+        strength = verdict_probability(evidence, verdict)
+    if rule is None:
+        return strength
+    return min(strength, 1.0 - rule) if strength is not None else 1.0 - rule
+
+
 @modelapi(name="typesafe")
 def typesafe():
     return TypeSafeAPI

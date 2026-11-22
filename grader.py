@@ -505,13 +505,21 @@ def judge_layout(samples: list[Sample], batch: bool) -> tuple:
     return dataset, scorers, {"judge_method": jev.BATCH_METHOD, "batch_manifest": manifest}
 
 
-@task
-def control_judge(cost_limit_usd: float | None = None, family: str = "backup_care",
-                  batch: bool = False) -> Task:
+def _validate_cost_limit(cost_limit_usd: float | None) -> None:
     if cost_limit_usd is not None and (
         isinstance(cost_limit_usd, bool) or not math.isfinite(cost_limit_usd) or cost_limit_usd <= 0
     ):
         raise ValueError("cost_limit_usd must be a finite positive amount")
+
+
+def _source_hashes(paths: list[Path]) -> dict[str, str]:
+    return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+
+
+@task
+def control_judge(cost_limit_usd: float | None = None, family: str = "backup_care",
+                  batch: bool = False) -> Task:
+    _validate_cost_limit(cost_limit_usd)
     dataset = control_samples(family)
     physical, scorers, layout = judge_layout(dataset, batch)
     paths = [*family_files(family), PROJECT, Path(__file__).resolve(), Path(jev.__file__)]
@@ -527,7 +535,7 @@ def control_judge(cost_limit_usd: float | None = None, family: str = "backup_car
             "benchmark_version": VERSION,
             **layout,
             "basis": "authored controls; no independent validation",
-            "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
+            "source_sha256": _source_hashes(paths),
             "reference_manifest": {
                 str(s.id): {**s.metadata, "expected": s.target} for s in dataset
             },
@@ -538,13 +546,11 @@ def control_judge(cost_limit_usd: float | None = None, family: str = "backup_car
 
 @task
 def target_judge(source_log: str, cost_limit_usd: float | None = None,
-                 batch: bool = False) -> Task:
+                 batch: bool = False,
+                 preloaded: tuple[list[Sample], dict] | None = None) -> Task:
     """Judge saved target conversations; never expose rubric to generation."""
-    if cost_limit_usd is not None and (
-        isinstance(cost_limit_usd, bool) or not math.isfinite(cost_limit_usd) or cost_limit_usd <= 0
-    ):
-        raise ValueError("cost_limit_usd must be a finite positive amount")
-    dataset, source = target_samples(source_log)
+    _validate_cost_limit(cost_limit_usd)
+    dataset, source = preloaded if preloaded is not None else target_samples(source_log)
     physical, scorers, layout = judge_layout(dataset, batch)
     family = source["family"]
     case_file, rubric_path, _ = family_files(family)
@@ -559,7 +565,7 @@ def target_judge(source_log: str, cost_limit_usd: float | None = None,
             "benchmark_version": VERSION,
             **layout,
             "source": source,
-            "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
+            "source_sha256": _source_hashes(paths),
             "check_plan": {check["id"]: {"layer": check["layer"], "turns": check["turns"],
                                          **{label: check[label] for label in CRITERION_LABELS}}
                            for check in json.loads(rubric_path.read_text())["checks"]},
@@ -744,24 +750,6 @@ def summarize_target(log: EvalLog) -> dict:
             "by_layer": groups, "by_severity": by_severity}
 
 
-def _parent_signal_strength(evidence: dict | None, verdict: str | None) -> float | None:
-    """Weakest used probability signal from a System One verdict; None when unavailable."""
-    if verdict is None or not isinstance(evidence, dict):
-        return None
-    rule = evidence.get("not_applicable")
-    if verdict == "NOT_APPLICABLE":
-        return rule
-    if "pass_probability" in evidence and evidence["pass_probability"] is not None:
-        pass_prob = evidence["pass_probability"]
-        strength = (max(pass_prob, 1.0 - pass_prob) if verdict == "UNCLEAR"
-                    else round(1.0 - pass_prob, 6) if verdict == "FAIL" else pass_prob)
-    else:
-        strength = (evidence.get("probabilities") or {}).get(verdict)
-    if rule is None:
-        return strength
-    return min(strength, 1.0 - rule) if strength is not None else 1.0 - rule
-
-
 def escalation_samples(
     judge_log: str, *, include_safety: bool = False, close_below: float = 0.65,
 ) -> tuple[list[Sample], dict]:
@@ -781,7 +769,7 @@ def escalation_samples(
         score = scores[0] if len(scores) == 1 else None
         verdict = sample_verdict(sample)
         evidence = score.metadata.get("evidence") if score and score.metadata else None
-        strength = _parent_signal_strength(evidence, verdict)
+        strength = jev.signal_strength(evidence, verdict)
         reasons = []
         if verdict is None:
             reasons.append("unscored")
@@ -835,14 +823,13 @@ def escalate_judge(
     cost_limit_usd: float | None = None,
     include_safety: bool = False,
     close_below: float = 0.65,
+    preloaded: tuple[list[Sample], dict] | None = None,
 ) -> Task:
     """System Two cross-company chat judge over checks escalated from a System One log."""
-    if cost_limit_usd is not None and (
-        isinstance(cost_limit_usd, bool) or not math.isfinite(cost_limit_usd) or cost_limit_usd <= 0
-    ):
-        raise ValueError("cost_limit_usd must be a finite positive amount")
-    dataset, parent = escalation_samples(
-        judge_log, include_safety=include_safety, close_below=close_below,
+    _validate_cost_limit(cost_limit_usd)
+    dataset, parent = (
+        preloaded if preloaded is not None
+        else escalation_samples(judge_log, include_safety=include_safety, close_below=close_below)
     )
     family = parent["family"]
     case_file, rubric_path, _ = family_files(family)
@@ -853,7 +840,8 @@ def escalate_judge(
             cost_limit_usd, target=parent["source"]["model"], parent_judge=parent["model"],
         ),
         scorer=criterion_verdict(),
-        config=GenerateConfig(max_tokens=4096, max_retries=0),
+        # 8192 prevents reasoning chat judges from truncating on borderline UNCLEAR checks.
+        config=GenerateConfig(max_tokens=8192, max_retries=0),
         cost_limit=cost_limit_usd,
         metadata={
             "use": "target-escalation",
@@ -867,7 +855,7 @@ def escalate_judge(
                 k: parent[k] for k in ("eval_id", "model", "judge_method", "judge_log_sha256")
             },
             "escalation_policy": parent["policy"],
-            "source_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},
+            "source_sha256": _source_hashes(paths),
             "check_plan": parent["check_plan"],
             "reference_manifest": {str(s.id): s.metadata for s in dataset},
         },
