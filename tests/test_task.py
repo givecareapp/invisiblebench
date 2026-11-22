@@ -177,6 +177,13 @@ def test_family_contract(name):
             for control in controls
             for turn in check["turns"]
         ), f"No failure control for {check['id']}"
+        if "subchecks" in check:
+            subs = check["subchecks"]
+            assert subs and len({s["id"] for s in subs}) == len(subs)
+            for sub in subs:
+                assert sub["mode"] in ("fail_if_true", "pass_if_true")
+                assert all(isinstance(sub[k], str) and sub[k].strip()
+                           for k in ("id", "question", "true", "false"))
 
 
 def _checks_by_scenario():
@@ -315,7 +322,7 @@ def test_actual_history_without_future_turns_or_rubric(tmp_path, variant):
     task = conversation_family("backup_care")
     assert task.scorer is None
     assert task.metadata["use"] == "development"
-    assert task.metadata["benchmark_version"] == "0.2.7"
+    assert task.metadata["benchmark_version"] == "0.2.8"
     [log] = inspect_eval(
         task, model=model, sample_id=f"backup_care/{variant}",
         log_dir=str(tmp_path), display="none",

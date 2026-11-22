@@ -25,6 +25,8 @@ from inspect_ai.model import get_model_info
 
 from grader import (
     control_judge,
+    escalate_judge,
+    escalation_samples,
     judged_revision,
     native_revision,
     same_company,
@@ -79,6 +81,12 @@ def build_parser() -> argparse.ArgumentParser:
     add("--judge", required=True, help="judge model")
     add("--batch-judge", action="store_true",
         help="experimental Jev questions batched per reply; default remains one check per call")
+    add("--escalate-judge",
+        help="optional cross-company System Two chat judge for UNCLEAR/close-call/Safety checks")
+    add("--escalate-scope", choices=("uncertain-only", "all-safety"), default="uncertain-only",
+        help="which checks --escalate-judge re-evaluates (default uncertain-only)")
+    add("--escalate-below", type=positive(float), default=0.65,
+        help="escalate checks whose weakest used signal is below this threshold (default 0.65)")
     add("--epochs", type=positive(int), default=1, help="generation epochs (default 1)")
     add("--max-tokens", type=positive(int), default=8192,
         help="generation max tokens, the same for every target (default 8192)")
@@ -112,7 +120,21 @@ def check_request(args: argparse.Namespace) -> None:
     own = [target for target in args.target if same_company(args.judge, target)]
     if own:
         raise ValueError(f"Targets from the same company as the judge {args.judge}: {own}")
-    paid = [m for m in [*args.target, args.judge] if not m.startswith("mockllm/")]
+    if args.escalate_judge:
+        if not 0 < args.escalate_below <= 1:
+            raise ValueError(f"--escalate-below must be in (0, 1]: {args.escalate_below}")
+        if same_company(args.escalate_judge, args.judge):
+            raise ValueError(
+                f"Escalation judge {args.escalate_judge} is from the same company as "
+                f"the primary judge {args.judge}"
+            )
+        esc_own = [target for target in args.target if same_company(args.escalate_judge, target)]
+        if esc_own:
+            raise ValueError(
+                f"Targets from the same company as escalation judge {args.escalate_judge}: {esc_own}"
+            )
+    models = [*args.target, args.judge, *([args.escalate_judge] if args.escalate_judge else [])]
+    paid = [m for m in models if not m.startswith("mockllm/")]
     if paid and (args.judge_cost_limit_usd is None or args.ceiling_usd is None):
         raise ValueError(
             f"Paid models need both --judge-cost-limit-usd and --ceiling-usd: {paid}"
@@ -129,7 +151,9 @@ def check_request(args: argparse.Namespace) -> None:
         raise ValueError(f"--out must be new or empty: {args.out}")
 
 
-def prepare_generation_run(directory: Path, judge: str) -> tuple[list[dict], dict]:
+def prepare_generation_run(
+    directory: Path, judge: str, escalate_judge_model: str | None = None,
+) -> tuple[list[dict], dict]:
     """Check every saved GEN log before judging and bind the new record to its bytes."""
     directory = directory.resolve()
     manifest_path = directory / "run.json"
@@ -168,19 +192,28 @@ def prepare_generation_run(directory: Path, judge: str) -> tuple[list[dict], dic
         if family not in families:
             judged_revision(family, Path(__file__).resolve())
             case_file = case_path(family).resolve()
-            if not case_file.is_relative_to(ROOT / "cases"):
-                raise ValueError(f"GEN family is outside the committed public cases tree: {family}")
-            tree = subprocess.run(
-                ["git", "-C", str(ROOT), "diff", "--quiet", commit, "HEAD", "--",
-                 f"cases/{family}"], capture_output=True, text=True, check=False,
-            )
-            if tree.returncode:
-                raise ValueError(
-                    f"Committed cases/{family} differs from source commit {commit}: "
-                    f"{tree.stderr.strip() or 'git diff found changes'}"
+            family_commit = None
+            if case_file.is_relative_to(ROOT / "cases"):
+                tree = subprocess.run(
+                    ["git", "-C", str(ROOT), "diff", "--quiet", commit, "HEAD", "--",
+                     f"cases/{family}"], capture_output=True, text=True, check=False,
                 )
+                if tree.returncode:
+                    raise ValueError(
+                        f"Committed cases/{family} differs from source commit {commit}: "
+                        f"{tree.stderr.strip() or 'git diff found changes'}"
+                    )
+            else:
+                ext = subprocess.run(
+                    ["git", "-C", str(case_file.parent), "rev-parse", "HEAD"],
+                    capture_output=True, text=True, check=False,
+                )
+                if ext.returncode or not ext.stdout.strip():
+                    raise ValueError(f"External GEN family has no committed repository: {family}")
+                family_commit = ext.stdout.strip()
             family_inputs.append({
                 "family": family,
+                **({"external_commit": family_commit} if family_commit else {}),
                 **{f"{name}_sha256": hashlib.sha256(case_file.with_name(filename).read_bytes()).hexdigest()
                    for name, filename in (("case", "case.json"), ("rubric", "rubric.json"),
                                           ("controls", "controls.jsonl"))},
@@ -197,6 +230,11 @@ def prepare_generation_run(directory: Path, judge: str) -> tuple[list[dict], dic
             raise ValueError(f"GEN log differs from run.json: {location}")
         if same_company(judge, source["model"]):
             raise ValueError(f"Target from the same company as the judge {judge}: {source['model']}")
+        if escalate_judge_model and same_company(escalate_judge_model, source["model"]):
+            raise ValueError(
+                f"Target from the same company as escalation judge {escalate_judge_model}: "
+                f"{source['model']}"
+            )
         if (source["status"] != "success" or source["interrupted_samples"] or
                 source["recorded_samples"] != source["planned_samples"] or
                 source["recorded_samples"] != entry["samples"] or
@@ -317,7 +355,21 @@ def execute(
                 continue
             task = target_judge(location, cost_limit_usd=args.judge_cost_limit_usd,
                                 batch=args.batch_judge)
-            evaluate("JUDGE", family, target, task, args.judge, "judge")
+            judge_log = evaluate("JUDGE", family, target, task, args.judge, "judge")
+            if args.escalate_judge:
+                include_safety = args.escalate_scope == "all-safety"
+                flagged, _ = escalation_samples(
+                    judge_log.location, include_safety=include_safety,
+                    close_below=args.escalate_below,
+                )
+                if not flagged:
+                    print(f"SKIP ESCALATE {family} {target} no escalated checks", flush=True)
+                else:
+                    esc_task = escalate_judge(
+                        judge_log.location, cost_limit_usd=args.judge_cost_limit_usd,
+                        include_safety=include_safety, close_below=args.escalate_below,
+                    )
+                    evaluate("ESCALATE", family, target, esc_task, args.escalate_judge, "escalate")
     except CeilingReached as stop:
         return done, str(stop), None
     except Exception as error:  # noqa: BLE001 - recorded in run.json, then re-raised by main
@@ -355,6 +407,9 @@ def write_reports(done: list[tuple[str, EvalLog]], directory: Path,
 
 def describe(log: EvalLog) -> dict:
     samples = log.samples or []
+    plan = getattr(log, "plan", None)
+    cfg = (plan.config.model_dump(mode="json") if plan and getattr(plan, "config", None) else {})
+    gen_config = {k: cfg[k] for k in ("max_tokens", "temperature", "seed") if cfg.get(k) is not None}
     return {
         "task": log.eval.task,
         "family": (log.eval.metadata or {}).get("family"),
@@ -363,6 +418,7 @@ def describe(log: EvalLog) -> dict:
         "location": log.location,
         "eval_id": log.eval.eval_id,
         "revision": native_revision(log),
+        **({"generation_config": gen_config} if gen_config else {}),
         "samples": len(samples),
         "errors": sum(bool(sample.error) for sample in samples),
         "model_usage": {name: usage.model_dump(mode="json")
@@ -378,6 +434,9 @@ def write_record(args: argparse.Namespace, done: list[tuple[str, EvalLog]],
     recorded_args = {**vars(args), "out": str(args.out)}
     if recorded_args["generation_run"] is None:
         del recorded_args["generation_run"]
+    if recorded_args.get("escalate_judge") is None:
+        for key in ("escalate_judge", "escalate_scope", "escalate_below"):
+            recorded_args.pop(key, None)
     record = {
         "args": recorded_args,
         "stop_reason": stop,
@@ -403,7 +462,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         check_request(args)
         saved_generation, source_binding = (prepare_generation_run(
-            Path(args.generation_run), args.judge) if args.generation_run else (None, None))
+            Path(args.generation_run), args.judge, args.escalate_judge,
+        ) if args.generation_run else (None, None))
     except ValueError as error:
         parser.error(str(error))
     args.out.mkdir(parents=True, exist_ok=True)

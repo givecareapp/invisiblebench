@@ -98,11 +98,21 @@ def record_run(logs: list[EvalLog], run_id: str) -> dict:
 
 def load_run(directory: Path) -> list[EvalLog]:
     """Bind the public export to the requested cohort, including whole missing logs."""
-    args = json.loads((directory / "run.json").read_text())["args"]
+    manifest = json.loads((directory / "run.json").read_text())
+    args = manifest["args"]
     if args.get("cases"):
         raise ValueError("Public run records cannot include external cases")
-    expected = {(family, target) for family in args["family"] for target in args["target"]}
     logs = [read_eval_log(str(path)) for path in sorted((directory / "judge").rglob("*.eval"))]
+    if args.get("generation_run"):
+        binding = manifest.get("source_generation_run") or {}
+        if any(item.get("external_commit") for item in binding.get("family_inputs", [])):
+            raise ValueError("Public run records cannot include external cases")
+        expected_ids = {item["eval_id"] for item in binding.get("generation_logs", [])}
+        actual_ids = {log.eval.metadata["source"]["eval_id"] for log in logs}
+        if not expected_ids or actual_ids != expected_ids or len(logs) != len(expected_ids):
+            raise ValueError("Missing or duplicate judge logs for the source generation run")
+        return logs
+    expected = {(family, target) for family in args["family"] for target in args["target"]}
     actual = {(log.eval.metadata["family"], log.eval.metadata["source"]["model"]) for log in logs}
     if not expected or actual != expected or len(logs) != len(expected):
         raise ValueError("Missing or duplicate judge logs for the requested families and targets")

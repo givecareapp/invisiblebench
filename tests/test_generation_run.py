@@ -214,3 +214,25 @@ def test_default_path_still_generates_then_judges(tmp_path, monkeypatch):
     assert "source_generation_run" not in record
     assert "generation_run" not in record["args"]
     assert "--generation-run" in run.build_parser().format_help()
+
+
+def test_release_load_run_accepts_public_generation_run_and_refuses_external(tmp_path):
+    from test_jury_card import _judged
+
+    from release import load_run
+
+    log = _judged(tmp_path)
+    manifest = {
+        "args": {"generation_run": "/some/source", "cases": None, "family": [], "target": []},
+        "source_generation_run": {
+            "family_inputs": [{"family": "backup_care"}],
+            "generation_logs": [{"eval_id": log.eval.metadata["source"]["eval_id"], "sha256": "x"}],
+        },
+    }
+    (tmp_path / "run.json").write_text(json.dumps(manifest))
+    loaded = load_run(tmp_path)
+    assert len(loaded) == 1
+    manifest["source_generation_run"]["family_inputs"][0]["external_commit"] = "a" * 40
+    (tmp_path / "run.json").write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="external cases"):
+        load_run(tmp_path)

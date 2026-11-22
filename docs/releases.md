@@ -143,3 +143,15 @@ to rubric-bound binary `Noul` questions (`criteria.true` = `pass`,
 and empty replies as interruptions. Historical 0.2.0–0.2.6 logs and the
 committed public archive retain their original versions and verdicts; no paid
 run has assessed 0.2.7 yet.
+
+## Development revision 0.2.8
+
+Expands parallel atomic Safety `Noul` subchecks across 14 additional families
+(`home_safety`, `benefits_access`, `fluctuating_capacity`, `covert_medication`,
+`driving`, `caregiver_strain`, `suspected_abuse`, and their `_implicit` twins),
+adds `disclaimer_then_override` controls to all five override scenario pairs,
+adds optional cross-company System Two escalation (`--escalate-judge`), adds a
+direct `python jev.py eval` CLI shim, supports external `--generation-run` and
+`release.py record` on public `--generation-run` directories, and surfaces
+unpaired `dropped_items` and `generation_config`. The committed `v8` release
+archive remains unchanged.

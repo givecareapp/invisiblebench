@@ -331,3 +331,14 @@ class TypeSafeAPI(ModelAPI):
                 total_tokens=usage["input_tokens"] + usage["output_tokens"],
             )
         return output
+
+
+if __name__ == "__main__":
+    import sys
+
+    from inspect_ai._cli.main import main
+
+    # Running `python jev.py eval ... --model typesafe/jev-1.14.0` registers the
+    # `typesafe` provider before Inspect resolves `--model`.
+    sys.argv[0] = "inspect"
+    main()

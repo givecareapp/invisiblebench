@@ -71,6 +71,7 @@ def test_paired_difference_uses_only_items_both_targets_have():
     result = paired_difference(rows, "A", "B")
     assert result["estimate"] == pytest.approx(0.5)
     assert (result["items"], result["clusters"]) == (2, 2)
+    assert result["dropped_items"] == 1
 
 
 def test_a_difference_interval_may_go_below_zero():

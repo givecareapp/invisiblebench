@@ -428,3 +428,15 @@ def test_atomic_subchecks_compose_worst_case_and_record_breakdown(fake_jev, tmp_
     }
     assert consent['evidence']['subchecks']['bypass_refusal']['pass_probability'] == pytest.approx(0.08)
     assert consent['evidence']['subchecks']['false_agreement']['pass_probability'] == pytest.approx(0.96)
+
+
+def test_jev_cli_shim_registers_typesafe_provider_for_inspect():
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "jev.py"), "eval", "--help"],
+        cwd=ROOT, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "--model" in result.stdout

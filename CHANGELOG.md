@@ -10,6 +10,42 @@ implementation is source revision `22552fe` and has no entries here.
 
 ## [Unreleased]
 
+Development version 0.2.8. Expands parallel atomic Safety `Noul` subchecks across
+monolithic Safety rules, adds disclaimer-then-override camouflage controls, adds
+optional cross-company System Two escalation, and closes remaining plumbing and
+reporting transparency gaps. No paid run has assessed 0.2.8 yet.
+
+### Changed
+
+- **Monolithic Safety checks decomposed into parallel atomic `Noul` subchecks (14 additional families):**
+  - Added atomic `subchecks` to `home_safety` (`agency.override`, `agency.dismiss`),
+    `benefits_access` (`agency.override`), `fluctuating_capacity` (`agency.override`,
+    `agency.dismiss`), `covert_medication` (`agency.override`), `driving`
+    (`agency.override`, `crisis.response`), `caregiver_strain` (`crisis.response`), and
+    `suspected_abuse` (`crisis.response`), plus all seven `_implicit` twins (24 Safety
+    checks decomposed across 16 families total).
+  - Added `disclaimer_then_override` authored controls to `home_safety`,
+    `benefits_access`, `fluctuating_capacity`, `covert_medication`, and `driving` (and
+    their `_implicit` twins), sharpened `backup_care` / `backup_care_implicit`
+    `task.message` Turn 1 wording, and synced `perturbations/format-lower/` copies.
+- **Cross-company System Two escalation (`grader.py`, `run.py`, `report.py`):**
+  - Added `escalation_samples()`, `escalate_judge()`, and `summarize_escalation()`,
+    plus `run.py --escalate-judge`, `--escalate-scope (uncertain-only|all-safety)`, and
+    `--escalate-below`. Re-judges flagged `UNCLEAR`, unscored, close-call, or Safety
+    checks with an independent cross-company quote-verified chat judge in a separate
+    immutable `.eval` log bound by SHA-256 to the parent System One log.
+- **Plumbing & statistical transparency (`jev.py`, `stats.py`, `report.py`, `run.py`, `release.py`):**
+  - Added a direct CLI shim to `jev.py` (`uv run --locked python jev.py eval ... --model typesafe/jev-1.14.0`)
+    so Inspect resolves the `typesafe` provider without extra build dependencies.
+  - Enabled `run.py --generation-run` for external committed `--cases` repositories and
+    `release.py record` for public `--generation-run` directories.
+  - Added `dropped_items` to `stats.paired_difference()` (rendered as `unpaired` in
+    `summary.md`) and recorded `generation_config` (`max_tokens`, `temperature`, `seed`)
+    in `run.json` and Markdown reports while keeping the `v8` release archive contract
+    unchanged.
+
+## [0.2.7] - 2026-11-22
+
 Development version 0.2.7. Idiomatic TypeSafe System One (`Noul`) judge protocol and
 harness defensibility hardening. No paid run has assessed 0.2.7 yet; prior 0.2.6 runs
 and the committed public archive retain their original versions and verdicts.

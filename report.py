@@ -14,6 +14,7 @@ from grader import (
     judged_samples,
     sample_verdict,
     summarize,
+    summarize_escalation,
     summarize_target,
     target_observations,
 )
@@ -22,7 +23,9 @@ from stats import all_pass_estimates, estimates, paired_difference
 
 def build_report(log: EvalLog) -> dict:
     use = (log.eval.metadata or {}).get("use")
-    summary = summarize_target(log) if use == "target-judging" else summarize(log)
+    summary = (summarize_target(log) if use == "target-judging"
+               else summarize_escalation(log) if use == "target-escalation"
+               else summarize(log))
     trials = []
     for sample in judged_samples(log):
         scores = list((sample.scores or {}).values())
@@ -41,6 +44,9 @@ def build_report(log: EvalLog) -> dict:
             "source_sample": sample.metadata.get("source_sample"),
             "source_epoch": sample.metadata.get("source_epoch"),
             "reference": sample.target if use == "judge-development" else None,
+            **({"parent_verdict": sample.metadata.get("parent_verdict"),
+                "escalation_reasons": sample.metadata.get("escalation_reasons")}
+               if use == "target-escalation" else {}),
             "verdict": verdict,
             "evidence": score.metadata.get("evidence") if score and score.metadata else None,
             "unscored_reason": score.explanation if score and verdict is None else None,
@@ -181,6 +187,8 @@ def render_summary(summary: dict) -> str:
             value = ("no shared scored items" if r["estimate"] is None else
                      f"{r['estimate']:+.0%}" + ("" if r["low"] is None else
                                                 f" [{r['low']:+.0%}, {r['high']:+.0%}]"))
+            if r.get("dropped_items"):
+                value += f" · {r['dropped_items']} unpaired"
             lines.append(f"| {r['a']} minus {r['b']} | {r['layer']} | {value} |")
         lines.append("")
     lines.append("Estimates describe unvalidated judge output, not validated model quality.")
@@ -537,6 +545,7 @@ def render_markdown(report: dict) -> str:
     run = report["run"]
     summary = report["summary"]
     control = report["kind"] == "judge-development-audit"
+    escalation = report["kind"] == "target-escalation-audit"
     revision = run["revision"]
     revision_text = (f"commit {revision['commit']}, dirty {revision['dirty']}"
                      if revision["commit"] else "none recorded")
@@ -588,6 +597,42 @@ def render_markdown(report: dict) -> str:
                     for predicted, n in sorted(row.items()) if n
                 ]
                 lines.append(f"- `{check}`: " + (" · ".join(cells) if cells else "no scored items"))
+    elif escalation:
+        parent = summary["parent_judge"]
+        policy = summary["escalation_policy"]
+        lines.extend([
+            "## System Two escalation audit",
+            "",
+            f"- Parent System One judge: `{parent['model']}` (`{parent['eval_id']}`, SHA-256 `{parent['judge_log_sha256']}`).",
+            f"- Policy: `include_safety={policy['include_safety']}`, `close_below={policy['close_below']}` "
+            f"({policy['selected_checks']} of {policy['total_judged_checks']} checks escalated).",
+            "",
+            "| Layer | Check | Escalated | PASS | FAIL | UNCLEAR | N/A | Same | Changed | Missing | Error | Unscored |",
+            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ])
+        for layer, checks in summary["by_layer"].items():
+            for check, counts in checks.items():
+                lines.append(
+                    f"| {layer} | `{check}` | {counts['planned']} | {counts['PASS']} | "
+                    f"{counts['FAIL']} | {counts['UNCLEAR']} | {counts['NOT_APPLICABLE']} | "
+                    f"{counts['same_verdict']} | {counts['changed_verdict']} | "
+                    f"{counts['missing']} | {counts['execution_error']} | {counts['unscored']} |"
+                )
+        lines.extend(["", "## Escalated verdict changes requiring review", ""])
+        changed = [t for t in report["trials"]
+                   if t["verdict"] is not None and t["verdict"] != t.get("parent_verdict")]
+        if not changed:
+            lines.append("No System Two verdict changes among scored escalations.")
+        for trial in changed:
+            reason = (trial["evidence"] or {}).get("reason")
+            lines.extend([
+                f"### {trial.get('parent_verdict') or 'unscored'} → {trial['verdict']}: "
+                f"{trial['layer']} / {trial['check']} / turn {trial['turn']}",
+                "",
+                f"Sample `{trial['sample_id']}`; reasons: `{', '.join(trial.get('escalation_reasons') or [])}`.",
+                *([f"System Two reason: {reason}"] if reason else []),
+                "",
+            ])
     else:
         lines.extend([
             "## Per-check observations",
@@ -627,6 +672,10 @@ def render_markdown(report: dict) -> str:
                     f"{counts.get('unscored', 0)} |"
                 )
         source = summary["target"]
+        gen_cfg = (source.get("settings") or {}).get("plan", {}) or {}
+        gen_cfg = gen_cfg.get("config") or (source.get("settings") or {}).get("model_generate_config") or {}
+        gen_summary = {k: gen_cfg.get(k) for k in ("max_tokens", "temperature", "seed")
+                       if k in gen_cfg and gen_cfg.get(k) is not None}
         lines.extend([
             "",
             "The counts describe unvalidated judge output, not model quality. Interrupted and "
@@ -637,6 +686,7 @@ def render_markdown(report: dict) -> str:
             "",
             f"- Inspect evaluation ID: `{source['eval_id']}`; model: `{source['model']}`.",
             f"- Source log SHA-256: `{source['source_log_sha256']}`.",
+            f"- Generation settings: `{json.dumps(gen_summary, sort_keys=True) if gen_summary else 'provider defaults'}`.",
             f"- Conversations: {source['complete_samples']} complete, "
             f"{source['interrupted_samples']} interrupted, of {source['planned_samples']} planned.",
         ])
@@ -664,6 +714,8 @@ def render_markdown(report: dict) -> str:
                 f"Reference {trial['reference']}; judge {trial['verdict']}.",
                 *_finding_lines(trial),
             ])
+    elif escalation:
+        pass
     else:
         lines.extend(["", "## Findings requiring review", ""])
         findings = [t for t in report["trials"] if t["verdict"] in {"FAIL", "UNCLEAR"}]

@@ -149,9 +149,17 @@ def paired_difference(rows: list[dict], a: str, b: str, level: float = 0.95) -> 
     """Pass-rate difference A minus B on the items both targets have."""
     first = item_means([r for r in rows if r["target"] == a])
     second = item_means([r for r in rows if r["target"] == b])
+    all_items = {(s, i) for s, items in first.items() for i in items} | {
+        (s, i) for s, items in second.items() for i in items
+    }
     clusters = {}
+    paired_count = 0
     for scenario, items in first.items():
         shared = [items[i] - second[scenario][i] for i in items if i in second.get(scenario, {})]
         if shared:
             clusters[scenario] = shared
-    return cluster_interval(clusters, level, bounds=(-1.0, 1.0))
+            paired_count += len(shared)
+    return {
+        **cluster_interval(clusters, level, bounds=(-1.0, 1.0)),
+        "dropped_items": len(all_items) - paired_count,
+    }
