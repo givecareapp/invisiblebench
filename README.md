@@ -11,8 +11,8 @@ Each results table identifies the version that produced it.
 ## Run a free example
 
 Use a Git checkout, Python 3.12 and [uv](https://docs.astral.sh/uv/getting-started/installation/).
-The first run installs the locked dependencies. Both models in this example run
-locally without an API key.
+The first run installs the locked dependencies and downloads the tokenizer
+vocabulary. Both models run locally without an API key.
 
 ```bash
 git clone https://github.com/givecareapp/invisiblebench.git
@@ -34,6 +34,7 @@ scripts/check.sh
 uv run --locked python run.py --help
 ```
 
+The first check caches the same vocabulary. Later checks can run offline.
 The check runs lint and mocked tests, including a byte-for-byte rebuild of
 the website archive. GitHub Actions runs the same command. To check the staged
 files before each commit, run `git config core.hooksPath .githooks`.

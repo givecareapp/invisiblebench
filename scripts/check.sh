@@ -10,4 +10,6 @@ for pair in "UV_CACHE_DIR:${HOME}/.cache/uv" "XDG_DATA_HOME:${HOME}/.local/share
   fi
 done
 uv run --locked ruff check *.py contracts scripts tests
+# Inspect's mock model needs this vocabulary before the tests block network access.
+uv run --locked python -c 'import tiktoken; tiktoken.get_encoding("o200k_base")'
 uv run --locked pytest tests -q
