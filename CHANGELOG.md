@@ -8,12 +8,14 @@ the one in `pyproject.toml`, which every Inspect log records as
 `benchmark_version`. Commits are the detailed record. The 5.8.0
 implementation is source revision `22552fe` and has no entries here.
 
-## [Unreleased]
+## [0.2.8] - 2026-11-22
 
 Development version 0.2.8. Expands parallel atomic Safety `Noul` subchecks across
 monolithic Safety rules, adds disclaimer-then-override camouflage controls, adds
-optional cross-company System Two escalation, and closes remaining plumbing and
-reporting transparency gaps. No paid run has assessed 0.2.8 yet.
+optional cross-company System Two escalation, closes remaining plumbing and
+reporting transparency gaps, and adds copy-parity/CI hygiene. Local bounded
+`backup_care` dry runs exercised 0.2.8 plumbing and controls; no full benchmark
+run or independent human validation has assessed 0.2.8 yet.
 
 ### Changed
 
@@ -29,20 +31,26 @@ reporting transparency gaps. No paid run has assessed 0.2.8 yet.
     their `_implicit` twins), sharpened `backup_care` / `backup_care_implicit`
     `task.message` Turn 1 wording, and synced `perturbations/format-lower/` copies.
 - **Cross-company System Two escalation (`grader.py`, `run.py`, `report.py`):**
-  - Added `escalation_samples()`, `escalate_judge()`, and `summarize_escalation()`,
-    plus `run.py --escalate-judge`, `--escalate-scope (uncertain-only|all-safety)`, and
-    `--escalate-below`. Re-judges flagged `UNCLEAR`, unscored, close-call, or Safety
-    checks with an independent cross-company quote-verified chat judge in a separate
-    immutable `.eval` log bound by SHA-256 to the parent System One log.
-- **Plumbing & statistical transparency (`jev.py`, `stats.py`, `report.py`, `run.py`, `release.py`):**
+  - Added `escalation_samples()`, `escalate_judge()` (`max_tokens=8192`), and
+    `summarize_escalation()`, plus `run.py --escalate-judge`,
+    `--escalate-scope (uncertain-only|all-safety)`, and `--escalate-below`. Re-judges
+    flagged `UNCLEAR`, unscored, close-call, or Safety checks with an independent
+    cross-company quote-verified chat judge in a separate immutable `.eval` log bound
+    by SHA-256 to the parent System One log.
+- **Plumbing, reporting, and repository hygiene (`jev.py`, `stats.py`, `report.py`, `run.py`, `release.py`, `review_packet.py`, `scripts/make_format_copies.py`):**
   - Added a direct CLI shim to `jev.py` (`uv run --locked python jev.py eval ... --model typesafe/jev-1.14.0`)
     so Inspect resolves the `typesafe` provider without extra build dependencies.
-  - Enabled `run.py --generation-run` for external committed `--cases` repositories and
-    `release.py record` for public `--generation-run` directories.
+  - Enabled `run.py --generation-run` for external committed `--cases` repositories,
+    `release.py record` for public `--generation-run` directories, and
+    `review_packet.py --cases` for external case folders.
   - Added `dropped_items` to `stats.paired_difference()` (rendered as `unpaired` in
     `summary.md`) and recorded `generation_config` (`max_tokens`, `temperature`, `seed`)
     in `run.json` and Markdown reports while keeping the `v8` release archive contract
     unchanged.
+  - Deduplicated probability/signal helpers into `jev.py`, reused preloaded `.eval`
+    logs across `run.py` stages, added `--check`/`--refresh` drift verification to
+    `scripts/make_format_copies.py` (enforced by `tests/test_format_copies.py`), and
+    added `.github/workflows/check.yml`.
 
 ## [0.2.7] - 2026-11-22
 

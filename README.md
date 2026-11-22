@@ -52,12 +52,11 @@ archive; it never runs evaluations. The private repository prepares studies
 and held-out cases. Confer provides reviewer access and saves answers.
 
 `invisiblebench-private/` is a separate private repository. `care-evals` owns
-the public reusable case data. `results/` contains historical
-private run evidence. The 5.8 implementation is source revision `22552fe` in this
+the public reusable case data. `results/` contains local run artifacts.
+The 5.8 implementation is source revision `22552fe` in this
 repository's history; nothing active imports it. Its offline gate last passed
 585 of 585 exemplars and 508 tests. To replay it, check out that revision and run
-`uv run --locked --extra dev bash ./scripts/check.sh`. The ignored `site/` directory is generated output, not active
-source.
+`uv run --locked --extra dev bash ./scripts/check.sh`.
 
 ## Run offline checks
 
@@ -68,9 +67,12 @@ Use Python 3.12 (`.python-version`). Install
 scripts/check.sh
 ```
 
-The pre-commit hook (`git config core.hooksPath .githooks`) runs the same check on
-the staged tree, checked out as a temporary commit, so a staged case change can pass
-and unstaged edits are not checked.
+The pre-commit hook (`git config core.hooksPath .githooks`) and GitHub Actions
+(`.github/workflows/check.yml`) run the same check. The hook checks out the
+staged tree as a temporary commit, so a staged case change can pass and unstaged
+edits are not checked. After editing `cases/`, run
+`uv run --locked python scripts/make_format_copies.py --refresh` to keep
+`perturbations/format-lower/` in sync (verified by `tests/test_format_copies.py`).
 
 This runs active lint and mocked tests. It
 verifies engineering behavior, not grader accuracy or clinical validity. The
@@ -211,7 +213,8 @@ The JSON retains native usage and cost; incomplete usage stays explicit.
 Wall time is whole-evaluation time, not request latency. A smaller request count
 alone does not establish faster execution or equivalent judgments.
 
-For a blind packet from a saved generation log:
+For a blind packet from a saved generation log (pass `--cases <folder>` for an
+external/held-out case directory):
 
 ```bash
 uv run --locked python review_packet.py /tmp/bench-generation/<log>.eval > /tmp/bench-review.json
