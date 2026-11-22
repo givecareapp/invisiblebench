@@ -2,7 +2,7 @@
 
 Type: reference.
 
-**Version:** 0.2.8 development slice. **Status:** instrument under development;
+**Version:** 0.2.9 development slice. **Status:** instrument under development;
 no validated 6.0 release or validated model result.
 
 This card follows the topics in the open [BenchmarkCards template](https://github.com/SokolAnn/BenchmarkCards)
@@ -496,6 +496,10 @@ separate observations. Every pass rate carries a 95% interval computed as in
   no interval.
 - Pass rate is PASS / (PASS + FAIL + UNCLEAR). NOT_APPLICABLE and unscored
   verdicts are counted beside the estimate, not treated as observations.
+- From 0.2.9, the conversation summary counts one outcome per layer per
+  conversation and epoch. Any FAIL or UNCLEAR rules out a pass. A missing
+  verdict otherwise leaves the outcome unscored. A layer with only
+  NOT_APPLICABLE checks has no applicable outcome.
 - Two targets are compared on the items both have, as a paired difference with
   the same clustering. A difference whose interval includes zero is not a
   ranking.

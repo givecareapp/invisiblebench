@@ -5,7 +5,7 @@ them, then write offline reports and run.json. The Inspect logs are the evidence
 read back from them, never typed. A paid model needs --judge-cost-limit-usd and --ceiling-usd.
 With --generation-run, read the saved GEN logs and perform only the judging step.
 Progress prints one CTRL, GEN, or JUDGE line per evaluation (a JUDGE line names the target it
-judged), then DONE or STOPPED. Exit 0 when the run finished, 1 when the ceiling stopped it,
+judged), then DONE or STOPPED. Exit 0 when the run finished, 1 when the run is incomplete,
 and 2 when the request was refused before any evaluation.
 """
 
@@ -23,6 +23,7 @@ from inspect_ai import eval as inspect_eval
 from inspect_ai.log import EvalLog
 from inspect_ai.model import get_model_info
 
+import jev
 from grader import (
     control_judge,
     escalate_judge,
@@ -171,6 +172,7 @@ def prepare_generation_run(
     seen_paths, seen_ids, saved, families = set(), set(), [], set()
     family_inputs = []
     source_commit = None
+    original_directory = Path(manifest.get("args", {}).get("out", directory))
     for entry in entries:
         revision = entry.get("revision") or {}
         commit = revision.get("commit")
@@ -180,7 +182,9 @@ def prepare_generation_run(
         if source_commit is not None and commit != source_commit:
             raise ValueError("GEN logs have different source commits")
         source_commit = commit
-        location = Path(entry["location"]).resolve()
+        recorded = Path(entry["location"])
+        relative = recorded.relative_to(original_directory) if recorded.is_absolute() else recorded
+        location = (directory / relative).resolve()
         if not location.is_relative_to(directory) or not location.is_file():
             raise ValueError(f"GEN log is missing or outside generation run: {location}")
         if location in seen_paths or entry["eval_id"] in seen_ids:
@@ -303,6 +307,7 @@ def execute(
     The logs finished before a failure are kept so run.json can still be written from them.
     """
     done: list[tuple[str, EvalLog]] = []
+    skipped = []
 
     def evaluate(kind, family, shown, task, model, log_dir, **options):
         if not model.startswith("mockllm/") and any(unknown_paid_cost(log) for _, log in done):
@@ -352,6 +357,7 @@ def execute(
                     raise ValueError(f"GEN log changed after preflight: {location}")
             loaded_samples, loaded_source = target_samples(location)
             if not loaded_samples:
+                skipped.append(f"{family} {target}")
                 print(f"SKIP {family} {target} no judgeable samples", flush=True)
                 continue
             extra = {"preloaded": (loaded_samples, loaded_source)} if loaded_source is not None else {}
@@ -377,11 +383,12 @@ def execute(
         return done, str(stop), None
     except Exception as error:  # noqa: BLE001 - recorded in run.json, then re-raised by main
         return done, f"error: {error!r}", error
-    return done, None, None
+    stop = "no judgeable samples: " + ", ".join(skipped) if skipped else None
+    return done, stop, None
 
 
 def write_reports(done: list[tuple[str, EvalLog]], directory: Path,
-                  stop: str | None = None) -> None:
+                  stop: str | None = None, *, batch: bool = False) -> None:
     """One report per control or judge log, plus a summary with intervals over judge logs."""
     for kind, log in done:
         if kind == "GEN":
@@ -393,13 +400,19 @@ def write_reports(done: list[tuple[str, EvalLog]], directory: Path,
         (directory / f"{stem}.json").write_text(text + "\n", encoding="utf-8")
         (directory / f"{stem}.md").write_text(render_markdown(report), encoding="utf-8")
     judged = [log for kind, log in done if kind == "JUDGE"]
-    if judged:
-        summary = summarize_rows([row for log in judged for row in target_rows(log)])
+    judged_ids = {log.eval.metadata["source"]["eval_id"] for log in judged}
+    unjudged = [log for kind, log in done if kind == "GEN" and log.eval.eval_id not in judged_ids]
+    if judged or unjudged:
+        directory.mkdir(exist_ok=True)
+        method = jev.BATCH_METHOD if batch else jev.SINGLE_METHOD
+        summary = summarize_rows([row for log in [*judged, *unjudged]
+                                  for row in target_rows(log, judge_method=method)])
         if stop is not None:
             summary["stop_reason"] = stop
         text = json.dumps(summary, indent=2, ensure_ascii=False)
         (directory / "summary.json").write_text(text + "\n", encoding="utf-8")
         (directory / "summary.md").write_text(render_summary(summary), encoding="utf-8")
+    if judged:
         card = build_jury_card(judged)
         if stop is not None:
             card["stop_reason"] = stop
@@ -471,8 +484,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(error))
     args.out.mkdir(parents=True, exist_ok=True)
     done, stop, error = execute(args, saved_generation)
-    write_reports(done, args.out / "reports", stop)
     write_record(args, done, stop, source_binding)
+    write_reports(done, args.out / "reports", stop, batch=args.batch_judge)
     spent, unknown = reported_cost(log for _, log in done)
     tail = f"{unknown} of {len(done)} logs report no cost"
     print(f"STOPPED {stop}; {tail}" if stop else f"DONE reported cost ${spent:.4f}; {tail}",

@@ -201,10 +201,18 @@ def conversation() -> Solver:
     return solve
 
 
+def check_plan(rubric: dict) -> dict:
+    """Reporting labels for every scheduled check. No judge instructions."""
+    return {check["id"]: {k: check[k] for k in ("layer", "turns", "dimension", "protects")}
+            for check in rubric["checks"]}
+
+
 @task
 def conversation_family(family: str = "backup_care") -> Task:
+    dataset = samples(family)
+    rubric = case_path(family).with_name("rubric.json").read_bytes()
     return Task(
-        dataset=samples(family),
+        dataset=dataset,
         solver=conversation(),
         scorer=None,
         config=GenerateConfig(max_tokens=8192),  # one limit for every target
@@ -215,6 +223,10 @@ def conversation_family(family: str = "backup_care") -> Task:
             "project_sha256": hashlib.sha256(PROJECT.read_bytes()).hexdigest(),
             "case_sha256": hashlib.sha256(case_path(family).read_bytes()).hexdigest(),
             "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "rubric_sha256": hashlib.sha256(rubric).hexdigest(),
+            "check_plan": check_plan(json.loads(rubric)),
+            "item_labels": {str(s.id): {k: v for k, v in s.metadata.items() if k != "followups"}
+                            for s in dataset},
             "measurement": "unscored; review criteria are separate from generation",
             **revision([case_path(family), PROJECT, Path(__file__)]),
         },

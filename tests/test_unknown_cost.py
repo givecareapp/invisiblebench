@@ -159,7 +159,9 @@ def test_cli_stop_keeps_native_log_and_completed_reports_without_network(
         assert not (out / 'generation').exists()
     else:
         assert not (out / 'judge').exists()
-        assert not (out / 'reports').exists()
+        summary = json.loads((out / "reports/summary.json").read_text())
+        assert summary["stop_reason"] == record["stop_reason"]
+        assert summary["unscored"] == 54
 
 
 def test_multiturn_generation_missing_turn1_usage_still_flags_unknown_cost():

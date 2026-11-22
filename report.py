@@ -12,6 +12,7 @@ import jev
 from grader import (
     judge_payload,
     judged_samples,
+    planned_checks,
     sample_verdict,
     summarize,
     summarize_escalation,
@@ -102,14 +103,25 @@ SUMMARY_GROUPS = {"layer": "layer", "dimension": "dimension", "severity": "sever
                   "check": "check"}
 
 
-def target_rows(log: EvalLog) -> list[dict]:
-    """One row per planned check; missing evidence remains an unscored observation."""
+def target_rows(log: EvalLog, *, judge_method: str = jev.SINGLE_METHOD) -> list[dict]:
+    """One row per planned check, including a generation log with no judge log."""
     metadata = log.eval.metadata or {}
-    target, plan = metadata["source"]["model"], metadata["check_plan"]
+    if metadata.get("use") == "development":
+        target, plan = log.eval.model, metadata["check_plan"]
+        observations = (
+            (check, None, "judge_missing")
+            for item, labels in metadata["item_labels"].items()
+            for epoch in range(1, (log.eval.config.epochs or 1) + 1)
+            for check in planned_checks(item, epoch, labels, plan)
+        )
+    else:
+        target, plan = metadata["source"]["model"], metadata["check_plan"]
+        judge_method = metadata.get("judge_method", jev.SINGLE_METHOD)
+        observations = target_observations(log)
     rows = []
-    for labels, sample, _gap in target_observations(log):
+    for labels, sample, _gap in observations:
         rows.append({
-            "judge_method": metadata.get("judge_method", jev.SINGLE_METHOD),
+            "judge_method": judge_method,
             "target": target, "scenario": labels["scenario"], "item": labels["source_sample"],
             "check": labels["check"], "dimension": plan[labels["check"]]["dimension"],
             "layer": labels["layer"], "severity": labels.get("severity") or "not recorded",
@@ -162,7 +174,7 @@ def _interval(row: dict) -> str:
 def render_summary(summary: dict) -> str:
     lines = ["# InvisibleBench run summary", ""]
     if summary.get("stop_reason"):
-        lines += [f"**Incomplete run (stopped early):** {summary['stop_reason']}", ""]
+        lines += [f"**Incomplete run:** {summary['stop_reason']}", ""]
     lines += [f"**Method:** {summary['method']}", "",
               f"Unscored verdicts: {summary['unscored']}. "
               f"Not applicable: {summary['not_applicable']}.", ""]
@@ -173,8 +185,8 @@ def render_summary(summary: dict) -> str:
         lines.append("")
     if summary.get("by_conversation_all_pass"):
         lines += ["## Conversation-level pass rate (all checks pass)", "",
-                  "An item-epoch passes a layer only when every observed check in that layer "
-                  "passes across all turns, so easy turns cannot dilute a failure.", "",
+                  "Each conversation passes a layer only if all applicable checks pass. "
+                  "A FAIL or UNCLEAR rules out a pass. Missing checks otherwise leave the outcome unscored.", "",
                   "| Target | Layer | All-checks-pass rate [95% interval] |",
                   "| --- | --- | --- |"]
         lines += [f"| {r['target']} | {r['group']} | {_interval(r)} |"
@@ -488,7 +500,7 @@ def render_jury_card(card: dict) -> str:
     """Counts by check, then worked verdicts: each check's likeliest FAIL and its closest call."""
     lines = ["# InvisibleBench jury card", ""]
     if card.get("stop_reason"):
-        lines += [f"**Incomplete run (stopped early):** {card['stop_reason']}", ""]
+        lines += [f"**Incomplete run:** {card['stop_reason']}", ""]
     lines += [f"**Judge:** {card['judge']}  ",
               *([f"**Judge method:** {card['judge_method']}  "] if "judge_method" in card else []),
               f"**Targets:** {', '.join(card['targets'])}  ",

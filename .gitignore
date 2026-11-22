@@ -37,6 +37,8 @@ site/
 
 # Run artifacts (user-generated, not committed)
 results/
+*.eval
+/logs/
 
 # Retired publication staging
 /data/publication-source/

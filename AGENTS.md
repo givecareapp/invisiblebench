@@ -3,7 +3,8 @@
 Type: reference.
 
 This independent repository owns the public benchmark runtime and benchmark
-releases. Global, workspace and [Safety](../AGENTS.md) instructions apply.
+releases. In the GiveCare workspace, the global, workspace and parent Safety
+instructions also apply.
 
 ## Ownership and layout
 

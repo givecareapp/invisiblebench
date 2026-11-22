@@ -2,6 +2,41 @@
 
 Type: reference.
 
+## Prepare a website update
+
+For an approved public run, work in the InvisibleBench checkout. Replace
+`<run-id>` with the name of its saved run directory.
+
+```bash
+uv run --locked python release.py record results/<run-id>
+```
+
+Inspect the record in `data/runs/`, including the selected reply excerpts.
+Append a change to the `entries` list in `data/releases/changes.json`. Set
+`version` to the run's benchmark version and include the run ID in `runs`.
+Build and check the archive.
+
+```bash
+uv run --locked python release.py build
+scripts/check.sh
+```
+
+The website imports an archive from a specific commit. Once the reviewed
+archive and its inputs are committed, get the full commit ID with
+`git rev-parse HEAD` in InvisibleBench. In the GiveCare Web checkout, use
+that ID for `<owner-commit>`.
+
+```bash
+pnpm sync:bench --owner-commit <owner-commit>
+pnpm --filter @givecare/bench test --maxWorkers=2
+pnpm --filter @givecare/bench build
+pnpm dev:bench
+```
+
+Open the local address printed by Vite. Check `/results`, its version link and
+`/releases`. A change to the runner alone adds no results. For a change to the
+website text, reuse the committed archive. Deployment requires owner approval.
+
 ## Terms
 
 - **Benchmark version** (`pyproject.toml`, for example `0.2.1`). It fixes the
@@ -46,8 +81,6 @@ the Web repository's release and deploy commands for the Bench app.
 - `release-manifest.json` (`gc-bench.web-benchmark-release/v7`): member hashes
   and `release_version` = `changes-<number of entries>`.
 
-The archive replaces the v6 contract. Nothing reads v6 afterward.
-
 `release.py record` reads the run's original `run.json` and judge logs. Every
 requested family and target must have one judge log. A missing whole log is
 refused, because it cannot supply the frozen rubric and cohort. Partial logs
@@ -77,81 +110,5 @@ not authorize publication.
 - `rss.xml`: one item per change entry, linked to its version page.
 - `llms.txt`: the current version and the releases list.
 
-## The pilot and v0.2.1
-
-- The 2026-11-12 pilot is the first entry: v0.2.0, `development`, three models.
-- `bc60d9b7` made seven scenarios harder after the pilot. That is a case change,
-  so the version goes to 0.2.1. The first full run is the first v0.2.1 entry.
-- After it, `/results` shows v0.2.1. The pilot stays at `/results/v0.2.0` as a
-  dated development entry.
-
-## Development revision 0.2.2
-
-The proposed-option boundary for `care.fit` changed in `backup_care` and its
-implicit twin. The rules and authored labels changed together. The 0.2.1
-judge-method pilot retains its original source and results. It is not a
-0.2.2 result. Compare judge methods on the same frozen revision in a separately
-approved run. The active review remains bound to its original packet.
-
-## Development revision 0.2.3
-
-The Jev prompt and answer validation changed. Both request layouts now share
-state and question content. The native layout names remain `criterion/v1` and
-`jev-prefix-batch/v1`; version 0.2.3 and source hashes identify the new protocol.
-Old runs retain their original prompts, versions and verdicts. Reports show
-applicability uncertainty separately from Choice probability. The public
-archive and its schema are unchanged. No score from this revision is in the
-public archive.
-
-## Development revision 0.2.4
-
-Jev response validation now rejects missing or mismatched model identities and
-unrequested applicability values. Invalid answers remain unscored without losing
-raw responses or usage. Request content, cases, labels and the 0.5 cutoff are
-unchanged. Old runs retain their original versions and verdicts. No paid run has
-assessed this revision. The public archive is unchanged.
-
-## Development revision 0.2.5
-
-The owner approved a pacing clarification for `backup_care` and its implicit
-twin. `care.pace` judges brevity and order; missing work alone does not fail it.
-Coverage and drafting checks retain their requirements. Authored controls and
-labels are unchanged. The change does not apply to other families.
-Runs of this revision are development evidence, not independent validation.
-Prior logs and the active independent review retain their original rules and
-versions. The public archive is unchanged.
-
-## Development revision 0.2.6
-
-The owner adjudicated a blind first annotation by GPT-6 Pro on 2026-11-17.
-Both backup-care families relabel `crisis_script/agency.consent@1` from UNCLEAR
-to PASS and clarify `care.attune` and `task.message`. The bathing-seat rule
-stays unchanged. This annotation is not independent human validation.
-Run `2026-11-18_dev-repeat-026b` recorded the frozen 0.2.6 development run in
-`data/runs/2026-11-18_dev-repeat-026b.json` and rebuilt the committed public
-archive with `0.2.6` as the current development table (`0.2.0` frozen and
-superseded by `0.2.6`).
-
-## Development revision 0.2.7
-
-The Jev judge protocol moved from generic `Choice(PASS/FAIL/UNCLEAR)` criteria
-to rubric-bound binary `Noul` questions (`criteria.true` = `pass`,
-`criteria.false` = `fail`) over a structured state (`prior_turns`,
-`caregiver_message`, `assistant_reply`, `response_turn`), with a working
-`UNCLEAR` band (`0.45 < P(pass) < 0.55`) and explicit `criteria` on the
-`not_applicable` Companion `Noul`. Target generation now treats `content_filter`
-and empty replies as interruptions. Historical 0.2.0–0.2.6 logs and the
-committed public archive retain their original versions and verdicts; no paid
-run has assessed 0.2.7 yet.
-
-## Development revision 0.2.8
-
-Expands parallel atomic Safety `Noul` subchecks across 14 additional families
-(`home_safety`, `benefits_access`, `fluctuating_capacity`, `covert_medication`,
-`driving`, `caregiver_strain`, `suspected_abuse`, and their `_implicit` twins),
-adds `disclaimer_then_override` controls to all five override scenario pairs,
-adds optional cross-company System Two escalation (`--escalate-judge`), adds a
-direct `python jev.py eval` CLI shim, supports external `--generation-run` and
-`release.py record` on public `--generation-run` directories, and surfaces
-unpaired `dropped_items` and `generation_config`. The committed `v8` release
-archive remains unchanged.
+See the [changes record](../data/releases/changes.json) for published versions and the
+[development changelog](../CHANGELOG.md) for changes to the runner.

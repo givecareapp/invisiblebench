@@ -3,6 +3,7 @@
 import hashlib
 import json
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
@@ -64,7 +65,7 @@ def test_generation_run_judges_only_saved_logs_and_binds_record(tmp_path, monkey
     monkeypatch.setattr(run, "conversation_family", forbid_generation)
     monkeypatch.setattr(run, "target_judge", judge)
     monkeypatch.setattr(run, "inspect_eval", evaluate)
-    monkeypatch.setattr(run, "write_reports", lambda *args: None)
+    monkeypatch.setattr(run, "write_reports", lambda *args, **kwargs: None)
     out = tmp_path / "repeat"
     assert run.main(["--out", str(out), "--generation-run", str(directory),
                      "--judge", "mockllm/judge"]) == 0
@@ -236,3 +237,17 @@ def test_release_load_run_accepts_public_generation_run_and_refuses_external(tmp
     (tmp_path / "run.json").write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match="external cases"):
         load_run(tmp_path)
+
+
+def test_relocated_run_uses_original_paths_relative_to_saved_out(tmp_path, monkeypatch):
+    directory, sources = source_run(tmp_path, monkeypatch)
+    manifest = directory / "run.json"
+    original = tmp_path / "former-location"
+    data = json.loads(manifest.read_text())
+    data["args"] = {"out": str(original)}
+    for entry in data["logs"]:
+        if entry["task"] == "conversation_family":
+            entry["location"] = str(original / Path(entry["location"]).relative_to(directory))
+    manifest.write_text(json.dumps(data))
+    saved, _ = run.prepare_generation_run(directory, "mockllm/judge")
+    assert [s["location"] for s in saved] == list(sources)

@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 
+import pytest
 from inspect_ai import eval as inspect_eval
 from inspect_ai.model import ModelOutput, get_model
 
@@ -57,3 +58,8 @@ def test_build_packet_supports_external_cases_and_restores_env(tmp_path, monkeyp
     )
     cli_packet = json.loads(proc.stdout)
     assert cli_packet == packet
+
+    rubric = external / family / "rubric.json"
+    rubric.write_bytes(rubric.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="rubric"):
+        build_packet(log.location, cases=external)

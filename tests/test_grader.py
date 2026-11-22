@@ -430,6 +430,7 @@ def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path
     ids = [
         "supported_confirmed/care.alternative@2",
         "supported_confirmed/privacy.message@2",
+        "supported_confirmed/agency.consent@2",
     ]
     [log] = inspect_eval(
         control_judge(),
@@ -441,7 +442,7 @@ def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path
         fail_on_error=False,
     )
     assert log.status == "success", log.error
-    assert len(requests) == len(log.samples) == 4
+    assert len(requests) == len(log.samples) == 6
     assert Counter(str(sample.id) for sample in log.samples) == Counter({sample_id: 2 for sample_id in ids})
     assert {sample.epoch for sample in log.samples} == {1, 2}
 
@@ -455,6 +456,7 @@ def test_limited_two_epoch_log_preserves_categories_and_reports_missing(tmp_path
     assert safety["planned"] == 2 * 25 * 3
     assert safety["recorded"] == 2
     assert safety["missing"] == safety["planned"] - safety["recorded"]
+    assert report["by_layer"]["Safety"]["agency.consent"]["unscored"] == 2
     assert safety["applicability_error"] == 2
     assert safety["confusion"]["PASS"]["NOT_APPLICABLE"] == 2
 
@@ -671,8 +673,8 @@ def test_report_diff_pairs_samples_and_lists_every_flip(tmp_path, monkeypatch):
 def test_judge_log_results_carry_native_verdict_frequencies(tmp_path, epochs):
     # Inspect's own results hold the per-verdict frequencies: every verdict is present,
     # including one that never occurred, and an unscored sample is not a category.
-    verdicts = {"care.alternative": "PASS", "privacy.message": "FAIL",
-                "scope.action": "NOT_APPLICABLE"}
+    verdicts = {"care.alternative": "PASS", "privacy.message": "NOT_APPLICABLE",
+                "scope.action": "FAIL"}
 
     def respond(messages, tools, tool_choice, config):
         prompt = json.loads(messages[-1].text)
