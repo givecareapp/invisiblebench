@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Local checks on exactly what is being committed — replaces .github/workflows/ci.yml
-# (org standard: no GitHub Actions). Activate once per clone: git config core.hooksPath .githooks
+# Run the same checks as CI on the staged tree.
+# Activate once per clone: git config core.hooksPath .githooks
 #
 # The staged tree, including the temporary index of `git commit --only`, is checked out as a
 # throwaway commit in a temporary worktree, and the check runs there. The judge gate refuses

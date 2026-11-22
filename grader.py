@@ -21,6 +21,7 @@ from task import (
     PROJECT,
     VERSION,
     case_path,
+    check_plan,
     item_labels,
     load_case,
     revision,
@@ -149,7 +150,12 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
     if log.eval.metadata.get("case_sha256") != hashlib.sha256(case_file.read_bytes()).hexdigest():
         raise ValueError("Generation case differs from the current case")
     case = load_case(family)
-    rubric = json.loads(rubric_path.read_text())
+    rubric_bytes = rubric_path.read_bytes()
+    rubric_hash = hashlib.sha256(rubric_bytes).hexdigest()
+    recorded_hash = log.eval.metadata.get("rubric_sha256")
+    if recorded_hash is not None and rubric_hash != recorded_hash:
+        raise ValueError("Generation rubric differs from the current rubric")
+    rubric = json.loads(rubric_bytes)
     item_turns = {f"{case['id']}/{v['id']}": user_turns(case, v) for v in case["variants"]}
     labels = {f"{case['id']}/{v['id']}": item_labels(case, v) for v in case["variants"]}
     total_turns = 1 + len(case["followups"])
@@ -213,6 +219,8 @@ def target_samples(source_log: str) -> tuple[list[Sample], dict]:
                 })
     conversations.sort(key=lambda c: (c["sample_id"], c["epoch"]))
     source = {"family": family, "item_labels": labels,
+              "rubric_sha256": rubric_hash, "generation_rubric_sha256": recorded_hash,
+              "check_plan": check_plan(rubric),
               "eval_id": log.eval.eval_id, "model": log.eval.model,
               "status": log.status,
               "settings": {
@@ -444,6 +452,8 @@ def criterion_verdict(check: str | None = None) -> Scorer:
             # Read the actual frozen input, not the current files or another turn.
             payload = json.loads(state.input[-1].text)
             answer = parse_judgment(raw, payload["conversation"])
+            if answer["verdict"] == "NOT_APPLICABLE" and not payload["criterion"].get("not_applicable"):
+                raise ValueError("NOT_APPLICABLE requires an applicability rule")
         except ValueError as error:
             return Score.unscored(
                 reason="grader_failed", answer=raw, explanation=str(error), metadata=metadata
@@ -552,9 +562,10 @@ def target_judge(source_log: str, cost_limit_usd: float | None = None,
     _validate_cost_limit(cost_limit_usd)
     dataset, source = preloaded if preloaded is not None else target_samples(source_log)
     physical, scorers, layout = judge_layout(dataset, batch)
+    source = source.copy()
+    plan = source.pop("check_plan")
     family = source["family"]
-    case_file, rubric_path, _ = family_files(family)
-    paths = [case_file, rubric_path, PROJECT, Path(__file__).resolve(), Path(jev.__file__)]
+    paths = [case_path(family), PROJECT, Path(__file__).resolve(), Path(jev.__file__)]
     return Task(
         dataset=physical, solver=bounded_judge(cost_limit_usd, target=source["model"], batch=batch),
         scorer=scorers,
@@ -565,10 +576,8 @@ def target_judge(source_log: str, cost_limit_usd: float | None = None,
             "benchmark_version": VERSION,
             **layout,
             "source": source,
-            "source_sha256": _source_hashes(paths),
-            "check_plan": {check["id"]: {"layer": check["layer"], "turns": check["turns"],
-                                         **{label: check[label] for label in CRITERION_LABELS}}
-                           for check in json.loads(rubric_path.read_text())["checks"]},
+            "source_sha256": {**_source_hashes(paths), "rubric.json": source["rubric_sha256"]},
+            "check_plan": plan,
             "reference_manifest": {str(s.id): s.metadata for s in dataset},
         },
     )
@@ -638,6 +647,14 @@ def summarize(log: EvalLog) -> dict:
     }
 
 
+def planned_checks(item: str, epoch: int, labels: dict, plan: dict) -> Iterator[dict]:
+    """Every scheduled check on one conversation, including turns with no reply."""
+    for check, rule in plan.items():
+        for turn in rule["turns"]:
+            yield {**labels, "source_sample": item, "source_epoch": epoch,
+                   "check": check, "layer": rule["layer"], "turn": turn}
+
+
 def target_observations(log: EvalLog) -> Iterator[
     tuple[dict, EvalSample | JudgedCheck | None, str | None]
 ]:
@@ -671,27 +688,24 @@ def target_observations(log: EvalLog) -> Iterator[
         references[key] = (sample_id, reference)
     for conversation in source["conversations"]:
         item, epoch = conversation["sample_id"], conversation["epoch"]
-        labels = source.get("item_labels", {}).get(item, {})
-        for check, rule in plan.items():
-            for turn in rule["turns"]:
+        labels = source.get("item_labels", {}).get(item, {"scenario": scenario_of(source["family"])})
+        for reference in planned_checks(item, epoch, labels, plan):
+            turn, check = reference["turn"], reference["check"]
+            sample_id = None
+            gap = None
+            if turn > conversation["completed_turns"]:
+                gap = ("generation_unattempted" if conversation["status"] == "unattempted"
+                       else "generation_interrupted")
+            else:
                 key = (item, epoch, check, turn)
-                reference = {"source_sample": item, "source_epoch": epoch,
-                             "scenario": scenario_of(source["family"]), **labels,
-                             "check": check, "layer": rule["layer"], "turn": turn}
-                gap = None
-                sample_id = None
-                if turn > conversation["completed_turns"]:
-                    gap = ("generation_unattempted" if conversation["status"] == "unattempted"
-                           else "generation_interrupted")
-                elif key in references:
-                    sample_id, reference = references.pop(key)
-                    if reference["layer"] != rule["layer"]:
-                        raise ValueError(f"Frozen manifest differs from check plan: {key}")
-                else:
+                if key not in references:
                     raise ValueError(f"Frozen manifest does not match source conversations: {key}")
-                for judge_epoch in range(1, epochs + 1):
-                    sample = records.get((sample_id, judge_epoch))
-                    yield reference, sample, gap or ("judge_missing" if sample is None else None)
+                sample_id, reference = references.pop(key)
+                if reference["layer"] != plan[check]["layer"]:
+                    raise ValueError(f"Frozen manifest differs from check plan: {key}")
+            for judge_epoch in range(1, epochs + 1):
+                sample = records.get((sample_id, judge_epoch))
+                yield reference, sample, gap or ("judge_missing" if sample is None else None)
     if references:
         raise ValueError("Frozen manifest has checks outside the source conversations")
 

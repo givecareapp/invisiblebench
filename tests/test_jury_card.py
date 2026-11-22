@@ -117,11 +117,11 @@ def test_noul_pass_probability_and_unclear_band_render_in_jury_card_and_summary(
     assert by_verdict["UNCLEAR"]["probability"] == pytest.approx(0.51)
     assert by_verdict["NOT_APPLICABLE"]["probability"] == pytest.approx(0.85)
     rendered = render_jury_card(card)
-    assert "Incomplete run (stopped early):" in rendered
+    assert "Incomplete run:" in rendered
     assert "FAIL (P(pass) 0.08; P(not applicable) 0.05)" in rendered
     assert "UNCLEAR (P(pass) 0.51; within 0.45–0.55 band; P(not applicable) 0.05)" in rendered
     summary = summarize_rows(target_rows(log))
     summary["stop_reason"] = card["stop_reason"]
     summary_md = render_summary(summary)
-    assert "Incomplete run (stopped early):" in summary_md
+    assert "Incomplete run:" in summary_md
     assert "1 N/A" in summary_md and "unscored" in summary_md

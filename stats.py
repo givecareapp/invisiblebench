@@ -96,14 +96,14 @@ def item_means(rows: list[dict]) -> dict:
     return dict(result)
 
 
-def estimates(rows: list[dict], key, level: float = 0.95, *, aggregator=item_means) -> dict:
+def estimates(rows: list[dict], key, level: float = 0.95) -> dict:
     """One clustered interval per group, with left-out verdicts counted."""
     groups = defaultdict(list)
     for row in rows:
         groups[key(row)].append(row)
     result = {}
     for name, members in sorted(groups.items(), key=lambda pair: str(pair[0])):
-        means = aggregator(members)
+        means = item_means(members)
         result[name] = {
             **cluster_interval({s: list(items.values()) for s, items in means.items()}, level),
             "not_applicable": sum(r["verdict"] == "NOT_APPLICABLE" for r in members),
@@ -112,26 +112,23 @@ def estimates(rows: list[dict], key, level: float = 0.95, *, aggregator=item_mea
     return result
 
 
-def item_all_pass(rows: list[dict]) -> dict:
-    """{scenario: {item: share of observed item-epochs where every observed check is PASS}}."""
-    epochs = defaultdict(list)
-    for row in rows:
-        if row["verdict"] in OBSERVED:
-            epochs[(row["scenario"], row["item"], row.get("epoch") or 1)].append(
-                row["verdict"] == "PASS"
-            )
-    by_item = defaultdict(list)
-    for (scenario, item, _epoch), passes in epochs.items():
-        by_item[(scenario, item)].append(1.0 if all(passes) else 0.0)
-    result = defaultdict(dict)
-    for (scenario, item), outcomes in by_item.items():
-        result[scenario][item] = sum(outcomes) / len(outcomes)
-    return dict(result)
-
-
 def all_pass_estimates(rows: list[dict], key, level: float = 0.95) -> dict:
-    """Clustered conversation-level all-checks-pass rate per group (no easy-turn dilution)."""
-    return estimates(rows, key, level, aggregator=item_all_pass)
+    """Reduce each conversation to one layer verdict, then use the ordinary estimator."""
+    epochs = defaultdict(set)
+    for row in rows:
+        epochs[key(row), row["scenario"], row["item"], row.get("epoch") or 1].add(row["verdict"])
+    conversations = []
+    for (group, scenario, item, _), verdicts in epochs.items():
+        if verdicts & {"FAIL", "UNCLEAR"}:
+            verdict = "FAIL"  # At least one applicable check did not pass.
+        elif None in verdicts:
+            verdict = None
+        elif "PASS" in verdicts:
+            verdict = "PASS"
+        else:
+            verdict = "NOT_APPLICABLE"
+        conversations.append({"group": group, "scenario": scenario, "item": item, "verdict": verdict})
+    return estimates(conversations, key=lambda row: row["group"], level=level)
 
 
 def paired_difference(rows: list[dict], a: str, b: str, level: float = 0.95) -> dict:

@@ -8,6 +8,14 @@ the one in `pyproject.toml`, which every Inspect log records as
 `benchmark_version`. Commits are the detailed record. The 5.8.0
 implementation is source revision `22552fe` and has no entries here.
 
+## [0.2.9] - 2026-11-22
+
+A conversation can pass a layer only if every applicable check has a verdict
+and passes. Run summaries include checks from generated families that received
+no judgment. A chat judge can return `NOT_APPLICABLE` only when the rubric
+has an applicability rule. Review packets verify the generation rubric.
+Saved runs can move with their manifests and logs.
+
 ## [0.2.8] - 2026-11-22
 
 Development version 0.2.8. Expands parallel atomic Safety `Noul` subchecks across
@@ -55,8 +63,9 @@ run or independent human validation has assessed 0.2.8 yet.
 ## [0.2.7] - 2026-11-22
 
 Development version 0.2.7. Idiomatic TypeSafe System One (`Noul`) judge protocol and
-harness defensibility hardening. No paid run has assessed 0.2.7 yet; prior 0.2.6 runs
-and the committed public archive retain their original versions and verdicts.
+harness defensibility hardening. Two paid development runs exercised `backup_care` on 0.2.7.
+`2026-11-22_dryrun-027` used a dirty checkout.
+`2026-11-22_dryrun-027b` used clean commit `12b5b9a7`.
 
 ### Changed
 

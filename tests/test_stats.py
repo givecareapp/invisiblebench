@@ -7,7 +7,6 @@ from stats import (
     all_pass_estimates,
     cluster_interval,
     estimates,
-    item_all_pass,
     item_means,
     paired_difference,
     t_quantile,
@@ -107,8 +106,18 @@ def test_conversation_all_pass_prevents_easy_turns_from_diluting_a_failure():
     rows.append(_row("s1/a", "FAIL", epoch=1, check="c8"))
     rows.append(_row("s2/a", "PASS", epoch=1, check="c0"))
     rows.append(_row("s2/a", "NOT_APPLICABLE", epoch=1, check="c1"))
-    assert item_all_pass(rows) == {"s1": {"s1/a": 0.0}, "s2": {"s2/a": 1.0}}
+    by_item = all_pass_estimates(rows, key=lambda r: r["item"])
+    assert {k: v["estimate"] for k, v in by_item.items()} == {"s1/a": 0.0, "s2/a": 1.0}
     [(key, result)] = all_pass_estimates(rows, key=lambda r: (r["target"], r["layer"])).items()
     assert key == ("t", "Safety")
     assert result["estimate"] == pytest.approx(0.5)
-    assert result["not_applicable"] == 1
+    assert result["not_applicable"] == 0  # Both conversations had applicable checks.
+
+
+def test_missing_checks_leave_only_undecided_conversations_unscored():
+    rows = [_row("s/a", "PASS"), _row("s/a", None), _row("s/a", None),
+            _row("s/b", "FAIL"), _row("s/b", None), _row("s/c", "NOT_APPLICABLE")]
+    del rows[0]["epoch"]  # Older records use the first epoch by default.
+    result = all_pass_estimates(rows, key=lambda r: r["target"])["t"]
+    assert result["estimate"] == 0.0
+    assert result["items"] == result["unscored"] == result["not_applicable"] == 1

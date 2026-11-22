@@ -273,8 +273,10 @@ def test_ceiling_stops_before_the_next_evaluation_and_records_why(tmp_path, caps
     reason = f"reported cost ${cost:.4f} exceeds ceiling $0.0010 before JUDGE backup_care {PRICED}"
     assert record["stop_reason"] == reason
     assert capsys.readouterr().out.splitlines()[-1] == f"STOPPED {reason}; 0 of 1 logs report no cost"
-    # The judge never started, so there is no judge log and no report.
-    assert sorted(p.name for p in out.iterdir()) == ["generation", "run.json"]
+    assert not (out / "judge").exists()
+    summary = json.loads((out / "reports/summary.json").read_text())
+    assert summary["stop_reason"] == reason
+    assert summary["unscored"] == 54
 
 
 def test_run_under_the_ceiling_completes_and_counts_an_unpriced_log_as_unknown(tmp_path):
@@ -289,7 +291,8 @@ def test_run_under_the_ceiling_completes_and_counts_an_unpriced_log_as_unknown(t
     assert record["unknown_cost_logs"] == 1
 
 
-def test_a_log_with_no_judgeable_samples_is_reported_and_skipped(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("mixed", [False, True])
+def test_a_log_with_no_judgeable_samples_is_reported_and_skipped(tmp_path, monkeypatch, capsys, mixed):
     @solver
     def provider_down():
         async def solve(state, generate):
@@ -299,24 +302,31 @@ def test_a_log_with_no_judgeable_samples_is_reported_and_skipped(tmp_path, monke
 
     def failing_generation(family):
         healthy = conversation_family(family)
+        if family != "backup_care":
+            return healthy
         return Task(dataset=healthy.dataset, solver=provider_down(), scorer=None,
                     config=healthy.config, metadata=healthy.metadata)
 
     monkeypatch.setattr(run, "conversation_family", failing_generation)
     out = tmp_path / "run"
-    assert main(_args(out)) == 0
+    extra = ["--family", "backup_care_implicit"] if mixed else []
+    assert main(_args(out, *extra)) == 1
     lines = capsys.readouterr().out.splitlines()
     assert lines[0] == "GEN backup_care mockllm/model success 3 samples 3 errors"
-    assert lines[1] == "SKIP backup_care mockllm/model no judgeable samples"
-    assert lines[2].startswith("DONE ")
+    assert "SKIP backup_care mockllm/model no judgeable samples" in lines
+    assert lines[-1].startswith("STOPPED ")
     record = _record(out)
-    [generation] = record["logs"]
+    generation = record["logs"][0]
     assert generation["samples"] == generation["errors"] == 3
     assert generation["model_usage"] == {}
     # No usage record cannot establish a measured zero cost.
     assert record["reported_cost_usd"] == 0
-    assert record["unknown_cost_logs"] == 1
-    assert sorted(p.name for p in out.iterdir()) == ["generation", "run.json"]
+    assert record["unknown_cost_logs"] == len(record["logs"])
+    summary = json.loads((out / "reports/summary.json").read_text())
+    assert summary["unscored"] == (108 if mixed else 54)
+    assert summary["stop_reason"] == record["stop_reason"]
+    assert "backup_care" in summary["stop_reason"]
+    assert (out / "judge").exists() == mixed
 
 
 def test_help_runs_as_a_script_from_a_clone():

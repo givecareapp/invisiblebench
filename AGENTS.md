@@ -3,12 +3,14 @@
 Type: reference.
 
 This independent repository owns the public benchmark runtime and benchmark
-releases. Global, workspace and [Safety](../AGENTS.md) instructions apply.
+releases. In the GiveCare workspace, the global, workspace and parent Safety
+instructions also apply.
 
 ## Ownership and layout
 
-- `task.py` owns generation; `grader.py` owns judging and the frozen planned
-  checks; `jev.py` owns the TypeSafe provider. `report.py` and `stats.py` turn
+- `task.py` records the planned checks and rubric hash at generation.
+  `grader.py` verifies the rubric and judges replies. `jev.py` owns the
+  TypeSafe provider. `report.py` and `stats.py` turn
   those checks into reports. `run.py` owns execution and cost handling.
 - `review_packet.py` prepares blind packets. The private study and Confer own
   reviewer access, active packets and answers; preserve them during code cleanup.
