@@ -14,6 +14,13 @@
       "status": "development",
       "runs": ["2026-11-18_dev-repeat-026b"],
       "text": "Development run of the frozen 0.2.6 rules: three models on 24 public case families, three repeats of each conversation. Verdicts are unvalidated; the repeatability target was not met."
+    },
+    {
+      "date": "2026-11-26",
+      "version": "0.2.10",
+      "status": "development",
+      "runs": ["2026-11-26_full-v0210-qwen-opus"],
+      "text": "Development run of v0.2.10 (clinician design-review rules, Noul Jev judge, atomic Safety subchecks): Claude Opus 5.5 and Qwen 3.7 Flash across all 24 public case families (1 repeat). Verdicts remain unvalidated; additional models can be added to this version table."
     }
   ]
 }
