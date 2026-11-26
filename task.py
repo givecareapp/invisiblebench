@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import tomllib
+import unicodedata
 from pathlib import Path
 
 from inspect_ai import Task, task
@@ -157,16 +158,46 @@ def item_labels(case: dict, variant: dict) -> dict:
             "severity": variant["severity"]}
 
 
-def samples(family: str = "backup_care") -> list[Sample]:
-    case = load_case(family)
-    return [
-        Sample(
-            id=f"{case['id']}/{variant['id']}",
-            input=(turns := user_turns(case, variant))[0],
-            metadata={"followups": turns[1:], **item_labels(case, variant)},
+TRANSFORMS = ("lower",)
+_APOSTROPHES = {"'", "’"}
+
+
+def format_caregiver_text(text: str) -> str:
+    """Lowercase and replace punctuation with spaces, preserving facts, numbers, and apostrophes."""
+    output = []
+    for index, char in enumerate(text):
+        punctuation = unicodedata.category(char).startswith("P")
+        inside_number = (
+            index > 0
+            and index + 1 < len(text)
+            and text[index - 1].isdecimal()
+            and text[index + 1].isdecimal()
         )
-        for variant in case["variants"]
-    ]
+        output.append(
+            " "
+            if punctuation and char not in _APOSTROPHES and not inside_number
+            else char.lower()
+        )
+    return " ".join("".join(output).split())
+
+
+def samples(family: str = "backup_care", *, transform: str | None = None) -> list[Sample]:
+    if transform is not None and transform not in TRANSFORMS:
+        raise ValueError(f"Unknown transform {transform!r}; valid transforms: {TRANSFORMS}")
+    case = load_case(family)
+    result = []
+    for variant in case["variants"]:
+        turns = user_turns(case, variant)
+        if transform == "lower":
+            turns = [format_caregiver_text(turn) for turn in turns]
+        result.append(
+            Sample(
+                id=f"{case['id']}/{variant['id']}",
+                input=turns[0],
+                metadata={"followups": turns[1:], **item_labels(case, variant)},
+            )
+        )
+    return result
 
 
 @solver
@@ -208,8 +239,8 @@ def check_plan(rubric: dict) -> dict:
 
 
 @task
-def conversation_family(family: str = "backup_care") -> Task:
-    dataset = samples(family)
+def conversation_family(family: str = "backup_care", transform: str | None = None) -> Task:
+    dataset = samples(family, transform=transform)
     rubric = case_path(family).with_name("rubric.json").read_bytes()
     return Task(
         dataset=dataset,
@@ -219,6 +250,7 @@ def conversation_family(family: str = "backup_care") -> Task:
         metadata={
             "use": "development",
             "family": family,
+            **({"transform": transform} if transform is not None else {}),
             "benchmark_version": VERSION,
             "project_sha256": hashlib.sha256(PROJECT.read_bytes()).hexdigest(),
             "case_sha256": hashlib.sha256(case_path(family).read_bytes()).hexdigest(),

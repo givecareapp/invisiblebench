@@ -124,10 +124,14 @@ def target_rows(log: EvalLog, *, judge_method: str = jev.SINGLE_METHOD) -> list[
             "judge_method": judge_method,
             "target": target, "scenario": labels["scenario"], "item": labels["source_sample"],
             "check": labels["check"], "dimension": plan[labels["check"]]["dimension"],
+            "protects": list(plan[labels["check"]].get("protects") or []),
             "layer": labels["layer"], "severity": labels.get("severity") or "not recorded",
             "epoch": labels.get("source_epoch"), "verdict": sample_verdict(sample),
         })
     return rows
+
+
+_PARTY_LABELS = {"user": "caregiver", "care_recipient": "care_recipient", "third_party": "third_party"}
 
 
 def summarize_rows(rows: list[dict]) -> dict:
@@ -138,6 +142,17 @@ def summarize_rows(rows: list[dict]) -> dict:
     for name, field in SUMMARY_GROUPS.items():
         by[name] = [{"target": target, "group": group, **interval} for (target, group), interval
                     in estimates(rows, key=lambda r, f=field: (r["target"], r[f])).items()]
+    party_rows = [
+        {**row, "party": _PARTY_LABELS.get(party, party)}
+        for row in rows
+        for party in (row.get("protects") or [])
+    ]
+    if party_rows:
+        by["protected_party"] = [
+            {"target": target, "group": group, **interval}
+            for (target, group), interval
+            in estimates(party_rows, key=lambda r: (r["target"], r["party"])).items()
+        ]
     differences = []
     for i, a in enumerate(targets):
         for b in targets[i + 1:]:
@@ -179,7 +194,8 @@ def render_summary(summary: dict) -> str:
               f"Unscored verdicts: {summary['unscored']}. "
               f"Not applicable: {summary['not_applicable']}.", ""]
     for name, rows in summary["by"].items():
-        lines += [f"## Pass rate by {name}", "", "| Target | Group | Pass rate [95% interval] |",
+        heading = name.replace("_", " ")
+        lines += [f"## Pass rate by {heading}", "", "| Target | Group | Pass rate [95% interval] |",
                   "| --- | --- | --- |"]
         lines += [f"| {r['target']} | {r['group']} | {_interval(r)} |" for r in rows]
         lines.append("")

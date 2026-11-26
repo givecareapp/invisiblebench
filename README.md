@@ -38,8 +38,9 @@ The first check caches the same vocabulary. Later checks can run offline.
 The check runs lint and mocked tests, including a byte-for-byte rebuild of
 the website archive. GitHub Actions runs the same command. To check the staged
 files before each commit, run `git config core.hooksPath .githooks`.
-After editing public cases, run
-`uv run --locked python scripts/make_format_copies.py --refresh`.
+Pass `--transform lower` to `run.py` (or `-T transform=lower` to `task.py`) to
+run the deterministic lowercase surface perturbation without maintaining duplicate
+case folders.
 
 ## Build the web release
 

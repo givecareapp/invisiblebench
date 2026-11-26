@@ -89,6 +89,8 @@ def build_parser() -> argparse.ArgumentParser:
     add("--escalate-below", type=positive(float), default=0.65,
         help="escalate checks whose weakest used signal is below this threshold (default 0.65)")
     add("--epochs", type=positive(int), default=1, help="generation epochs (default 1)")
+    add("--transform", choices=("lower",),
+        help="deterministic surface transform applied to caregiver turns at generation time")
     add("--max-tokens", type=positive(int), default=8192,
         help="generation max tokens, the same for every target (default 8192)")
     add("--judge-cost-limit-usd", type=positive(float), help="per-sample judge cost limit")
@@ -105,8 +107,10 @@ def check_request(args: argparse.Namespace) -> None:
     if args.batch_judge and args.judge != "typesafe/jev-1.14.0":
         raise ValueError("--batch-judge requires typesafe/jev-1.14.0")
     if args.generation_run:
-        if args.family or args.target or args.controls:
-            raise ValueError("--generation-run cannot use --family, --target, or --controls")
+        if args.family or args.target or args.controls or args.transform:
+            raise ValueError(
+                "--generation-run cannot use --family, --target, --controls, or --transform"
+            )
         if args.out.resolve().is_relative_to(Path(args.generation_run).resolve()):
             raise ValueError("--out must be outside the source generation directory")
     elif not args.family:
@@ -339,8 +343,13 @@ def execute(
         if saved_generation is None:
             for family in args.family:
                 for target in args.target:
+                    gen_task = (
+                        conversation_family(family, transform=args.transform)
+                        if args.transform
+                        else conversation_family(family)
+                    )
                     log = evaluate(
-                        "GEN", family, target, conversation_family(family), target,
+                        "GEN", family, target, gen_task, target,
                         f"generation/{family}", epochs=args.epochs,
                         max_tokens=args.max_tokens,
                     )
