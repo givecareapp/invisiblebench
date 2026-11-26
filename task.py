@@ -27,16 +27,17 @@ CASES_ENV = "INVISIBLEBENCH_CASES"
 PROJECT = ROOT / "pyproject.toml"
 VERSION = tomllib.loads(PROJECT.read_text())["project"]["version"]
 
-# OpenRouter list prices in USD per million tokens, read from /api/v1/models on 2026-11-12.
+# OpenRouter list prices in USD per million tokens, refreshed from /api/v1/models on 2026-11-26.
 # Refresh them before a paid run. Each value is (input, output, input_cache_read).
 OPENROUTER_PRICES: dict[str, tuple[float, float, float]] = {
+    "openrouter/anthropic/claude-opus-5.5": (4.00, 20.00, 0.20),
     "openrouter/anthropic/claude-haiku-5.5": (0.10, 0.50, 0.01),
     "openrouter/openai/gpt-5.6-luna-pro": (0.20, 1.20, 0.02),
     "openrouter/openai/gpt-5.6-luna": (0.20, 1.20, 0.02),
     "openrouter/google/gemini-3.1-flash-lite": (0.25, 1.50, 0.025),
     "openrouter/deepseek/deepseek-v4.1-flash": (0.022, 0.40, 0.004),
     "openrouter/meta-llama/llama-3.3-70b-instruct": (0.71, 0.71, 0.71),
-    "openrouter/qwen/qwen3.7-flash": (0.03, 0.13, 0.03),
+    "openrouter/qwen/qwen3.7-flash": (0.03, 0.13, 0.006),
 }
 
 
