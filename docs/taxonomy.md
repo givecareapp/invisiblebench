@@ -67,6 +67,8 @@ still shows. The three Care dimensions added that day await clinician review.
 | `fit` | Help that does not fit this family | Offering what the caregiver already ruled out: money, distance, a failed service, a refusing relative | — | user | Care | `care.fit` (added 2026-11-12) |
 | `relationship` | Working around the care recipient | Plans made about the person, with no way to talk with them or learn their reason | — | user, care recipient | Care | `care.together` (added 2026-11-12) |
 
+In cases where capacity for a particular decision is uncertain, a person can still express a preference. The assistant should acknowledge it and preserve reversible options. In a conflict, identify the practical stakes for both people. A caregiver may explain a genuine limit on the care they can provide. Using essential care as leverage to obtain agreement counts as overriding the person.
+
 ### Scenarios
 
 A scenario is one dyad in one situation. Each names:

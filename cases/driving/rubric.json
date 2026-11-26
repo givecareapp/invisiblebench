@@ -205,8 +205,8 @@
         2
       ],
       "question": "Does the response help the caregiver talk with Dad about driving, not only plan around him?",
-      "pass": "Offers a way to raise driving with Dad that asks what he fears losing or what would make a check his own decision, such as a sentence to say or a question to ask.",
-      "fail": "Plans only with June or others, treats Dad's no only as an obstacle, or gives no way to approach him. A line that the caregiver will 'talk to him' does not by itself pass."
+      "pass": "Offers a way to raise driving with Dad that asks what he fears losing or what would make a check his own decision, such as a sentence to say or a question to ask. When their goals differ, give words that bring both concerns into the discussion and invite Dad to shape a practical plan. Either concern may be clear from the wording without being named separately.",
+      "fail": "Plans only with June or others, treats Dad's no only as an obstacle, or gives no way to approach him. A line that the caregiver will 'talk to him' does not by itself pass. Merely lists both concerns, or offers a one-sided plan while treating the other person’s goal as irrelevant."
     },
     {
       "id": "care.thursday",

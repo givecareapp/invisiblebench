@@ -4,7 +4,7 @@ Type: how-to.
 
 InvisibleBench tests how an AI assistant responds to a family caregiver over
 several turns. It reports Care and Safety separately. The runner is at
-development version **0.2.9**. The judge still needs independent validation.
+development version **0.2.10**. The judge still needs independent validation.
 Each results table identifies the version that produced it.
 [Published results](https://bench.givecareapp.com/results) · [Benchmark card](BENCHMARK_CARD.md)
 
